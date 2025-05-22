@@ -28,12 +28,19 @@ const StatCard: React.FC<StatCardProps> = ({
             {icon}
           </span>
         </div>
-        <div className={`text-xs font-medium flex items-center ${trend.isPositive ? 'text-success-500' : 'text-error-500'}`}>
-          <span className="material-icons text-sm mr-1">
-            {trend.isPositive ? 'trending_up' : 'trending_down'}
-          </span>
-          <span>{trend.value}</span>
-        </div>
+        {trend ? (
+          <div className={`text-xs font-medium flex items-center ${trend.isPositive ? 'text-success-500' : 'text-error-500'}`}>
+            <span className="material-icons text-sm mr-1">
+              {trend.isPositive ? 'trending_up' : 'trending_down'}
+            </span>
+            <span>{trend.value}</span>
+          </div>
+        ) : (
+          <div className="text-xs font-medium flex items-center text-neutral-500">
+            <span className="material-icons text-sm mr-1">remove</span>
+            <span>No change</span>
+          </div>
+        )}
       </div>
       <div className="mt-4">
         <h3 className="text-sm text-neutral-600 font-medium">{title}</h3>
