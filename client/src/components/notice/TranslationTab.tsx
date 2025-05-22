@@ -133,7 +133,7 @@ export default function TranslationTab({ noticeData, onPrevious, onComplete }: T
                   variant="outline" 
                   size="sm"
                   onClick={handleDownloadOriginal}
-                  className="flex items-center"
+                  className="flex items-center text-[#2E77AE] border-[#2E77AE]/30 hover:bg-[#2E77AE]/10 hover:border-[#2E77AE]"
                 >
                   <span className="material-icons text-sm mr-1">download</span>
                   PDF
@@ -185,7 +185,7 @@ export default function TranslationTab({ noticeData, onPrevious, onComplete }: T
       {/* Translate Button */}
       <div className="flex justify-center mb-6">
         <Button 
-          className="bg-primary-500 hover:bg-primary-600 text-white"
+          className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
           onClick={handleTranslate}
           disabled={translateMutation.isPending || selectedLanguages.length === 0}
         >
@@ -221,7 +221,7 @@ export default function TranslationTab({ noticeData, onPrevious, onComplete }: T
                         variant="outline" 
                         size="sm"
                         onClick={() => handleDownload(notice)}
-                        className="flex items-center"
+                        className="flex items-center text-[#2E77AE] border-[#2E77AE]/30 hover:bg-[#2E77AE]/10 hover:border-[#2E77AE]"
                       >
                         <span className="material-icons text-sm mr-1">download</span>
                         PDF
@@ -240,12 +240,13 @@ export default function TranslationTab({ noticeData, onPrevious, onComplete }: T
         <Button 
           variant="outline" 
           onClick={onPrevious}
+          className="text-[#2E77AE] border-[#2E77AE]/30 hover:bg-[#2E77AE]/10 hover:border-[#2E77AE]"
         >
           Previous
         </Button>
         
         <Button 
-          className="bg-primary-500 hover:bg-primary-600 text-white"
+          className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
           onClick={onComplete}
         >
           Complete

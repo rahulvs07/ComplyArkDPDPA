@@ -264,6 +264,7 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
           <Button 
             variant="outline" 
             onClick={onPrevious}
+            className="text-[#2E77AE] border-[#2E77AE]/30 hover:bg-[#2E77AE]/10 hover:border-[#2E77AE]"
           >
             Previous
           </Button>
