@@ -67,7 +67,7 @@ const DataTable: React.FC<DataTableProps> = ({
               >
                 {columns.map((column) => (
                   <td key={column.key} className="px-4 py-3 text-sm text-neutral-800">
-                    {column.render ? column.render(row[column.key]) : row[column.key]}
+                    {column.render ? column.render(row[column.key], row) : (row[column.key] !== undefined ? row[column.key] : 'N/A')}
                   </td>
                 ))}
                 {(onView || onEdit || onDelete) && (
