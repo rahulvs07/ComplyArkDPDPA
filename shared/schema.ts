@@ -76,6 +76,7 @@ export const requestStatuses = pgTable("requestStatuses", {
   statusId: serial("statusId").primaryKey(),
   statusName: text("statusName").notNull(),
   slaDays: integer("slaDays").notNull(),
+  isActive: boolean("isActive").notNull().default(true),
 });
 
 // DPRequests Table
@@ -156,6 +157,69 @@ export const insertDPRequestHistorySchema = createInsertSchema(dpRequestHistory)
   changeDate: true 
 });
 
+// Grievances Table
+export const grievances = pgTable("grievances", {
+  grievanceId: serial("grievanceId").primaryKey(),
+  organizationId: integer("organizationId").notNull().references(() => organizations.id),
+  firstName: text("firstName").notNull(),
+  lastName: text("lastName").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  grievanceComment: text("grievanceComment").notNull(),
+  statusId: integer("statusId").notNull().references(() => requestStatuses.statusId),
+  assignedToUserId: integer("assignedToUserId").references(() => users.id),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  lastUpdatedAt: timestamp("lastUpdatedAt"),
+  completionDate: date("completionDate"),
+  completedOnTime: boolean("completedOnTime"),
+  closedDateTime: timestamp("closedDateTime"),
+  closureComments: text("closureComments"),
+});
+
+// GrievanceHistory Table
+export const grievanceHistory = pgTable("grievanceHistory", {
+  historyId: serial("historyId").primaryKey(),
+  grievanceId: integer("grievanceId").notNull().references(() => grievances.grievanceId),
+  changeDate: timestamp("changeDate").notNull().defaultNow(),
+  changedByUserId: integer("changedByUserId").notNull().references(() => users.id),
+  oldStatusId: integer("oldStatusId").references(() => requestStatuses.statusId),
+  newStatusId: integer("newStatusId").references(() => requestStatuses.statusId),
+  oldAssignedToUserId: integer("oldAssignedToUserId").references(() => users.id),
+  newAssignedToUserId: integer("newAssignedToUserId").references(() => users.id),
+  comments: text("comments"),
+});
+
+// Compliance Documents Table for Module 4
+export const complianceDocuments = pgTable("complianceDocuments", {
+  documentId: serial("documentId").primaryKey(),
+  documentName: text("documentName").notNull(),
+  documentPath: text("documentPath").notNull(),
+  documentType: text("documentType").notNull(),
+  uploadedBy: integer("uploadedBy").notNull().references(() => users.id),
+  uploadedAt: timestamp("uploadedAt").notNull().defaultNow(),
+  organizationId: integer("organizationId").notNull().references(() => organizations.id),
+  folderPath: text("folderPath").notNull(),
+});
+
+// Insert schemas for the new tables
+export const insertGrievanceSchema = createInsertSchema(grievances).omit({ 
+  grievanceId: true, 
+  createdAt: true, 
+  lastUpdatedAt: true, 
+  completedOnTime: true, 
+  closedDateTime: true 
+});
+
+export const insertGrievanceHistorySchema = createInsertSchema(grievanceHistory).omit({ 
+  historyId: true, 
+  changeDate: true 
+});
+
+export const insertComplianceDocumentSchema = createInsertSchema(complianceDocuments).omit({ 
+  documentId: true, 
+  uploadedAt: true 
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -183,3 +247,12 @@ export type InsertDPRequest = z.infer<typeof insertDPRequestSchema>;
 
 export type DPRequestHistory = typeof dpRequestHistory.$inferSelect;
 export type InsertDPRequestHistory = z.infer<typeof insertDPRequestHistorySchema>;
+
+export type Grievance = typeof grievances.$inferSelect;
+export type InsertGrievance = z.infer<typeof insertGrievanceSchema>;
+
+export type GrievanceHistory = typeof grievanceHistory.$inferSelect;
+export type InsertGrievanceHistory = z.infer<typeof insertGrievanceHistorySchema>;
+
+export type ComplianceDocument = typeof complianceDocuments.$inferSelect;
+export type InsertComplianceDocument = z.infer<typeof insertComplianceDocumentSchema>;

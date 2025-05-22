@@ -1,0 +1,70 @@
+There are changes to be included in organisationTab of system admin which will be explained in detail below.
+
+Create a “CreateRequestPage” with configurable url . This URL will be generated after an Organisation is Onboarded by complyarkadmin in super admin page. In the Organisation Tab in superadmin click on edit to view create “RequestPage URL” button once clicked will generate a URL (encrypted if possible) and display in a textbox next to the button with a copy content button adjacent to it. This URL is to access CreateRequestPage for the particular organisation  ,The url must have OrganaisationId to identify unique organization for  CreateRequestPage. Outside users should be able to socially login to this page with email and password /Login with google.  and will be inserting request data into main application .Once user clicks submit button in CreateRequestPage  disable all fields and if refreshed show login page again.
+Details for external “CreateRequestPage” webpage:
+Once outside user logs in to CreateRequestPage  it will have two large buttons asking outside user to select any of the two options 
+1. Data Principal Request 
+ 2.Grievances Logging
+1.Create Data Principal Request.
+Once this option is selected the CreateRequestPage will show below fields, Create a table “DPRequests” with below fields.
+DPRequestId	int	
+firstName	string	
+lastName	string	
+email	string	
+phone	string	
+Request type	Access,Correction,Nomination,Erasure 	(must be a dropdown)
+RequestComment	MultiTextbox explain the changes.	
+		
+OrganisationId	int
+(embedded in URL of the CreateRequestPage.)	
+createdAt	string (ISO date)	
+
+AssignedTo	Int (Initially will be assigned to OrgAdminId by default)	
+CompletionDate	Date Time (This date will be calculated by adding digit from Requeststatus table column SLA value corresponding to Request StatusId assigned. 	
+		
+CompletedOnTime	Bool (Compare CompletionDate column with current date)	
+DPR_Request StatusId	Int (Initially data will be set to Request StatusId :1 from Requeststatus table)	
+Closure Comments	String	
+Closure datetime	datetime	
+All fields are mandatory and once submitted clicking submit button, Data to be inserted in” DPRequests” with above columns.
+Insert a row into DPRequestHistory colum with userdetails for showing the Request history in main application listing page where the created request will be displayed.
+1.	Grievance Logging
+This will be another type of Request created from   “RequestCreationPage” we should have below fields that needs to be filled by the outside user. More details on Logged Grievances requests will be explained below as one of the major modules in the main application (Module 3. Grievances.)
+firstName	string	
+lastName	string	
+email	string	
+phone	string	
+OrganisationId	int (embedded in RequestCreationPage URL)	
+Grievence Comments      string (multi text box)
+createdAt	string (ISO date)	
+
+AssignedTo	Int (Initially will be assigned to OrgAdminId by default)	
+CompletionDate	Date Time (This date will be calculate by adding number from Requeststatus table column SLA value corresponding to Request StatusId assigned. 	
+CompletedOnTime	Bool (Compare CompletionDate column with current date)	
+Request StatusId	Int (Initially data will be set to Request StatusId :1 from Requeststatus table)	
+Closure Comments	String (To be shown only when org user selects “closed ” status.
+	
+ClosedDateTime	ClosedDateTime	
+All fields are mandatory and once submitted clicking submit button, Data to be inserted in” Grievances” Table with above columns
+	
+Module 3. Grievances.
+1.	This second type of request(Grievance Logging) that we create from “CreateRequestPage” will be listed in this Grievances module. request type is not applied for this request .Similar to DataPrincipleRequest module Listing of all Grievance requests  in a data table with clickable rows which opens up a new tab with Grievance_id as tab header .Keep  “Grievancehistory” for mapping the journey in follow chart with timestamp of the request and similar to Module 2 org admin can reassagin staff and status of request and user will have option to change only status. Closing of the request will require comments mandatory. Request status will be same as DPRequest Module. ('Submitted','InProgress','AwaitingInfo','Reassigned','Escalated','Closed')
+
+2.	Listing page will have below fields as listing:
+1.Grievance Id,2.Name3.Email and PhoneNumber4.AssignedTo 5.CreatedDate 6.Status7.LastUpdatedate.
+3.All listing and editing functionalities  for module number 2 (Data Principal Request applies to this module.
+Module 4. Compliance Documentation
+This module is a document repository similar to a windows explorer page. This will have documents arranged inside folders with upload new document functionality ,delete folder or file and create new folder options. Navigation options front and back.All these folders displayed will be inside the project root  folder. The documents inside the folder will be in a list with updated date time and name of the person who uploaded it.This module must be visible to all roles and users. It should by default have 
+1.Noticefolder which will have all notices created within the app so far
+2.Translated notices folder (from notice module keep a copy here)
+3.OtherTemplates folder (Template repository)
+
+
+
+Create a “CreateRequestPage” with configurable url . This URL will be generated after an Organisation is Onboarded by complyarkadmin in super admin page. In the Organisation Tab in superadmin click on edit to view create “RequestPage URL” button once clicked will generate a URL (encrypted if possible) and display in a textbox next to the button with a copy content button adjacent to it. This URL is to access CreateRequestPage for the particular organisation  ,The url must have OrganaisationId to identify unique organization for  CreateRequestPage. Outside users should be able to socially login to this page with email and password /Login with google.  and will be inserting request data into main application .Once user clicks submit button in CreateRequestPage  disable all fields and if refreshed show login page again. Create a dummy URL now and open in a new tab in browser.
+create New dataconfiguring  tabs in complyarkadmin (system admin) page to include Requeststatus , Show all created request status in a datatable with edit functionality.
+RequestStatusId	Id(unique column)
+RequestStatus	string
+IsActive	string
+SLA	int
+This data must be used in both DataPrincipleRequest and Grievence Request as  request status. The number in the SLA column to be used to calculate CompletionDate(by adding SLA to current date) in both request model
