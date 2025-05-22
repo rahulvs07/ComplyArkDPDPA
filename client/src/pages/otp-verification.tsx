@@ -222,8 +222,11 @@ export default function OTPVerificationPage() {
         description: 'You can now submit your request.',
       });
       
-      // Navigate to request page
-      navigate(`/request-page/${params?.token}`);
+      // Store token for verification on request page
+      sessionStorage.setItem('request_page_token', params?.token || '');
+      
+      // Navigate to request form page (using a different route)
+      navigate(`/request-form/${params?.token}`);
     } catch (err) {
       toast({
         title: 'Verification Failed',

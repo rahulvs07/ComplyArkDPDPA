@@ -151,7 +151,8 @@ function Router() {
       <Route path="/auth/otp/:orgId/:token?" component={OTPAuthPage} />
       <Route path="/request/:orgId/:type?" component={RequestPage} />
       <Route path="/otp-verification/:token" component={OTPVerificationPage} />
-      <Route path="/request-page/:token" component={RequestPageNew} />
+      <Route path="/request-page/:token" component={OTPVerificationPage} />
+      <Route path="/request-form/:token" component={RequestPageNew} />
       <Route path="/request-status" component={RequestStatusPage} />
       
       {/* Fallback to 404 */}
