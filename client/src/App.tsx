@@ -54,7 +54,7 @@ function Router() {
         </AppLayout>
       </Route>
       
-      <Route path="/" component={WelcomePage} />
+      <Route path="/" component={Login} />
       
       <Route path="/notice">
         <AppLayout>
