@@ -196,15 +196,21 @@ export default function DPRModule() {
     },
   });
   
+  // The getStatusIdByName function is now defined elsewhere in the file
+  
   // Create request mutation
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
+      // Get the 'Submitted' status ID
+      const submittedStatus = statuses.find((s: any) => s.statusName === "Submitted");
+      const statusId = submittedStatus ? submittedStatus.statusId : 26; // Default if not found
+      
       return apiRequest(`/api/dpr`, {
         method: "POST",
         body: JSON.stringify({
           ...data,
           organizationId: user?.organizationId,
-          statusId: getStatusIdByName("Submitted")
+          statusId
         })
       });
     },
@@ -823,6 +829,179 @@ export default function DPRModule() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Create Request Modal */}
+      <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
+        <DialogContent className="max-w-3xl h-auto max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-[#0F3460]">Create New Data Protection Request</DialogTitle>
+            <DialogDescription>
+              Fill in the details below to create a new data protection request.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...createForm}>
+            <form onSubmit={createForm.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
+              <Card className="border-0 shadow-none">
+                <CardContent className="p-0 md:p-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                      control={createForm.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter first name" {...field} disabled={createMutation.isPending} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={createForm.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter last name" {...field} disabled={createMutation.isPending} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={createForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="email" 
+                              placeholder="example@email.com" 
+                              {...field} 
+                              disabled={createMutation.isPending} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={createForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter phone number" {...field} disabled={createMutation.isPending} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={createForm.control}
+                      name="requestType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Request Type</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                            disabled={createMutation.isPending}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select request type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Access">Access</SelectItem>
+                              <SelectItem value="Correction">Correction</SelectItem>
+                              <SelectItem value="Nomination">Nomination</SelectItem>
+                              <SelectItem value="Erasure">Erasure</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={createForm.control}
+                      name="assignedToUserId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Assign To</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                            disabled={createMutation.isPending}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Assign to user" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0">Unassigned</SelectItem>
+                              {users.map((user: any) => (
+                                <SelectItem key={user.id} value={user.id.toString()}>
+                                  {user.firstName} {user.lastName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={createForm.control}
+                      name="requestComment"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Request Details</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Enter request details" 
+                              {...field} 
+                              rows={3}
+                              disabled={createMutation.isPending}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end space-x-2 border-t pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCreateModalOpen(false)}
+                    disabled={createMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={createMutation.isPending}
+                    className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
+                  >
+                    {createMutation.isPending ? "Creating..." : "Create Request"}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>
