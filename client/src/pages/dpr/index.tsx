@@ -18,6 +18,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import StatCard from "@/components/shared/StatCard";
+import { Link, useLocation } from "wouter";
+import { Badge } from "@/components/ui/badge";
+import { getStatusColor } from "@/lib/utils";
 
 // Request form schema
 const requestFormSchema = z.object({
@@ -32,14 +35,25 @@ export default function DPRModule() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [currentTab, setCurrentTab] = useState("all");
+  const [, setLocation] = useLocation();
+  
+  // Default to showing only open requests (all except closed status)
+  const closedStatusId = "27"; // Assuming 27 is the 'Closed' status ID
+  const [currentTab, setCurrentTab] = useState("open");
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
   
   // Fetch requests
   const { data: requests = [], isLoading } = useQuery({
-    queryKey: [`/api/organizations/${user?.organizationId}/dpr`, currentTab !== "all" ? currentTab : null],
+    queryKey: [`/api/organizations/${user?.organizationId}/dpr`, currentTab],
+    select: (data) => {
+      // Filter out closed requests when on "open" tab
+      if (currentTab === "open") {
+        return data.filter((request: any) => request.statusId.toString() !== closedStatusId);
+      }
+      return data;
+    }
   });
   
   // Fetch status options
@@ -138,10 +152,10 @@ export default function DPRModule() {
     },
   });
   
-  // Handle view request
+  // Handle view request - now navigates to detail page
   const handleViewRequest = (request: any) => {
-    setSelectedRequest(request);
-    setDetailDialogOpen(true);
+    // Navigate to the detail page instead of showing a dialog
+    setLocation(`/dpr/${request.requestId}`);
   };
   
   // Handle update request
@@ -288,14 +302,15 @@ export default function DPRModule() {
           <CardTitle>Data Principal Requests</CardTitle>
         </CardHeader>
         
-        <Tabs defaultValue="all" value={currentTab} onValueChange={setCurrentTab}>
+        <Tabs defaultValue="open" value={currentTab} onValueChange={setCurrentTab}>
           <div className="px-6 pt-2">
             <TabsList className="w-full bg-muted">
-              <TabsTrigger value="all" className="flex-1">All</TabsTrigger>
+              <TabsTrigger value="open" className="flex-1">Open Requests</TabsTrigger>
+              <TabsTrigger value="all" className="flex-1">All Requests</TabsTrigger>
               <TabsTrigger value={getStatusIdByName("Submitted")} className="flex-1">Submitted</TabsTrigger>
-              <TabsTrigger value={getStatusIdByName("In Progress")} className="flex-1">In Progress</TabsTrigger>
-              <TabsTrigger value={getStatusIdByName("Completed")} className="flex-1">Completed</TabsTrigger>
-              <TabsTrigger value={getStatusIdByName("Overdue")} className="flex-1">Overdue</TabsTrigger>
+              <TabsTrigger value={getStatusIdByName("InProgress")} className="flex-1">In Progress</TabsTrigger>
+              <TabsTrigger value={getStatusIdByName("Escalated")} className="flex-1">Escalated</TabsTrigger>
+              <TabsTrigger value={closedStatusId} className="flex-1">Closed</TabsTrigger>
             </TabsList>
           </div>
           
