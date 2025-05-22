@@ -314,12 +314,19 @@ export default function GrievancesPage() {
     // Debug stats object to ensure data is present
     console.log("Dashboard stats in GrievancesPage:", stats);
     
+    // Debug the stats object structure to confirm what we're working with
+    console.log("Full dashboard stats in GrievancesPage:", stats);
+    
+    // Use the direct status counts now available in the API response
+    const statusCounts = stats?.grievances?.statusCounts || {};
+    console.log("Direct status counts:", statusCounts);
+    
     // Only add each status once
     if (getStatusIdByName("Submitted")) {
       uniqueStatusMap.set("Submitted", {
         key: getStatusIdByName("Submitted"),
         label: "Submitted",
-        count: stats?.grievances?.submitted?.count || 0,
+        count: statusCounts.submitted || 0,
         icon: <Clock className="h-5 w-5 text-blue-500" />,
         description: "Newly submitted"
       });
@@ -329,7 +336,7 @@ export default function GrievancesPage() {
       uniqueStatusMap.set("InProgress", {
         key: getStatusIdByName("InProgress"),
         label: "In Progress",
-        count: stats?.grievances?.inProgress?.count || 0,
+        count: statusCounts.inProgress || 0,
         icon: <HourglassIcon className="h-5 w-5 text-amber-500" />,
         description: "Being processed"
       });
@@ -339,7 +346,7 @@ export default function GrievancesPage() {
       uniqueStatusMap.set("AwaitingInfo", {
         key: getStatusIdByName("AwaitingInfo"),
         label: "Awaiting Info",
-        count: stats?.grievances?.awaiting?.count || 0,
+        count: statusCounts.awaiting || 0,
         icon: <Clock className="h-5 w-5 text-purple-500" />,
         description: "Waiting on requester"
       });
@@ -349,7 +356,7 @@ export default function GrievancesPage() {
       uniqueStatusMap.set("Escalated", {
         key: getStatusIdByName("Escalated"),
         label: "Escalated",
-        count: stats?.grievances?.escalated?.count || 0,
+        count: statusCounts.escalated || 0,
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
         description: "Requires attention"
       });
@@ -359,7 +366,7 @@ export default function GrievancesPage() {
     uniqueStatusMap.set("Closed", {
       key: closedStatusId,
       label: "Closed",
-      count: stats?.grievances?.closed?.count || 0, // Changed from 'completed' to 'closed' to match dashboard controller
+      count: statusCounts.closed || 0,
       icon: <CheckCircle className="h-5 w-5 text-green-500" />,
       description: "Successfully completed"
     });

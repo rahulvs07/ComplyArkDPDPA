@@ -60,52 +60,60 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
       console.log('Sample grievance statusId (normalized):', normalizeStatusId(grievances[0].statusId));
     }
     
+    // Get actual counts for each status so we can expose them directly in the response
+    const submittedCount = submittedStatusId ? 
+      grievances.filter(g => 
+        normalizeStatusId(g.statusId) === normalizeStatusId(submittedStatusId) || 
+        (g.status_name && g.status_name.toLowerCase() === 'submitted')
+      ).length : 0;
+      
+    const inProgressCount = inProgressStatusId ? 
+      grievances.filter(g => 
+        normalizeStatusId(g.statusId) === normalizeStatusId(inProgressStatusId) || 
+        (g.status_name && g.status_name.toLowerCase() === 'inprogress')
+      ).length : 0;
+      
+    const awaitingCount = awaitingInfoStatusId ? 
+      grievances.filter(g => 
+        normalizeStatusId(g.statusId) === normalizeStatusId(awaitingInfoStatusId) || 
+        (g.status_name && g.status_name.toLowerCase() === 'awaitinginfo')
+      ).length : 0;
+      
+    const escalatedCount = escalatedStatusId ? 
+      grievances.filter(g => 
+        normalizeStatusId(g.statusId) === normalizeStatusId(escalatedStatusId) || 
+        (g.status_name && g.status_name.toLowerCase() === 'escalated')
+      ).length : 0;
+      
+    const closedCount = closedStatusId ? 
+      grievances.filter(g => 
+        normalizeStatusId(g.statusId) === normalizeStatusId(closedStatusId) || 
+        (g.status_name && g.status_name.toLowerCase() === 'closed')
+      ).length : 0;
+    
+    // Log the counts for debugging
+    console.log('Grievance status counts:', {
+      total: grievances.length,
+      submitted: submittedCount,
+      inProgress: inProgressCount,
+      awaiting: awaitingCount,
+      escalated: escalatedCount,
+      closed: closedCount
+    });
+    
     // Detailed grievance status counts for GrievancesPage using normalized status ID comparison
     // We must handle both cases - when statusId is stored directly or when status_name is used
     const grievanceStatusCounts = {
       total: { count: grievances.length, change: +5 },
-      submitted: { 
-        count: submittedStatusId ? 
-          grievances.filter(g => 
-            normalizeStatusId(g.statusId) === normalizeStatusId(submittedStatusId) || 
-            (g.status_name && g.status_name.toLowerCase() === 'submitted')
-          ).length : 0, 
-        change: 0 
-      },
-      inProgress: { 
-        count: inProgressStatusId ? 
-          grievances.filter(g => 
-            normalizeStatusId(g.statusId) === normalizeStatusId(inProgressStatusId) || 
-            (g.status_name && g.status_name.toLowerCase() === 'inprogress')
-          ).length : 0, 
-        change: 0 
-      },
-      awaiting: { 
-        count: awaitingInfoStatusId ? 
-          grievances.filter(g => 
-            normalizeStatusId(g.statusId) === normalizeStatusId(awaitingInfoStatusId) || 
-            (g.status_name && g.status_name.toLowerCase() === 'awaitinginfo')
-          ).length : 0, 
-        change: 0 
-      },
-      escalated: { 
-        count: escalatedStatusId ? 
-          grievances.filter(g => 
-            normalizeStatusId(g.statusId) === normalizeStatusId(escalatedStatusId) || 
-            (g.status_name && g.status_name.toLowerCase() === 'escalated')
-          ).length : 0, 
-        change: 0 
-      },
-      closed: { 
-        count: closedStatusId ? 
-          grievances.filter(g => 
-            normalizeStatusId(g.statusId) === normalizeStatusId(closedStatusId) || 
-            (g.status_name && g.status_name.toLowerCase() === 'closed')
-          ).length : 0, 
-        change: 0 
-      }
+      submitted: { count: submittedCount, change: 0 },
+      inProgress: { count: inProgressCount, change: 0 },
+      awaiting: { count: awaitingCount, change: 0 },
+      escalated: { count: escalatedCount, change: 0 },
+      closed: { count: closedCount, change: 0 }
     };
 
+    // Include both the standard dashboard stats AND the direct grievance status counts
+    // to ensure all frontends can access the data they need
     return res.json({
       totalRequests: {
         count: stats.totalRequests,
@@ -117,7 +125,16 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
         change: +5, // Placeholder for growth calculation
         label: 'Grievances',
         // Detailed status counts
-        ...grievanceStatusCounts
+        ...grievanceStatusCounts,
+        // Direct counts for easier access in the GrievancesPage
+        statusCounts: {
+          total: grievances.length,
+          submitted: submittedCount,
+          inProgress: inProgressCount,
+          awaiting: awaitingCount,
+          escalated: escalatedCount,
+          closed: closedCount
+        }
       },
       pending: {
         count: stats.pendingRequests + stats.pendingGrievances,
