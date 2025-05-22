@@ -361,7 +361,7 @@ export default function QuestionnaireTab({ onNext }: QuestionnaireTabProps) {
       {/* Next Button */}
       <div className="mt-6 flex justify-end">
         <Button 
-          className="bg-primary-500 text-white hover:bg-primary-600"
+          className="bg-[#2E77AE] text-white hover:bg-[#0F3460]"
           onClick={handleSubmit}
         >
           Next
