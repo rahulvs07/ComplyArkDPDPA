@@ -1,0 +1,269 @@
+create a react app with nodejs Name:ComplyArkWebApp to Manage DPDPA compliance. Use MS sql as database name: complyarkDB. and will run in localhost.Create queries for creating and updating sample data for all tables to be mentioned below.
+In this application all Datatables to list data from database tables will have search,filter,Pagenation with edit and delete functions in the last column of the row. always Pop a dialogue box "Are you sure with Yes and No" if delete is clicked.Only if clicked yes the data should be deleted from Database table.
+Provide proper structure for this application to add more modules in the future. Keep pages common for reusable functionalities.
+Data and functionality used in the application to be governed by OrganisationId with user roles. only admin users will be able to perform create edit or delete for any data in any module of this application.
+Users tagged to particular OrganisationId will only be able to see data tagged to them. so in every master data we create we will include OrganisationId either from users tagged Organisation or from a dropdown which shows all Organisations.
+maintain organaisationId,User role within every modules and pages to uniquely List Organisations data.
+The data and functionality of the app needs to be configured from an Admin Page which can only be accessed if the user logs in with Id:complyarkadmin password:complyarkadmin to be set in backend code of Login page.
+AdminPage: This is a stand alone page with 4 Tabs and a link in the top right corner to navigate to main application.
+Tab.1:Organisation
+To create and Edit Organisation.
+Create a table in the database as Organisation with below fields
+Business Name: Text input
+Business Address: Multi line text input; include street, city, state, and postal code)
+Industry:
+Dropdown : e.g. E commerce, Healthcare, Online Gaming, SocialMedia, Educational Institution
+etc.)Let this dropdown fetch data from a table named Industry Let the columns be IndustryId and IndustryName.
+Contact Person Name:
+Text input)
+Contact Email Address:
+Email input)
+Contact Phone Number:
+number input)
+NoOfusers :Number
+Remarks : Text input
+Keep all fields mandatory. Create button in the bottom of the form. will insert data into Organisation table which will have OrganisationId as Unique identifier for Organisation Table. Add IndustryId along with IndustryName column in Organisation table to insert selected IndustryId from Industry dropdown.
+Below the Create form section add a datatable with all Organisations Listed with details. Include search,filter,Pagenation to datatable. add edit and delete button in the last column.Pop a dialogue box "Are you sure with Yes and No" if delete is clicked, Once Edit is clicked data from that row should be available in the Create form fields and toggle the Create button to Update. Create one default user for every new Organisation Registered, Create a dummy Name:admin ,pwd:admin+(append OrganisationId) eg pwd:admin2 ,New OragnisationId,Role:admin with edit and delete columns set to 1 and insert in to Users table from backend.
+Tab.2: Users
+Similiar to Tab.1 this tab will manage user data. This tab will have a form to create new users and edit or delete existing users from Listed existing Users in DataTable below the create/edit form.
+Create a Users Table with below details
+Field Name Data Type
+UserId number
+firstName string
+lastName string
+email string
+phone string
+password string
+Role admin|User String
+Organisation Name : (dropdown to show data from organisation Table OrganisationId to be mapped for each user created)
+OrganisationId number
+isActive boolean
+createdAt DateTime
+edit
+Boolean
+Delete Boolean
+Tab.3 : Industry
+To create and Edit Industry details similiar to Tab 1 and 2.
+form fields for Industry page:
+IndustryId : number
+Industry Name : string
+Display available data in datatable below with edit and delete functions.
+Tab.4 : Template
+Create a Template table with below fields also have option to upload a pdf/docx file to a local folder with Name "TemplateRepo" within the project. Use the path of that folder with the Document Name as value to be inserted to TemplatePath column in the Template table.
+TemplateId : number
+Template Name : String
+Template Body: Multiline text box : string
+IndustryName: dropdown with data from Industry Table
+IndustryId: number.
+TemplatePath : local folder path where template is uploaded.
+Each template must be tagged to an Industry. No Mandatory fields. Add option to delete and edit in Datatable which displays all templates created so far.
+The main application uses the data configured in the admin page.
+This ends the admin page. Now lets dive in to the main application.
+Let the app Login int to a dashboard with UserId and Password from Users Table. Add functionality to update password if forgotten.There will be login roles set already as admin or user. Logged in user will have a tagged organisationId and App will display The Organisation Name corresponding to organisationId in the Left corner of Dashboard. by default login with Id: admin and Pwd: [admin+(append OrganisationId)] . Left navigation with further modules to be added later, use toggle darkmode in the bottom left corner of nav bar.Logout button should be on the corner right of dashboard header. we will start with User Module and then generate Notice Module for individual organisations with selectable data fields and download option for created content.
+Users Module:
+Add a module named Users in the bottom of nav bar with above data fields to create, edit and delete users within the organization. disable Organisation selection in Creation form and use the admins organizationId and organizationName to be inserted along with User data, all fields are mandatory. In the same page add datatable below to edit existing users tagged to OrganisationId and to set edit and delete flags .User Module to be displayed in left navigation only for User role "admin".
+Dashboard will have dummy data for the time being with Piechart to show percentage of Pending requests in different status.Provide few 4 with dummy counts. Also add a dummy data table in the bottom with dummy fields to list pending task. display only details tagged to that particular organisations in the dashboard.
+Notice Module :
+A Notice table needs to created with below details
+NoticeId : Unique identifier
+organisationId : Tagged organizationId for user in the application
+noticeName : Notice Name to be displayed in Application
+noticeBody : string
+createdBy : Logged in UserId
+createdOn : Created datetime.
+Type: NoticeType Textfield
+Version: if noticeName is same add version number as V2,V3 before inserting new row
+FolderLocation: Notice document path in local folder.
+Notice Module
+Customisable consent request- Notice,
+seamlessly generated based on requisite information collected from
+the user about their business - for eg: industry, data sets collected,
+purpose for collecting and any other info that's required, via a simple
+interactive UI, (which is essentially a questionnaire form (Tab 1) that collects
+all required info and then Tab 2 appends the collected dataset list in a pre-set Notice format(uploaded in Tab 2 as Pdf). Once Notice body is constructed it will be translated to different languages and will be displayed in small tiles to be downloadable in PDF or Docx format.
+Notice Module should have 3 Tabs
+Tab 1 : Questionnaire For Notice
+The objective is to ask particular user to select Categories of Personal Data Collected by the organisation.
+Arrange the form in such a way that each category is collapsible and each row data field is selectable with a check box and need to include option for adding extra fields within all the category or edit existing label. Reason for collection to be added to each Textboxes rows to the right side in the form. In the right bottom add a Next button to collect the DataField set. For further steps.
+Category Data Field Reason for Collection
+Name First Name To identify the individual correctly.
+Middle Name For full legal identification.
+Last Name To identify the individual correctly.
+Preferred Name / Nickname For personalised communication.
+Former Name(s) For record-keeping and legal verification.
+Contact Details Residential Address For official correspondence and service delivery.
+Mailing Address To send documents, communications, or parcels.
+Country of Residence For compliance with regional laws.
+Postcode For accurate address verification.
+Emergency Contact Information For emergencies or health & safety reasons.
+Email Personal Email Address For general communication.
+Work Email Address For official, work-related communication.
+Alternate Email Address For backup communication.
+Phone Personal Mobile Number For direct communication.
+Work Telephone Number For work-related communication.
+Home Telephone Number As a fallback contact method.
+Emergency Contact Number For urgent contact in case of emergencies.
+Financial Info Bank Account Number For salary or financial transactions.
+Sort Code For banking and payment processing (UK-specific).
+Credit/Debit Card Details For billing and secure payments.
+Billing Address For issuing invoices and matching transactions.
+Tax Identification Number For tax reporting and statutory compliance.
+Salary and Compensation Details For payroll and financial planning.
+Payment History To track and audit transactions.
+Health Data Medical History For providing appropriate care and accommodations.
+Disability Status To ensure accessibility and legal compliance.
+Mental Health Information To support employee well-being and workplace accommodations.
+Immunisation Records For workplace health compliance (e.g., COVID-19).
+Prescription Details For health and medical records.
+Allergies and Chronic Conditions For safety and emergency preparedness.
+Fitness/Wellness Data For wellness initiatives or health tracking.
+Demographics Date of Birth For identity verification and age-based eligibility.
+Gender For diversity metrics and appropriate communication.
+Nationality For eligibility and compliance with immigration laws.
+Ethnicity For diversity monitoring and reporting.
+Marital Status For HR benefits and record keeping.
+Number of Dependents For HR planning and benefits eligibility.
+Education Level For assessing qualifications.
+Employment Status For eligibility and demographic profiling.
+Sensitive Data Racial or Ethnic Origin For diversity compliance and monitoring.
+Political Opinions Only collected when required for transparency (e.g., political organisations).
+Religious or Philosophical Beliefs For accommodation of practices (e.g., holidays, dietary needs).
+Trade Union Membership For collective bargaining and legal compliance.
+Genetic Data For specific health or legal contexts (with consent).
+Biometric Data For secure identification and access control.
+Sexual Orientation For equality monitoring and anti-discrimination policies.
+Criminal Convictions or Offences For background checks, especially in sensitive or regulated industries.
+Data Sharing with Third Parties: Are third parties involved? Radio button: Yes / No)
+If Yes, specify: Names of Third Parties:Repeatable text input field)
+Purpose of Sharing:Text input
+. Click on the Next button in bottom Right corner to Navigate to Tab 2 with Selected data.
+Tab 2: Notice Type and Preview
+This tab contains a text editor window where we can upload new format of notice in PDF or docx and also select existing Template from dropdown. The text in the notice format will be editable in the text editor.
+The selected dataset in the first tab (Tab 1 : Questionnaire For Notice)
+to be Used in Notice Editor Window . Field name Values and Reason collected from first tab will be available as Label: Data from Questionnaire :In aMultiText box(This box will have data as below example “Category Name : Fileds Value selected with checkbox in Tab 1): Example dataset expected :
+Basic Information: Name, Contact Information, Address, Date of Birth.
+Sensitive Personal Data : Financial Details, Health Information, Biometric Data, etc.
+Insert the category and datafield value from Tab 1 formatted as Example data in Data from Questionnaire Text box below notice format as plain text. In the editor window for manual editing in case of data mismatch. Also add” Upload notice format” button for the ease of editing other notice formats within the editor. Also Once uploaded Keep the format sheet in a project folder for listing in the adjacent dropdown. Formats to be available in PDF formats to be selected from a dropdown and then edited in the Text editor in Tab 2. With a text box containing values from Tab 1.
+Also Add a preview button in the below to show a printable format of the above edited and data appended notice.
+Next button in the bottom right of Tab 2 will insert a row in Notice Table in db with Data "Notice +NoticeType+_OrganisationId" as NoticeName ,NoticeType column of table “Notice” will have the name of PDF format document selected from dropdown in Tab 2. Also will save the generated Notice to a local folder within the project and insert the Value “localfolder path + /NoticeName” as DataLocation column of Notice Table . and will take us to Tab 3 where the Notice needs to be translated.
+Tab 3: Translation
+The Notice that we have created by collecting data from tab 1 and finished as Final draft of Notice with data in tab 2 will insert details in to Notice Table with parameters mentioned above and it needs to be translated using an LLM in to 22 languages. (so 22 separate files to be generated the file name must append "Notice +Langauge+_OrganisationId" as NoticeName and
+In Tab 3 Add section for languages to be listed in rows with check boxes for each and a common select all check box.
+Below are the List of languages.
+(1) Assamese, (2) Bengali, (3) Gujarati, (4) Hindi, (5) Kannada, (6) Kashmiri, (7)
+Konkani, (8) Malayalam, (9) Manipuri, (10) Marathi, (11) Nepali, (12) Oriya, (13)
+Punjabi, (14) Sanskrit, (15) Sindhi, (16) Tamil, (17) Telugu, (18) Urdu (19) Bodo,
+(20) Santhali, (21) Maithili and (22) Dogri.
+. Once Langauges are selected User can click on Translate Button below languages selection form .The generated notice from Tab 2 will be Displayed in Tab 3 with “Original Document” Label as a Tile with options to download the content in both pdf and Docx format and file name will be "Notice_English" .
+Once User clicks Translate button the Content of the notice generated from tab 2 will be pushed to LLM model with required languages selected and other parameters to LLM API and output documents will be listed as different separate tiles with names according to their Translated language in TAB 3 with options to download as both pdf and Docx format.
+Translated documents with LLM using API will be saved in to a local folder Named ” NoticesTranslated” in PDF format.
+Leave a dummy API endpoint to integrate with LLM later for the time being use Pdf format data from Tab 2 and let all Notice content be translated using google translate. Mark the languages available in Google translate in Bold in top div and create an option to select LLM model and Google translate for Tab 3.
+Ask me as many question as you do the coding .Use open source Libraries and manage to create a good look and feel for the UI elements. Attached screenshots above of expected UI. Lets follow Database first approach. Suggestions and improvements for functionality of Notice module would be helpful.
+
+Additionally we will add 2 more modules to the main application other than notice module.
+Module 2. Data Principal Request.
+Add table 
+Model table for “RequestStatus”
+RequestStatusId	Id(unique column)
+RequestStatus	string
+IsActive	string
+SLA	int
+Initial data to be insterted ('Submitted','InProgress','AwaitingInfo',' Reassigned ','Escalated','Closed')	
+
+Data Principal Request functions as a simplified ticketing tool where users will be able to raise a request with request type(Access,Correction,Nomination,Erasure) and the application should be able to configure an SLA (closure time) and when time violates it must escalate ,Assign a staff from the Organisation, change the status('Submitted','InProgress','AwaitingInfo','Reassigned','Escalated','Closed') of request, capture the date and time of status or data updation of the request, and to create a road map of the updated status ,status change, staff change, remarks or comments in a timely order. I will provide sample table structures for Data principal Request below, make sure you add your contributions to this workflow with functionalities and features that make sense in this whole module.
+create tabs in complyarkadmin login (system admin) page to include DPRrequest category, status and SLA configuration. 
+Columns for listing table Below:
+ 1.DPRequestId,
+2.Name
+3.Email and PhoneNumber
+4.AssignedTo 
+5.CreatedDate 
+6.Request type.
+7.LastUpdatedate.
+
+Main application changes
+In the main application complyarkadmin ,org admin and user logged in will be able to view more modules listed below the notice module from dashboard left menu. One of which will be Data Principal Request. On clicking it will navigate to a listing page which will list only open requests(requests other than closed status) with below columns for each requests raised from CreateRequestPage (Remember CreateRequestPage is unique to each organization and listing of requests will be based on OrganisationId)  Just above the listing table show tiles with every request status Highlighting number of requests ,and on clicking will list requests as there current state. Include a drop down tile at the right to select request types (Access,Correction,Nomination,Erasure) where the default value selected will be “All Request Types “The dynamic listing table will always list new request first . Listing data table must have filter(status (include closed in filter),Assigned staff,Date, Request type, etc), search and page nation.
+Clicking on on a listed item request row  will open a new tab (other than listing page,with RequestId as Tab header  showing every available details, changes and flow chart showing history of the request with time (for which create a “DPRequestHistory” table for requests and insert every changes with timestamp and role with userId(logged in user) also insert organizationId) . This details tab page should have an update button in the bottom right side.On clicking it will update  DPRequestHistory, DPRequests .Only Organization admin should be able change Request status( select from a dropdown)  and Assigned staff (dropdown with list of users in that organization)
+User role in the organization should be able to change only the status of the request. Once the user selects “closed” status show an extra text box Closure Comments which should be a mandatory field. insert closure comments with closuredatetime in the db. Once request is in closed state do not allow to edit or change any data .All other fields in this page should be set to readonly.
+For both modules if the CompletionDate in database is less than todays date,The requestes must be auto updated as Esclated and should be shown in Dashboard.
+Dashboard also will have few changes according to the requests present in both modules 2 and 3. Remove all dummy data and work on creating a dynamic dashboard with information related to both request modules  graphs and datatable( details of escalated requests)  which will reflect the summary of actions inside mainly for admin dashboard. For user dashboard display pending items and new requests tagged to user in the dashboard also show items that are about to get escalated.
+There are changes to be included in organisationTab of system admin which will be explained in detail below.
+
+Create a “CreateRequestPage” with configurable url . This URL will be generated after an Organisation is Onboarded by complyarkadmin in super admin page. In the Organisation Tab in superadmin click on edit to view create “RequestPage URL” button once clicked will generate a URL (encrypted if possible) and display in a textbox next to the button with a copy content button adjacent to it. This URL is to access CreateRequestPage for the particular organisation  ,The url must have OrganaisationId to identify unique organization for  CreateRequestPage. Outside users should be able to socially login to this page with email and password /Login with google.  and will be inserting request data into main application .Once user clicks submit button in CreateRequestPage  disable all fields and if refreshed show login page again.
+Details for external “CreateRequestPage” webpage:
+Once outside user logs in to CreateRequestPage  it will have two large buttons asking outside user to select any of the two options 
+1. Data Principal Request 
+ 2.Grievances Logging
+1.Create Data Principal Request.
+Once this option is selected the CreateRequestPage will show below fields, Create a table “DPRequests” with below fields.
+DPRequestId	int	
+firstName	string	
+lastName	string	
+email	string	
+phone	string	
+Request type	Access,Correction,Nomination,Erasure 	(must be a dropdown)
+RequestComment	MultiTextbox explain the changes.	
+		
+OrganisationId	int
+(embedded in URL of the CreateRequestPage.)	
+createdAt	string (ISO date)	
+
+AssignedTo	Int (Initially will be assigned to OrgAdminId by default)	
+CompletionDate	Date Time (This date will be calculated by adding digit from Requeststatus table column SLA value corresponding to Request StatusId assigned. 	
+		
+CompletedOnTime	Bool (Compare CompletionDate column with current date)	
+DPR_Request StatusId	Int (Initially data will be set to Request StatusId :1 from Requeststatus table)	
+Closure Comments	String	
+Closure datetime	datetime	
+All fields are mandatory and once submitted clicking submit button, Data to be inserted in” DPRequests” with above columns.
+Insert a row into DPRequestHistory colum with userdetails for showing the Request history in main application listing page where the created request will be displayed.
+1.	Grievance Logging
+This will be another type of Request created from   “RequestCreationPage” we should have below fields that needs to be filled by the outside user. More details on Logged Grievances requests will be explained below as one of the major modules in the main application (Module 3. Grievances.)
+firstName	string	
+lastName	string	
+email	string	
+phone	string	
+OrganisationId	int (embedded in RequestCreationPage URL)	
+Grievence Comments      string (multi text box)
+createdAt	string (ISO date)	
+
+AssignedTo	Int (Initially will be assigned to OrgAdminId by default)	
+CompletionDate	Date Time (This date will be calculate by adding number from Requeststatus table column SLA value corresponding to Request StatusId assigned. 	
+CompletedOnTime	Bool (Compare CompletionDate column with current date)	
+Request StatusId	Int (Initially data will be set to Request StatusId :1 from Requeststatus table)	
+Closure Comments	String (To be shown only when org user selects “closed ” status.
+	
+ClosedDateTime	ClosedDateTime	
+All fields are mandatory and once submitted clicking submit button, Data to be inserted in” Grievances” Table with above columns
+	
+Module 3. Grievances.
+1.	This second type of request(Grievance Logging) that we create from “CreateRequestPage” will be listed in this Grievances module. request type is not applied for this request .Similar to DataPrincipleRequest module Listing of all Grievance requests  in a data table with clickable rows which opens up a new tab with Grievance_id as tab header .Keep  “Grievancehistory” for mapping the journey in follow chart with timestamp of the request and similar to Module 2 org admin can reassagin staff and status of request and user will have option to change only status. Closing of the request will require comments mandatory. Request status will be same as DPRequest Module. ('Submitted','InProgress','AwaitingInfo','Reassigned','Escalated','Closed')
+
+2.	Listing page will have below fields as listing:
+1.Grievance Id,2.Name3.Email and PhoneNumber4.AssignedTo 5.CreatedDate 6.Status7.LastUpdatedate.
+3.All listing and editing functionalities  for module number 2 (Data Principal Request applies to this module.
+Module 4. Compliance Documentation
+This module is a document repository similar to a windows explorer page. This will have documents arranged inside folders with upload new document functionality ,delete folder or file and create new folder options. Navigation options front and back.All these folders displayed will be inside the project root  folder. The documents inside the folder will be in a list with updated date time and name of the person who uploaded it.This module must be visible to all roles and users. It should by default have 
+1.Noticefolder which will have all notices created within the app so far
+2.Translated notices folder (from notice module keep a copy here)
+3.OtherTemplates folder (Template repository)
+
+
+
+Create a “CreateRequestPage” with configurable url . This URL will be generated after an Organisation is Onboarded by complyarkadmin in super admin page. In the Organisation Tab in superadmin click on edit to view create “RequestPage URL” button once clicked will generate a URL (encrypted if possible) and display in a textbox next to the button with a copy content button adjacent to it. This URL is to access CreateRequestPage for the particular organisation  ,The url must have OrganaisationId to identify unique organization for  CreateRequestPage. Outside users should be able to socially login to this page with email and password /Login with google.  and will be inserting request data into main application .Once user clicks submit button in CreateRequestPage  disable all fields and if refreshed show login page again. Create a dummy URL now and open in a new tab in browser.
+create New dataconfiguring  tabs in complyarkadmin (system admin) page to include Requeststatus , Show all created request status in a datatable with edit functionality.
+RequestStatusId	Id(unique column)
+RequestStatus	string
+IsActive	string
+SLA	int
+This data must be used in both DataPrincipleRequest and Grievence Request as  request status. The number in the SLA column to be used to calculate CompletionDate(by adding SLA to current date) in both request model
+
+
+
+
+
+
+
+
+
+

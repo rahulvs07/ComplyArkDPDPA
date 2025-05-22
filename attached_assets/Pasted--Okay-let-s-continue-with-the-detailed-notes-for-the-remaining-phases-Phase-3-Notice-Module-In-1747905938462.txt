@@ -1,0 +1,336 @@
+
+Okay, let's continue with the detailed notes for the remaining phases.
+Phase 3: Notice Module (IndicTrans2 Integration)
+Overall Goal: Implement the Notice module, allowing users to create data collection questionnaires, generate notices based on templates and questionnaire data, and translate these notices using a local IndicTrans2 model.
+Milestones & Detailed Notes:
+M3.1: Database Setup for Notice Module:
+Notes:
+Write and execute SQL script to create the Notice table and optionally the TranslatedNotice table as defined.
+Ensure OrganisationId and CreatedByUserId are foreign keys.
+Consider indexes on OrganisationId, NoticeName.
+M3.2: Notice Module - Tab 1: Questionnaire:
+Notes:
+Frontend (client/src/pages/notice/QuestionnaireTab.js):
+Layout: Use MUI Accordion for collapsible categories (Name, Contact Details, Financial Info, etc.).
+Each category contains rows: Data Field Label (static), Checkbox (for selection), Reason for Collection (MUI TextField, editable).
+Data Structure: Define a structured JavaScript object to hold the questionnaire schema (categories, fields, default reasons). This will be used to render the form.
+State Management (local to component or context/Zustand):
+Store the selected state of each checkbox.
+Store the text entered in "Reason for Collection" fields.
+Store any "extra fields" added by the user.
+"Add extra field" functionality: Per category, a button to add a new row with an editable Data Field Label input, a checkbox, and a Reason for Collection input.
+"Next" button: On click, gather all selected data fields and their reasons into a structured JSON object (e.g., {"Category Name": {"Field Name 1": "Reason 1", "Field Name 2": "Reason 2"}, ...}). Pass this data to Tab 2 (e.g., via parent component state or routing state).
+M3.3: Notice Module - Tab 2: Notice Type and Preview:
+Notes:
+Frontend (client/src/pages/notice/PreviewTab.js):
+Receives selected questionnaire data from Tab 1.
+Dropdown for Templates:
+MUI Autocomplete or Select.
+Fetches templates from /api/templates (filter by IndustryId if user's org has one, or show global templates).
+On selection, load TemplateBody into the text editor.
+Text Editor:
+Use a rich text editor component (e.g., react-quill - npm install react-quill).
+Allow manual editing of the loaded template or uploaded content.
+"Upload notice format" button:
+Input type file, accepts PDF/DOCX.
+Client-side: Attempt to extract text if possible (e.g., using pdfjs-dist for PDF, or inform user to copy-paste for DOCX). For simplicity, might initially just be a reference upload, with manual copy-paste into editor.
+Store uploaded file temporarily or just use its content. Path is to TemplateRepo if it's a reusable template, or not stored if it's a one-off.
+Display Questionnaire Data:
+A non-editable MUI TextField multiline or a formatted display area showing the structured data from Tab 1 (e.g., "Basic Information: Name (To identify...), Contact Information (For communication...)."). This is for reference and potential manual inclusion in the notice.
+"Preview" button:
+Open a new browser tab/MUI Dialog showing the current content of the text editor in a print-friendly HTML format.
+"Next" button (Save Notice):
+Gather:
+noticeName (user input or auto-generated base, e.g., "PrivacyNotice").
+noticeBody (HTML content from the rich text editor).
+selectedQuestionnaireData (JSON string from Tab 1).
+baseTemplateId (if a template was selected).
+noticeType (user input, e.g., "Privacy Policy", or from selected template name).
+Call backend API POST /api/organisations/:orgId/notices.
+Backend (server/src/controllers/noticeController.js):
+API POST /api/organisations/:orgId/notices:
+Requires orgId from authenticated user. createdByUserId from JWT.
+Versioning Logic:
+Check existing notices for the OrganisationId with a similar base noticeName (e.g., if noticeName is "PrivacyPolicy", check for "PrivacyPolicy_V1", "PrivacyPolicy_V2").
+Determine the next version number (e.g., if "PrivacyPolicy_V2" exists, new one is "PrivacyPolicy_V3"). Append to noticeName.
+Save noticeBody, selectedQuestionnaireData, etc., to Notice table.
+PDF Generation: Convert noticeBody (HTML) to PDF.
+Use a library like puppeteer (npm install puppeteer) or html-pdf-node (npm install html-pdf-node). This might be resource-intensive; consider async processing for production.
+Save PDF to server/uploads/NoticesGenerated/<OrganisationId>/<NoticeNameWithVersion>.pdf.
+Store this path in FolderLocation column of Notice table.
+On success, return the created Notice object (including its ID) and navigate frontend to Tab 3.
+M3.4: Notice Module - Tab 3: Translation (IndicTrans2):
+Notes:
+Frontend (client/src/pages/notice/TranslationTab.js):
+Receives the NoticeId of the notice created/saved in Tab 2.
+Fetch the original notice details (including FolderLocation for download).
+Display Original Document: A "tile" (MUI Card) showing "Original Document (English)" with download buttons for PDF (from FolderLocation) and DOCX (if PDF can be converted, or offer original HTML as .doc).
+Language Selection:
+List of 22 Indic languages (Assamese, Bengali, etc.) with MUI Checkbox next to each. "Select All" checkbox.
+Maintain a mapping from display name to IndicTrans2 language codes (e.g., {'Assamese': 'asm_Beng', 'Hindi': 'hin_Deva', ...}).
+"Translate" button:
+On click, collect selected language codes.
+Call backend API POST /api/organisations/:orgId/notices/:noticeId/translate with targetLanguageCodes.
+Show loading indicator.
+Display Translated Notices:
+On API success, backend returns list of paths/details of translated files.
+Display each as a new tile (MUI Card) with language name and download options (PDF/DOCX).
+Backend (server/src/controllers/noticeController.js):
+API POST /api/organisations/:orgId/notices/:noticeId/translate:
+Fetch original Notice record, get noticeBody (HTML).
+For each targetLanguageCode in the request:
+IndicTrans2 Python Script (server/src/scripts/translate_indic.py - example):
+This script will take arguments: inputText, sourceLanguage ('eng_Latn'), targetLanguageCode.
+It will use the inference.engine from IndicTrans2 (as per its documentation) to load models and perform translation.
+Print translated text to stdout.
+Handle Python environment activation if necessary (e.g., if running in a venv).
+Node.js Execution:
+Use child_process.spawn('python', ['path/to/translate_indic.py', sourceLang, targetLang], { stdio: 'pipe' }).
+Pass noticeBody (or plain text extracted from it) as input (e.g., via stdin to the Python script, or as a temporary file argument).
+Capture stdout (translated text) and stderr (errors) from the Python script.
+If Python script errors, log it and skip this language or return an error.
+Convert translated text (assuming HTML or plain text that can be wrapped in basic HTML) to PDF (same method as in M3.3).
+Save translated PDF to server/uploads/NoticesTranslated/<OrganisationId>/<OriginalNoticeName>_<LanguageCode>.pdf.
+(Optional) Save details to TranslatedNotice table.
+Return a list of generated file paths/details.
+Initial Dummy Python Script: For early testing, translate_indic.py can just echo back the input text appended with _translated_<targetLang>.
+Phase 4: Data Principal Request (DPR) Module (OTP Integration)
+Overall Goal: Enable external users to submit Data Principal Requests after OTP verification, and allow internal organisation users to manage these requests.
+Milestones & Detailed Notes:
+M4.1: Database Setup for DPR Module:
+Notes:
+Write and execute SQL scripts for DPRequests, DPRequestHistory tables.
+Seed RequestStatus table (if not done in M1.6) with specified statuses and SLA days.
+Ensure FK constraints and ON DELETE CASCADE for DPRequestHistory related to DPRequests.
+M4.2: External "CreateRequestPage" - DPR Functionality (OTP Flow):
+Notes:
+Frontend (client/src/pages/external/CreateRequestPage.js):
+URL: /public/create-request?token=<RequestPageUrlToken>.
+Parse token from URL query.
+Stage 1: Email Input for OTP:
+MUI TextField for email. Button "Send OTP".
+On click, call POST /api/public/request-otp with email and token.
+Stage 2: OTP Verification:
+Show MUI TextField for OTP. Button "Verify OTP".
+On click, call POST /api/public/verify-otp with email, otp, token.
+On success, proceed to Stage 3. Show error message on failure.
+Stage 3: Request Type Choice:
+Show two large MUI Buttons: "Data Principal Request" and "Grievance Logging".
+Stage 4: DPR Form (if DPR selected):
+Display form with fields: firstName, lastName, email (pre-fill from OTP step, readonly), phone, RequestType (MUI Select: Access, Correction, Nomination, Erasure), RequestComment (MUI TextField multiline).
+All fields mandatory. Submit button.
+On submit, call POST /api/public/dpr with form data and token.
+On success, disable form, show success message. On page refresh, should ideally go back to Stage 1 or a "session expired" state.
+Backend (server/src/controllers/publicRequestController.js):
+Helper function: getOrganisationIdFromToken(token) - queries Organisation table for RequestPageUrlToken.
+POST /api/public/request-otp:
+Input: email, token.
+Derive organisationId.
+Generate dummy OTP (e.g., '123456').
+OTP Storage (Temporary):
+For now, can use a simple in-memory object on the server: {'<email>_<orgId>': {otp: '123456', expires: Date.now() + 5*60*1000}}.
+Log "Dummy OTP 123456 for <email> at org <orgId>".
+Return success.
+POST /api/public/verify-otp:
+Input: email, otp, token.
+Derive organisationId.
+Check against stored OTP: verify value and expiry.
+If valid, clear/mark OTP as used. Return success (perhaps with a short-lived session token/flag for frontend).
+POST /api/public/dpr:
+Input: DPR form data, token.
+Crucial: Re-verify OTP success status or require the short-lived session token from OTP verification step.
+Derive organisationId.
+Get default 'Submitted' RequestStatusId and its SLA_Days.
+Calculate CompletionDate = CreatedAt + SLA_Days.
+Find default OrgAdminId for the OrganisationId to set as initial AssignedToUserId.
+Insert into DPRequests.
+Insert initial record into DPRequestHistory (e.g., "Request submitted by <email>. Status: Submitted.").
+M4.3: DPR Listing Page (Main Application):
+Notes:
+Frontend (client/src/pages/dpr/DPRListPage.js):
+Accessible via main app Sidebar.
+Scoped to logged-in user's OrganisationId.
+Status Tiles: MUI Cards or Chips at the top showing counts for each RequestStatus (e.g., Submitted: 5, InProgress: 3). Fetched from a dedicated backend endpoint. Clicking a tile filters the DataTable below.
+Request Type Filter: MUI Select (Access, Correction, etc., "All Request Types").
+DataTable:
+Columns: DPRequestId, Name (firstName + lastName), Email, PhoneNumber, AssignedTo (User's name), CreatedDate, RequestType, LastUpdateDate, Status.
+Fetch data from GET /api/organisations/:orgId/dpr (supports pagination, search, status filter, type filter, date range filter).
+Default sort: Newest requests first (CreatedAt DESC).
+List only "open" requests by default (not 'Closed'). Filter should allow including 'Closed'.
+Clicking a row navigates to DPR Detail Page, passing DPRequestId.
+M4.4: DPR Detail & Update Page (Main Application):
+Notes:
+Frontend (client/src/pages/dpr/DPRDetailPage.js):
+New tab/view with DPRequestId in URL or as tab header.
+Fetch full DPR details from GET /api/dpr/:dprId.
+Display all DPRequests fields (mostly readonly).
+DPRequestHistory Display:
+Fetch history from GET /api/dpr/:dprId/history.
+Display as a timeline/flowchart (e.g., MUI Stepper or custom list). Each entry shows timestamp, user who made change, details of change (status, assignment, comment).
+Update Section (conditional on user role from JWT - role, canEdit):
+RequestStatus: MUI Select (populated from RequestStatus table).
+AssignedToUserId: MUI Autocomplete or Select (list of users from current OrganisationId). (Only for Org Admin).
+If RequestStatus is changed to 'Closed':
+Show mandatory ClosureComments (MUI TextField multiline).
+"Update" button.
+Once status is 'Closed', all update fields should become readonly.
+Backend (server/src/controllers/dprController.js):
+GET /api/dpr/:dprId, GET /api/dpr/:dprId/history.
+PUT /api/dpr/:dprId:
+Permission checks: Org Admin can change Status & AssignedTo. Org User (if canEdit) can only change Status.
+If RequestStatusId changes, or AssignedToUserId changes, or ClosureComments are added:
+Update DPRequests table (LastUpdatedAt, CompletedOnTime if closing, ClosedDateTime, ClosureComments).
+Insert a new detailed record into DPRequestHistory logging the specific changes (previous values, new values, changed by, comment).
+M4.5: Escalation Logic (Backend):
+Notes:
+Backend (server/src/services/escalationService.js or similar):
+Function: checkAndEscalateDPRs().
+Logic:
+Find DPRequests where CompletionDate < GETDATE() AND RequestStatusId is not 'Closed' and not 'Escalated'.
+For each found request, update its RequestStatusId to 'Escalated'.
+Add a record to DPRequestHistory (e.g., "System auto-escalated request due to SLA breach.").
+Execution: For now, this can be a manually triggered API endpoint. For production, a cron job (node-cron) would call this service regularly.
+Phase 5: Grievances Module (OTP Integration)
+Overall Goal: Implement the Grievances module, mirroring the DPR module's structure for submission and management, but for grievance-type requests.
+Milestones & Detailed Notes: (Many notes will be similar to DPR, with table/field names changed)
+M5.1: Database Setup for Grievances Module:
+Notes:
+Write and execute SQL scripts for Grievances, GrievanceHistory tables.
+Use the same RequestStatus table.
+Ensure FKs and ON DELETE CASCADE.
+M5.2: External "CreateRequestPage" - Grievance Functionality (OTP Flow):
+Notes:
+Frontend (client/src/pages/external/CreateRequestPage.js):
+OTP flow (M4.2) is common.
+Stage 4: Grievance Form (if Grievance selected):
+Fields: firstName, lastName, email (pre-fill, readonly), phone, GrievanceComments (MUI TextField multiline).
+All mandatory. Submit button.
+On submit, call POST /api/public/grievance with form data and token.
+Backend (server/src/controllers/publicRequestController.js):
+POST /api/public/grievance:
+Similar to /api/public/dpr: verify OTP session, derive organisationId, calculate CompletionDate, assign to OrgAdmin, insert into Grievances, insert initial GrievanceHistory.
+M5.3: Grievance Listing Page (Main Application):
+Notes:
+Frontend (client/src/pages/grievances/GrievanceListPage.js):
+Similar to DPR list page.
+Status tiles, DataTable.
+Columns: GrievanceId, Name, Email, PhoneNumber, AssignedTo, CreatedDate, Status, LastUpdateDate.
+No "Request Type" filter.
+API: GET /api/organisations/:orgId/grievances.
+M5.4: Grievance Detail & Update Page (Main Application):
+Notes:
+Frontend (client/src/pages/grievances/GrievanceDetailPage.js):
+Similar to DPR detail page. Tab header GrievanceId.
+Display Grievances fields and GrievanceHistory.
+Update section (Status, AssignedTo, ClosureComments) with same role-based logic.
+Backend (server/src/controllers/grievanceController.js):
+GET /api/grievances/:grievanceId, GET /api/grievances/:grievanceId/history.
+PUT /api/grievances/:grievanceId: Update Grievances and log to GrievanceHistory.
+M5.5: Escalation Logic for Grievances (Backend):
+Notes:
+Backend (server/src/services/escalationService.js):
+Function: checkAndEscalateGrievances().
+Similar logic to DPR escalation, but operates on Grievances table.
+Called by same manual endpoint/future cron job.
+Phase 6: Compliance Documentation Module & Dashboard Enhancement
+Overall Goal: Provide a file explorer-like interface for managing compliance documents and make the main dashboard dynamic with data from DPR and Grievance modules.
+Milestones & Detailed Notes:
+M6.1: Compliance Documentation Module:
+Notes:
+Target Folder Structure: server/uploads/ComplianceDocsData/<OrganisationId>/UserCreatedFoldersAndFiles...
+Default Folders (Conceptual Links/Views):
+Notices: Should list files from server/uploads/NoticesGenerated/<OrganisationId>/.
+TranslatedNotices: Should list files from server/uploads/NoticesTranslated/<OrganisationId>/.
+OtherTemplates: Should list files from server/uploads/TemplateRepo/ (perhaps filtered by those relevant to the org or global ones). These are conceptually linked; the module primarily manages its own distinct file area.
+Backend (server/src/controllers/complianceDocsController.js):
+APIs scoped by OrganisationId. Use fs module (Node.js built-in) and path.
+GET /api/organisations/:orgId/compliance-docs?path=<relativePath>: List directory contents (files & folders). relativePath is relative to ComplianceDocsData/<OrganisationId>/. Sanitize relativePath carefully to prevent directory traversal (e.g., ensure it doesn't contain ..).
+POST /api/organisations/:orgId/compliance-docs/folder?path=<relativePath>: Create new folder.
+POST /api/organisations/:orgId/compliance-docs/upload?path=<relativePath>: Upload file (use multer).
+DELETE /api/organisations/:orgId/compliance-docs?path=<itemPath>: Delete file or folder (recursively for folder).
+(Metadata: Who uploaded/created and when? Could store this in a separate .meta.json file in each folder or a dedicated DB table if complex querying is needed. For simplicity, filesystem dates might suffice initially).
+Frontend (client/src/pages/complianceDocs/ComplianceDocsPage.js):
+UI resembling file explorer: Breadcrumbs for navigation. List of folders/files with icons.
+Display item name, type (file/folder), last modified date, uploader (if metadata stored).
+Actions: "Create Folder" button (prompt for name), "Upload File" button.
+Context menu (right-click) or action buttons per item: Download, Delete.
+Clicking folder navigates into it. Clicking file initiates download.
+M6.2: Dynamic Dashboard Implementation:
+Notes:
+Backend (server/src/controllers/dashboardController.js):
+API GET /api/organisations/:orgId/dashboard-summary:
+Counts of DPRs by status.
+Counts of Grievances by status.
+List of top N escalated DPRs (DPRequestId, Name, RequestType, DueDate).
+List of top N escalated Grievances (GrievanceId, Name, DueDate).
+Count of items assigned to the logged-in user (if not admin) that are pending.
+Count of items about to be escalated (e.g., CompletionDate is within next 24/48 hours and not Closed/Escalated).
+Frontend (client/src/pages/dashboard/DashboardPage.js):
+Fetch data from the summary endpoint.
+Pie Charts: Use a chart library (e.g., Recharts) to show DPR status distribution and Grievance status distribution.
+DataTables:
+Table for "Escalated DPRs".
+Table for "Escalated Grievances".
+Table for "Your Pending Items" (if applicable to user role).
+Table for "Items Nearing SLA" (about to be escalated).
+Make tiles/cards interactive if possible (e.g., clicking "Escalated" tile navigates to the respective list page filtered by escalated status).
+Phase 7: Refinements, IndicTrans2 Full Setup, Testing & Deployment Prep
+Overall Goal: Polish the application, fully integrate and test the IndicTrans2 translation, implement remaining functionalities like password reset with email, conduct thorough testing, and prepare for deployment.
+Milestones & Detailed Notes:
+M7.1: "CreateRequestPage" URL Token Robustness:
+Notes: Ensure the RequestPageUrlToken in the Organisation table is indeed a strong, unique, non-sequential token (like a UUID, already planned). Review its usage and ensure it's not easily guessable.
+M7.2: UI Polish & UX Improvements (MUI):
+Notes:
+Review all pages for consistent MUI styling, spacing, typography.
+Ensure responsive design works well on various screen sizes.
+Add loading indicators (MUI CircularProgress or Skeleton) for all API calls.
+Improve error messages: make them user-friendly and specific.
+Standardize dialogs and confirmations.
+M7.3: IndicTrans2 Full Integration & Testing:
+Notes:
+Developer Task: Set up a local Python 3.7+ environment. Install IndicTrans2 and its dependencies (source install.sh from its repo). Download required model checkpoints (En-Indic, Indic-En, etc.).
+server/src/scripts/translate_indic.py: Finalize this script.
+It should correctly load the IndicTrans2 models.
+Accept input text, source language, target language as arguments or via stdin.
+Perform translation using model.batch_translate() or model.translate_paragraph().
+Handle errors gracefully (e.g., model not found, unsupported language code).
+Backend (noticeController.js): Ensure robust error handling when calling the Python script. Log Python stderr.
+Testing: Translate sample notices into all 22 languages. Verify output quality (as much as possible without linguistic expertise in all) and file generation. Test edge cases (empty input, very long input if applicable).
+M7.4: Comprehensive Testing:
+Notes:
+Unit Tests: Backend services, controllers (especially business logic parts, e.g., versioning, SLA calculation). Use Jest or Mocha/Chai (npm install jest --save-dev).
+Integration Tests: API endpoint testing using a tool like Supertest (npm install supertest --save-dev) with Jest. Test CRUD operations, auth, RBAC.
+Frontend Testing: Component tests (Jest + React Testing Library).
+E2E Testing: Manually test all user flows. Consider Playwright or Cypress for automated E2E if time/resources permit.
+RBAC Testing: Log in as SuperAdmin, OrgAdmin, OrgUser. Verify access to modules, create/edit/delete permissions.
+M7.5: Forgotten Password Functionality (Email OTP):
+Notes:
+Frontend (client/src/pages/auth/ForgotPasswordPage.js):
+Input for email. "Send Reset Link" button.
+Backend (authController.js):
+POST /api/auth/forgot-password: Generate a unique, short-lived reset token. Store it hashed with UserId and expiry. Send an email (using Nodemailer - npm install nodemailer) containing a link like /reset-password?token=<reset_token>.
+Use a test email service like Ethereal for development, or configure a real SMTP provider (e.g., SendGrid free tier, Mailgun).
+Frontend (client/src/pages/auth/ResetPasswordPage.js):
+Inputs for new password, confirm password. Token from URL.
+Backend (authController.js):
+POST /api/auth/reset-password: Verify token, check expiry. If valid, update user's PasswordHash, invalidate reset token.
+M7.6: OTP for CreateRequestPage (Email - Placeholder to Full):
+Notes:
+Modify POST /api/public/request-otp in publicRequestController.js.
+Instead of logging dummy OTP, use Nodemailer to send the (still dummy or now real 6-digit) OTP to the requester's email.
+Subject: "Your ComplyArk Verification Code". Body: "Your OTP for Organisation X is: YYYYYY. It is valid for 5 minutes."
+Requires email service configuration similar to M7.5.
+M7.7: Code Review and Optimization:
+Notes:
+Review for security (SQL injection, XSS, CSRF - though JWT helps with CSRF, path traversal in file ops).
+Check for performance bottlenecks (slow DB queries, optimize loops).
+Code consistency, readability, comments.
+Remove console logs, unused code.
+M7.8: Build & Deployment Scripts (Preparation):
+Notes:
+Frontend: npm run build (for Vite) creates optimized static assets in client/dist.
+Backend: Prepare a Dockerfile if containerization is desired.
+Document environment variables needed for production (.env.production.example).
+Outline steps for deploying Node.js app (e.g., using PM2) and serving React static files (e.g., via Nginx or Node.js itself).
+Consider how the Python/IndicTrans2 environment will be deployed alongside the Node.js app.
+This level of detail should provide a clear roadmap for each step. The actual implementation will involve writing the code for these functionalities within the described structure, handling edge cases, and ensuring data flows correctly.
