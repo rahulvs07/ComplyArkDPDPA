@@ -166,9 +166,25 @@ export default function GrievancesPage() {
   // Reset form when a new grievance is selected
   useEffect(() => {
     if (selectedGrievance) {
+      console.log("Setting form values for grievance:", selectedGrievance);
+      
+      // Convert status ID to string to ensure compatibility with form
+      const statusIdStr = selectedGrievance.statusId ? selectedGrievance.statusId.toString() : "";
+      
+      // Convert assigned user ID to string or use empty string if null/undefined
+      const assignedToStr = selectedGrievance.assignedToUserId ? 
+        selectedGrievance.assignedToUserId.toString() : 
+        "0"; // Use "0" for unassigned instead of empty string
+      
+      console.log("Form values being set:", {
+        statusId: statusIdStr,
+        assignedToUserId: assignedToStr,
+        comments: ""
+      });
+      
       form.reset({
-        statusId: selectedGrievance.statusId.toString(),
-        assignedToUserId: selectedGrievance.assignedToUserId ? selectedGrievance.assignedToUserId.toString() : "",
+        statusId: statusIdStr,
+        assignedToUserId: assignedToStr,
         comments: ""
       });
     }
@@ -690,7 +706,7 @@ export default function GrievancesPage() {
                                   <FormLabel>Assigned To</FormLabel>
                                   <Select 
                                     onValueChange={field.onChange} 
-                                    defaultValue={field.value}
+                                    value={field.value || "0"}
                                     disabled={updateMutation.isPending}
                                   >
                                     <SelectTrigger>
