@@ -24,16 +24,32 @@ import { Search, ClipboardList, Clock, HourglassIcon, AlertTriangle, CheckCircle
 const updateGrievanceSchema = z.object({
   statusId: z.string().min(1, "Status is required"),
   assignedToUserId: z.string().optional(),
-  comments: z.string().optional().refine((val, ctx) => {
+  comments: z.string().optional().superRefine((val, ctx) => {
     // Make comments mandatory when status is "Closed"
-    const isClosing = ctx.data && ctx.data.statusId === "35"; // Using the actual Closed status ID
-    if (isClosing && (!val || val.trim() === "")) {
-      return false;
+    try {
+      // Find the status name from the statuses array using the statusId
+      const statusId = ctx.data?.statusId;
+      if (statusId) {
+        // Safe check for statuses global variable
+        if (typeof statuses !== 'undefined' && Array.isArray(statuses) && statuses.length > 0) {
+          const selectedStatus = statuses.find((s) => s.statusId.toString() === statusId);
+          const statusName = selectedStatus?.statusName?.toLowerCase() || "";
+          
+          if (statusName === "closed" && (!val || val.trim() === "")) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Closure comments are required when closing a grievance",
+              path: ["comments"]
+            });
+            return false;
+          }
+        }
+      }
+      return true;
+    } catch (error) {
+      console.error("Error in validation:", error);
+      return true; // Don't block submission on error
     }
-    return true;
-  }, {
-    message: "Closure comments are required when closing a grievance",
-    path: ["comments"]
   })
 });
 
