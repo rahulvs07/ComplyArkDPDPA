@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Link, useLocation } from 'wouter';
 import { ChevronUpIcon, ChevronDownIcon, AlertTriangleIcon, MailIcon, UsersIcon, AlertCircleIcon, ArrowUpRightIcon } from 'lucide-react';
-import { DataTable } from '@/components/shared/DataTable';
+import DataTable from '@/components/shared/DataTable';
 import { useAuth } from '@/lib/auth';
 import { apiRequest } from '@/lib/queryClient';
 

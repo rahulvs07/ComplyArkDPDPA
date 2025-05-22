@@ -2,7 +2,7 @@ import { Route, Switch } from "wouter";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
-import Dashboard from "@/pages/dashboard";
+import Dashboard from "@/pages/dashboard/index";
 import NoticeModule from "@/pages/notice";
 import DPRModule from "@/pages/dpr";
 import DPRDetailPage from "@/pages/dpr/DetailPage";
