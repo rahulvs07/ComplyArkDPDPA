@@ -72,11 +72,11 @@ export default function Login() {
         <div className="w-full max-w-md flex flex-col items-center">
           {/* Logo */}
           <div className="mb-8 flex flex-col items-center">
-            <div className="h-16 w-16 bg-blue-500 rounded-full flex items-center justify-center mb-4">
+            <div className="h-16 w-16 bg-[#2E77AE] rounded-full flex items-center justify-center mb-4">
               <Shield className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold mb-1">ComplyArk</h1>
-            <p className="text-sm text-gray-600">DPDPA Compliance Management System</p>
+            <p className="text-sm text-[#0F3460]">DPDPA Compliance Management System</p>
           </div>
           
           {/* Login form */}
@@ -88,7 +88,7 @@ export default function Login() {
                 placeholder="Email address"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#2E77AE] focus:border-[#2E77AE]"
                 required
               />
             </div>
@@ -129,7 +129,7 @@ export default function Login() {
               <button 
                 type="submit"
                 disabled={isLoadingLogin}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="w-full bg-[#2E77AE] hover:bg-[#0F3460] text-white py-2 px-4 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#2E77AE] focus:ring-offset-2"
               >
                 {isLoadingLogin ? "Signing in..." : "Sign in"}
               </button>
