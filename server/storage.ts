@@ -58,6 +58,47 @@ export interface IStorage {
   
   // Translated Notice operations
   getTranslatedNotice(id: number): Promise<TranslatedNotice | undefined>;
+  createTranslatedNotice(notice: InsertTranslatedNotice): Promise<TranslatedNotice>;
+  listTranslatedNotices(noticeId: number): Promise<TranslatedNotice[]>;
+  
+  // Request Status operations
+  getRequestStatus(id: number): Promise<RequestStatus | undefined>;
+  createRequestStatus(status: InsertRequestStatus): Promise<RequestStatus>;
+  updateRequestStatus(id: number, status: Partial<InsertRequestStatus>): Promise<RequestStatus | undefined>;
+  deleteRequestStatus(id: number): Promise<boolean>;
+  listRequestStatuses(): Promise<RequestStatus[]>;
+  
+  // Data Protection Request operations
+  getDPRequest(id: number): Promise<DPRequest | undefined>;
+  createDPRequest(request: Partial<InsertDPRequest> & { organizationId: number; statusId: number }): Promise<DPRequest>;
+  updateDPRequest(id: number, request: Partial<InsertDPRequest>): Promise<DPRequest | undefined>;
+  listDPRequests(organizationId?: number): Promise<DPRequest[]>;
+  
+  // DP Request History operations
+  createDPRequestHistory(history: InsertDPRequestHistory): Promise<DPRequestHistory>;
+  listDPRequestHistory(requestId: number): Promise<DPRequestHistory[]>;
+  
+  // Grievance operations
+  getGrievance(id: number): Promise<Grievance | undefined>;
+  createGrievance(grievance: Partial<InsertGrievance> & { organizationId: number; statusId: number }): Promise<Grievance>;
+  updateGrievance(id: number, grievance: Partial<InsertGrievance>): Promise<Grievance | undefined>;
+  listGrievances(organizationId?: number): Promise<Grievance[]>;
+  
+  // Grievance History operations
+  createGrievanceHistory(history: InsertGrievanceHistory): Promise<GrievanceHistory>;
+  listGrievanceHistory(grievanceId: number): Promise<GrievanceHistory[]>;
+  
+  // Compliance Document operations
+  getComplianceDocument(id: number): Promise<ComplianceDocument | undefined>;
+  createComplianceDocument(document: InsertComplianceDocument): Promise<ComplianceDocument>;
+  deleteComplianceDocument(id: number): Promise<boolean>;
+  listComplianceDocuments(organizationId: number): Promise<ComplianceDocument[]>;
+  updateNotice(id: number, notice: Partial<InsertNotice>): Promise<Notice | undefined>;
+  deleteNotice(id: number): Promise<boolean>;
+  listNotices(organizationId: number): Promise<Notice[]>;
+  
+  // Translated Notice operations
+  getTranslatedNotice(id: number): Promise<TranslatedNotice | undefined>;
   createTranslatedNotice(translatedNotice: InsertTranslatedNotice): Promise<TranslatedNotice>;
   deleteTranslatedNotice(id: number): Promise<boolean>;
   listTranslatedNotices(noticeId: number): Promise<TranslatedNotice[]>;
@@ -104,7 +145,9 @@ export interface IStorage {
   getRecentRequests(organizationId: number): Promise<any[]>;
 }
 
-export class MemStorage implements IStorage {
+export // This is the memory storage implementation
+// Use this for reference when implementing database storage
+class MemStorage {
   private usersData: Map<number, User>;
   private organizationsData: Map<number, Organization>;
   private industriesData: Map<number, Industry>;
@@ -269,6 +312,12 @@ export class MemStorage implements IStorage {
   // Organization operations
   async getOrganization(id: number): Promise<Organization | undefined> {
     return this.organizationsData.get(id);
+  }
+  
+  async getOrganizationByToken(token: string): Promise<Organization | undefined> {
+    return Array.from(this.organizationsData.values()).find(
+      org => org.requestPageUrlToken === token
+    );
   }
 
   async createOrganization(insertOrganization: InsertOrganization): Promise<Organization> {

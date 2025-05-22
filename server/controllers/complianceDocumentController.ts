@@ -1,36 +1,59 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
-import { insertComplianceDocumentSchema } from '@shared/schema';
 import { AuthRequest } from '../middleware/auth';
+import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import multer from 'multer';
+import { v4 as uuidv4 } from 'uuid';
 
-// Configure multer for file uploads
+// Define storage configuration for uploaded files
+const uploadDir = path.join(process.cwd(), 'uploads', 'compliance-docs');
+
+// Ensure upload directory exists
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure multer storage
 const storage_config = multer.diskStorage({
   destination: (req, file, cb) => {
-    const folderPath = path.join(process.cwd(), 'uploads', 'compliance');
-    
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(folderPath)) {
-      fs.mkdirSync(folderPath, { recursive: true });
-    }
-    
-    cb(null, folderPath);
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Generate unique filename
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    const uniqueSuffix = uuidv4();
+    cb(null, `${Date.now()}-${uniqueSuffix}${path.extname(file.originalname)}`);
   }
 });
 
-export const upload = multer({ storage: storage_config });
+// File type filter
+const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  // Accept common document types
+  const allowedFileTypes = [
+    '.pdf', '.doc', '.docx', '.txt', '.rtf', '.xls', '.xlsx', 
+    '.ppt', '.pptx', '.csv', '.png', '.jpg', '.jpeg', '.gif'
+  ];
+  
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (allowedFileTypes.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only document and image files are allowed.'));
+  }
+};
 
-// Get all compliance documents for an organization
+// Configure multer upload
+export const upload = multer({
+  storage: storage_config,
+  fileFilter: fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB max file size
+});
+
+/**
+ * Get all compliance documents for an organization
+ */
 export const getComplianceDocuments = async (req: Request, res: Response) => {
   const orgId = parseInt(req.params.orgId);
-  const folderPath = req.query.folderPath as string | undefined;
+  const folderPath = req.query.folder as string | undefined;
   
   if (isNaN(orgId)) {
     return res.status(400).json({ message: "Invalid organization ID" });
@@ -40,77 +63,100 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
     const documents = await storage.listComplianceDocuments(orgId, folderPath);
     return res.status(200).json(documents);
   } catch (error) {
-    console.error("Get compliance documents error:", error);
-    return res.status(500).json({ message: "An error occurred while fetching compliance documents" });
+    console.error("Error fetching compliance documents:", error);
+    return res.status(500).json({ message: "Failed to fetch compliance documents" });
   }
 };
 
-// Upload a new compliance document
+/**
+ * Upload a new compliance document
+ */
 export const uploadComplianceDocument = async (req: AuthRequest, res: Response) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No file was uploaded" });
-  }
-  
   const orgId = parseInt(req.params.orgId);
   
   if (isNaN(orgId)) {
     return res.status(400).json({ message: "Invalid organization ID" });
   }
   
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+  
   try {
-    const documentData = insertComplianceDocumentSchema.parse({
-      documentName: req.body.documentName || req.file.originalname,
-      documentPath: req.file.path,
-      documentType: path.extname(req.file.originalname).substring(1) || 'unknown',
-      folderPath: req.body.folderPath || '/',
-      uploadedBy: req.user!.id,
-      organizationId: orgId
-    });
+    const { documentName, documentType, folderPath, description } = req.body;
     
-    const document = await storage.createComplianceDocument(documentData);
+    // Create document record in database
+    const document = await storage.createComplianceDocument({
+      organizationId: orgId,
+      documentName: documentName || req.file.originalname,
+      documentType: documentType || path.extname(req.file.originalname).substring(1),
+      filePath: req.file.path,
+      folderPath: folderPath || '/',
+      fileSize: req.file.size,
+      description: description || null,
+      uploadedBy: req.user!.id,
+      uploadedAt: new Date(),
+      lastUpdatedAt: new Date()
+    });
     
     return res.status(201).json(document);
   } catch (error) {
-    console.error("Upload compliance document error:", error);
-    return res.status(500).json({ message: "An error occurred while uploading the document" });
+    console.error("Error uploading compliance document:", error);
+    
+    // Clean up the file if there was an error
+    if (req.file && req.file.path) {
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error("Error removing file after failed upload:", err);
+      });
+    }
+    
+    return res.status(500).json({ message: "Failed to upload compliance document" });
   }
 };
 
-// Delete a compliance document
+/**
+ * Delete a compliance document
+ */
 export const deleteComplianceDocument = async (req: Request, res: Response) => {
-  const documentId = parseInt(req.params.id);
+  const id = parseInt(req.params.id);
   
-  if (isNaN(documentId)) {
+  if (isNaN(id)) {
     return res.status(400).json({ message: "Invalid document ID" });
   }
   
   try {
-    const document = await storage.getComplianceDocument(documentId);
-    
+    // Get document details to delete the file
+    const document = await storage.getComplianceDocument(id);
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
     }
     
-    // Delete the file from disk
-    if (fs.existsSync(document.documentPath)) {
-      fs.unlinkSync(document.documentPath);
+    // Delete document from database
+    const result = await storage.deleteComplianceDocument(id);
+    if (!result) {
+      return res.status(500).json({ message: "Failed to delete document record" });
     }
     
-    // Delete from database
-    const deleted = await storage.deleteComplianceDocument(documentId);
-    
-    if (!deleted) {
-      return res.status(500).json({ message: "Failed to delete document record" });
+    // Delete the file from disk
+    if (document.filePath) {
+      fs.unlink(document.filePath, (err) => {
+        if (err) {
+          console.error("Error removing file:", err);
+          // Still return success as the database record was deleted
+        }
+      });
     }
     
     return res.status(200).json({ message: "Document deleted successfully" });
   } catch (error) {
-    console.error("Delete compliance document error:", error);
-    return res.status(500).json({ message: "An error occurred while deleting the document" });
+    console.error("Error deleting compliance document:", error);
+    return res.status(500).json({ message: "Failed to delete compliance document" });
   }
 };
 
-// Create a new folder
+/**
+ * Create a new folder for compliance documents
+ */
 export const createFolder = async (req: AuthRequest, res: Response) => {
   const orgId = parseInt(req.params.orgId);
   
@@ -118,36 +164,38 @@ export const createFolder = async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ message: "Invalid organization ID" });
   }
   
-  if (!req.body.folderName) {
-    return res.status(400).json({ message: "Folder name is required" });
-  }
-  
   try {
-    const parentPath = req.body.parentPath || '/';
-    const newFolderPath = path.join(parentPath, req.body.folderName);
+    const { folderName, parentFolder } = req.body;
     
-    // Check if folder already exists in the database (as a path)
-    const existingDocs = await storage.listComplianceDocuments(orgId, newFolderPath);
-    
-    if (existingDocs.length > 0) {
-      return res.status(400).json({ message: "A folder with this name already exists" });
+    if (!folderName) {
+      return res.status(400).json({ message: "Folder name is required" });
     }
     
-    // Create a marker document to represent the folder
-    const folderData = insertComplianceDocumentSchema.parse({
-      documentName: req.body.folderName,
-      documentPath: 'folder', // Just a marker, not a real path
-      documentType: 'folder',
-      folderPath: parentPath,
-      uploadedBy: req.user!.id,
-      organizationId: orgId
-    });
+    // Sanitize folder name to prevent path traversal
+    const sanitizedFolderName = folderName.replace(/[^\w\s-]/g, '');
     
-    const folder = await storage.createComplianceDocument(folderData);
+    // Create the folder path
+    const folderPath = parentFolder ? 
+      `${parentFolder.endsWith('/') ? parentFolder : parentFolder + '/'}${sanitizedFolderName}` : 
+      `/${sanitizedFolderName}`;
+    
+    // Create a placeholder document for the folder
+    const folder = await storage.createComplianceDocument({
+      organizationId: orgId,
+      documentName: sanitizedFolderName,
+      documentType: 'folder',
+      filePath: null,
+      folderPath: folderPath,
+      fileSize: 0,
+      description: 'Folder',
+      uploadedBy: req.user!.id,
+      uploadedAt: new Date(),
+      lastUpdatedAt: new Date()
+    });
     
     return res.status(201).json(folder);
   } catch (error) {
-    console.error("Create folder error:", error);
-    return res.status(500).json({ message: "An error occurred while creating the folder" });
+    console.error("Error creating folder:", error);
+    return res.status(500).json({ message: "Failed to create folder" });
   }
 };

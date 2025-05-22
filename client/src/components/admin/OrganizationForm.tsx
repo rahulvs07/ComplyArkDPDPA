@@ -274,6 +274,24 @@ export default function OrganizationForm({ onSuccess, initialData, isEdit = fals
           />
         </div>
         
+        {/* Request Page URL Generator - Only show when editing */}
+        {isEdit && initialData && (
+          <div className="border rounded-md p-4 bg-muted/20">
+            <h4 className="font-medium mb-2">Request Page Configuration</h4>
+            <p className="text-sm text-muted-foreground mb-4">
+              Generate a URL that allows external users to submit data protection requests and grievances for this organization.
+            </p>
+            
+            {/* Import and use the RequestPageUrlGenerator component */}
+            {React.lazy(() => import("@/components/organizations/RequestPageUrlGenerator"))({
+              organizationId: initialData.id,
+              currentUrl: initialData.requestPageUrlToken 
+                ? `${window.location.origin}/request-page/${initialData.requestPageUrlToken}`
+                : null
+            })}
+          </div>
+        )}
+        
         <div className="flex justify-end">
           <Button 
             type="submit" 

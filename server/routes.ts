@@ -131,9 +131,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/organizations/:id/request-page-url', isAuthenticated, isAdmin, requestPageController.generateRequestPageUrl);
   
   // External Request Page routes (no authentication)
-  app.get('/api/request-page/:token', requestPageController.getRequestPageData);
-  app.post('/api/request-page/:token/dp-request', requestPageController.createDPRequest);
-  app.post('/api/request-page/:token/grievance', requestPageController.createGrievance);
+  app.post('/api/request-page/:token/submit', requestPageController.submitDataProtectionRequest);
+  app.get('/api/request-page/status', requestPageController.checkRequestStatus);
   
   // Grievance routes
   app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, grievanceController.getGrievances);

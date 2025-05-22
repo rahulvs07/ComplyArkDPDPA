@@ -94,10 +94,22 @@ function Router() {
         </AppLayout>
       </Route>
       
+      <Route path="/admin/request-statuses">
+        <AppLayout>
+          <ProtectedRoute component={React.lazy(() => import("./pages/RequestStatusPage"))} adminOnly={true} />
+        </AppLayout>
+      </Route>
+      
       <Route path="/settings">
         <AppLayout>
           <ProtectedRoute component={UserSettings} />
         </AppLayout>
+      </Route>
+      
+      <Route path="/request-page/:token">
+        <React.Suspense fallback={<div>Loading...</div>}>
+          <ProtectedRoute component={React.lazy(() => import("./pages/RequestPage"))} />
+        </React.Suspense>
       </Route>
       
       {/* Fallback to 404 */}
