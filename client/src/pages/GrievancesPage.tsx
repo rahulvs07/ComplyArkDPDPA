@@ -136,7 +136,14 @@ export default function GrievancesPage() {
   
   // Helper function to get status ID from status name
   const getStatusIdByName = (statusName: string) => {
-    const status = statuses.find((s: any) => s.statusName.toLowerCase() === statusName.toLowerCase());
+    if (!Array.isArray(statuses) || statuses.length === 0) {
+      console.warn("Status list is empty or not an array");
+      return "";
+    }
+    
+    const status = statuses.find((s: any) => 
+      s.statusName && s.statusName.toLowerCase() === statusName.toLowerCase()
+    );
     return status ? status.statusId.toString() : "";
   };
   
@@ -185,8 +192,11 @@ export default function GrievancesPage() {
   // Update grievance mutation
   const updateMutation = useMutation({
     mutationFn: async (data: UpdateGrievanceValues) => {
+      console.log("Updating grievance with data:", data);
+      
       // Find the status object to get SLA days
       const statusObj = statuses.find((s: any) => s.statusId === parseInt(data.statusId));
+      console.log("Found status object:", statusObj);
       
       // Calculate completion date based on SLA days
       let completionDate = null;
@@ -196,15 +206,26 @@ export default function GrievancesPage() {
         completionDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
       }
       
-      return apiRequest(`/api/grievances/${selectedGrievance.grievanceId}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          statusId: parseInt(data.statusId),
-          assignedToUserId: data.assignedToUserId ? parseInt(data.assignedToUserId) : null,
-          comments: data.comments || null,
-          completionDate
-        }),
-      });
+      // Debug: Log the data we're sending in the request
+      const requestData = {
+        statusId: parseInt(data.statusId),
+        assignedToUserId: data.assignedToUserId ? parseInt(data.assignedToUserId) : null,
+        comments: data.comments || null,
+        completionDate
+      };
+      console.log("Sending update request:", requestData);
+      
+      try {
+        const response = await apiRequest(`/api/grievances/${selectedGrievance.grievanceId}`, {
+          method: "PATCH",
+          body: JSON.stringify(requestData),
+        });
+        console.log("Update response:", response);
+        return response;
+      } catch (error) {
+        console.error("Error updating grievance:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({

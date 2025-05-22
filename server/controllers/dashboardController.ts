@@ -23,8 +23,8 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
       escalatedGrievances: grievances.filter(g => g.status_name?.toLowerCase() === 'escalated').length
     };
 
-    // Fetch status mappings
-    const statuses = await storage.listRequestStatuses();
+    // Fetch all request statuses for accurate mapping 
+    const statuses = await storage.listRequestStatuses() || [];
     
     // Get status IDs for more reliable filtering
     const submittedStatusId = statuses.find(s => s.statusName.toLowerCase() === 'submitted')?.statusId;
@@ -33,27 +33,41 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
     const escalatedStatusId = statuses.find(s => s.statusName.toLowerCase() === 'escalated')?.statusId;
     const closedStatusId = statuses.find(s => s.statusName.toLowerCase() === 'closed')?.statusId;
     
+    // Log our statuses and grievances for debugging
+    console.log('Status IDs:', {
+      submittedStatusId,
+      inProgressStatusId,
+      awaitingInfoStatusId,
+      escalatedStatusId,
+      closedStatusId
+    });
+
+    console.log('First few grievances:', grievances.slice(0, 3).map(g => ({
+      grievanceId: g.grievanceId,
+      statusId: g.statusId
+    })));
+    
     // Detailed grievance status counts for GrievancesPage
     const grievanceStatusCounts = {
       total: { count: grievances.length, change: +5 },
       submitted: { 
-        count: submittedStatusId ? grievances.filter(g => g.statusId === submittedStatusId).length : 0, 
+        count: submittedStatusId ? grievances.filter(g => parseInt(g.statusId) === submittedStatusId).length : 0, 
         change: 0 
       },
       inProgress: { 
-        count: inProgressStatusId ? grievances.filter(g => g.statusId === inProgressStatusId).length : 0, 
+        count: inProgressStatusId ? grievances.filter(g => parseInt(g.statusId) === inProgressStatusId).length : 0, 
         change: 0 
       },
       awaiting: { 
-        count: awaitingInfoStatusId ? grievances.filter(g => g.statusId === awaitingInfoStatusId).length : 0, 
+        count: awaitingInfoStatusId ? grievances.filter(g => parseInt(g.statusId) === awaitingInfoStatusId).length : 0, 
         change: 0 
       },
       escalated: { 
-        count: escalatedStatusId ? grievances.filter(g => g.statusId === escalatedStatusId).length : 0, 
+        count: escalatedStatusId ? grievances.filter(g => parseInt(g.statusId) === escalatedStatusId).length : 0, 
         change: 0 
       },
       closed: { 
-        count: closedStatusId ? grievances.filter(g => g.statusId === closedStatusId).length : 0, 
+        count: closedStatusId ? grievances.filter(g => parseInt(g.statusId) === closedStatusId).length : 0, 
         change: 0 
       }
     };

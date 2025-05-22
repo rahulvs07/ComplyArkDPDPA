@@ -179,11 +179,11 @@ export async function updateGrievance(req: Request, res: Response) {
       parsedData.assignedToUserId = parseInt(parsedData.assignedToUserId);
     }
 
-    // Validate the update data
+    // Validate the update data - less strict to handle more data formats
     const updateSchema = z.object({
-      statusId: z.number(),
-      assignedToUserId: z.number().nullable().optional(),
-      comments: z.string().optional(),
+      statusId: z.number().or(z.string().transform(val => parseInt(val))),
+      assignedToUserId: z.number().nullable().optional().or(z.string().transform(val => val ? parseInt(val) : null)),
+      comments: z.string().optional().nullable(),
       completionDate: z.string().optional().nullable(),
       closureComments: z.string().nullable().optional(),
     });
