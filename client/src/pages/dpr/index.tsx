@@ -175,7 +175,7 @@ export default function DPRModule() {
     { 
       key: "name", 
       header: "Name",
-      render: (_: any, row: any) => `${row.firstName} ${row.lastName}`
+      render: (_: any, row: any) => row.firstName && row.lastName ? `${row.firstName} ${row.lastName}` : 'N/A'
     },
     { key: "requestType", header: "Request Type" },
     { 
