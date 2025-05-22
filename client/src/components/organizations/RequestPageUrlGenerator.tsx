@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Copy, RefreshCw, Check, Link, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Loader2, Copy, RefreshCw, Check, Link, ExternalLink, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface RequestPageUrlGeneratorProps {
@@ -20,15 +20,24 @@ export default function RequestPageUrlGenerator({
 }: RequestPageUrlGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [requestPageUrl, setRequestPageUrl] = useState<string | null>(currentUrl);
+  const [requestPageUrl, setRequestPageUrl] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Initialize with current URL if provided
+  useEffect(() => {
+    if (currentUrl) {
+      setRequestPageUrl(currentUrl);
+    }
+  }, [currentUrl]);
+
   // Generate or regenerate request page URL
   const generateRequestPageUrl = async () => {
     setIsGenerating(true);
     
     try {
+      console.log(`Generating request page URL for organization ${organizationId}...`);
+      
       const response = await fetch(`/api/organizations/${organizationId}/request-page-token`, {
         method: 'POST',
         headers: {
@@ -37,21 +46,27 @@ export default function RequestPageUrlGenerator({
       });
       
       if (!response.ok) {
-        throw new Error('Failed to generate request page URL');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate request page URL');
       }
       
       const data = await response.json();
-      const fullUrl = data.requestPageUrl;
-      setRequestPageUrl(fullUrl);
+      console.log('Response data:', data);
       
-      toast({
-        title: 'URL Generated',
-        description: 'Request page URL has been generated successfully.',
-      });
-      
-      // Invalidate organization query to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['/api/organizations', organizationId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/organizations'] });
+      if (data.requestPageUrl) {
+        setRequestPageUrl(data.requestPageUrl);
+        
+        toast({
+          title: 'URL Generated',
+          description: 'Request page URL has been generated successfully.',
+        });
+        
+        // Invalidate organization queries to refresh the data
+        queryClient.invalidateQueries({ queryKey: ['/api/organizations'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/organizations', organizationId] });
+      } else {
+        throw new Error('No URL returned from server');
+      }
     } catch (error) {
       console.error('Error generating request page URL:', error);
       
@@ -100,10 +115,10 @@ export default function RequestPageUrlGenerator({
   };
   
   return (
-    <Card>
-      <CardHeader>
+    <Card className="border-primary-100">
+      <CardHeader className="bg-primary-50 border-b border-primary-100">
         <div className="flex items-center space-x-2">
-          <Link className="h-5 w-5" />
+          <ShieldCheck className="h-5 w-5 text-primary-600" />
           <CardTitle className="text-xl">Request Page URL</CardTitle>
         </div>
         <CardDescription>
@@ -111,7 +126,7 @@ export default function RequestPageUrlGenerator({
           requests and grievances.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-6">
         {requestPageUrl && (
           <Alert className="mb-4 border-amber-200 bg-amber-50 text-amber-800">
             <AlertTriangle className="h-4 w-4" />
@@ -164,6 +179,7 @@ export default function RequestPageUrlGenerator({
               <Button
                 onClick={generateRequestPageUrl}
                 disabled={isGenerating}
+                className="bg-primary-600 hover:bg-primary-700"
               >
                 {isGenerating ? (
                   <>
@@ -179,7 +195,7 @@ export default function RequestPageUrlGenerator({
         )}
       </CardContent>
       {requestPageUrl && (
-        <CardFooter>
+        <CardFooter className="bg-gray-50 border-t">
           <Button
             variant="outline"
             className="w-full"

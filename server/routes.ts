@@ -121,12 +121,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid organization ID' });
       }
       
-      // Import the organizations schema
-      const { organizations } = await import('@shared/schema');
+      // Import necessary modules
+      const schema = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
       
       // Get organization to verify it exists
       const organization = await db.query.organizations.findFirst({
-        where: eq(organizations.id, organizationId)
+        where: eq(schema.organizations.id, organizationId)
       });
       
       if (!organization) {
@@ -139,14 +140,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = `${organizationId}-${timestamp}-${randomString}`;
       
       // Update the organization with the new token
-      await db.update(organizations)
+      await db.update(schema.organizations)
         .set({ requestPageUrlToken: token })
-        .where(eq(organizations.id, organizationId));
+        .where(eq(schema.organizations.id, organizationId));
       
       // Generate the full URL with the token
       const host = req.get('host');
       const protocol = req.protocol || 'http';
       const requestPageUrl = `${protocol}://${host}/request-page/${token}`;
+      
+      console.log('Generated request page URL:', requestPageUrl);
       
       return res.status(200).json({ 
         token, 
