@@ -18,7 +18,7 @@ const emailSchema = z.object({
 type EmailFormValues = z.infer<typeof emailSchema>;
 
 const otpSchema = z.object({
-  otp: z.string().min(6, 'Verification code must be at least 6 characters'),
+  otp: z.string().min(4, 'Verification code must be at least 4 characters'),
 });
 type OTPFormValues = z.infer<typeof otpSchema>;
 
