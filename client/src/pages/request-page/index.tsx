@@ -88,7 +88,21 @@ export default function RequestPage() {
 
   // Redirect to OTP verification if not authenticated
   useEffect(() => {
+    // Always check session storage first
+    const isVerified = sessionStorage.getItem('otp_verified') === 'true';
+    const verifiedEmail = sessionStorage.getItem('otp_email');
+    const storedToken = sessionStorage.getItem('request_page_token');
+    
+    // If we have verified status in session storage, use it
+    if (isVerified && verifiedEmail && storedToken) {
+      console.log('Session storage shows verified user:', verifiedEmail);
+      setIsAuthenticated(true);
+      return;
+    }
+    
+    // Otherwise redirect to OTP verification
     if (!isLoading && !error && organization && !isAuthenticated) {
+      console.log('Redirecting to OTP verification:', `/auth/otp/${organization.id}/${token}`);
       navigate(`/auth/otp/${organization.id}/${token}`);
     }
   }, [isLoading, error, organization, isAuthenticated, navigate, token]);

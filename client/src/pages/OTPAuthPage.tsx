@@ -149,33 +149,25 @@ export default function OTPAuthPage() {
       
       // Navigate to the request page with the token
       if (requestToken) {
-        console.log('Setting up redirect to request page with token:', requestToken);
+        console.log('Setting up session data for request page access:', requestToken);
         
         // Store the token in sessionStorage to ensure it's available after redirect
         sessionStorage.setItem('otp_verified', 'true');
         sessionStorage.setItem('otp_email', email);
         sessionStorage.setItem('request_page_token', requestToken);
         
-        // Wait to show the success message before attempting to navigate
-        setTimeout(() => {
-          try {
-            console.log('Attempting navigation to request page');
-            setLoading(false);
-            
-            // Show a manual navigation message
-            toast({
-              title: "Navigation required",
-              description: "Please click the button below to continue to the request page",
-            });
-            
-            // Change the component state to show a manual navigation button
-            setStep('complete');
-          } catch (e) {
-            console.error('Navigation error:', e);
-            setLoading(false);
-            setStep('complete');
-          }
-        }, 1000);
+        // Show success message
+        toast({
+          title: "Verification Successful",
+          description: "You've been verified successfully!",
+        });
+        
+        // Show completion screen with navigation button
+        setLoading(false);
+        setStep('complete');
+        
+        // Also create a direct link that will appear in session storage for debugging
+        console.log('Direct request page URL:', `/request-page/${requestToken}`);
       } else {
         console.log('No token found, redirecting to organization request page');
         // Use a simple redirect for the organization request page
