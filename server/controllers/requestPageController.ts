@@ -96,6 +96,14 @@ export const submitRequest = async (req: Request, res: Response) => {
 
       const { firstName, lastName, email, phone, requestType, requestComment } = validationResult.data;
 
+      // Calculate completion date based on SLA days
+      let completionDate = null;
+      if (defaultStatus.slaDays > 0) {
+        const date = new Date();
+        date.setDate(date.getDate() + defaultStatus.slaDays);
+        completionDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      }
+      
       // Create the DP request
       const request = await storage.createDPRequest({
         organizationId: organization.id,
@@ -107,9 +115,7 @@ export const submitRequest = async (req: Request, res: Response) => {
         requestComment: requestComment || null,
         statusId: defaultStatus.statusId,
         assignedToUserId: null,
-        createdAt: new Date(),
-        lastUpdatedAt: new Date(),
-        completionDate: null,
+        completionDate,
         completedOnTime: null,
         closedDateTime: null,
         closureComments: null
@@ -145,6 +151,14 @@ export const submitRequest = async (req: Request, res: Response) => {
 
       const { firstName, lastName, email, phone, grievanceComment } = validationResult.data;
 
+      // Calculate completion date based on SLA days
+      let completionDate = null;
+      if (defaultStatus.slaDays > 0) {
+        const date = new Date();
+        date.setDate(date.getDate() + defaultStatus.slaDays);
+        completionDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      }
+      
       // Create the grievance
       const grievance = await storage.createGrievance({
         organizationId: organization.id,
@@ -155,9 +169,7 @@ export const submitRequest = async (req: Request, res: Response) => {
         grievanceComment,
         statusId: defaultStatus.statusId,
         assignedToUserId: null,
-        createdAt: new Date(),
-        lastUpdatedAt: new Date(),
-        completionDate: null,
+        completionDate,
         completedOnTime: null,
         closedDateTime: null,
         closureComments: null

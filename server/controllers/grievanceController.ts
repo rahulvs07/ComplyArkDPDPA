@@ -131,7 +131,30 @@ export const grievanceController = {
         const submittedStatus = statuses.find(s => 
           s.statusName.toLowerCase() === 'submitted'
         );
-        data.statusId = submittedStatus?.statusId || statuses[0].statusId;
+        
+        if (submittedStatus) {
+          data.statusId = submittedStatus.statusId;
+          
+          // Calculate completion date based on SLA days
+          if (submittedStatus.slaDays > 0) {
+            const completionDate = new Date();
+            completionDate.setDate(completionDate.getDate() + submittedStatus.slaDays);
+            data.completionDate = completionDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+          }
+        } else {
+          data.statusId = statuses[0].statusId;
+        }
+      } else {
+        // If status ID is provided, get SLA days for that status
+        const statuses = await storage.listRequestStatuses();
+        const selectedStatus = statuses.find(s => s.statusId === data.statusId);
+        
+        // Calculate completion date based on SLA days
+        if (selectedStatus && selectedStatus.slaDays > 0) {
+          const completionDate = new Date();
+          completionDate.setDate(completionDate.getDate() + selectedStatus.slaDays);
+          data.completionDate = completionDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        }
       }
 
       const newGrievance = await storage.createGrievance(data);
