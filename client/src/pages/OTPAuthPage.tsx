@@ -154,16 +154,24 @@ export default function OTPAuthPage() {
         // Store the token in sessionStorage to ensure it's available after redirect
         sessionStorage.setItem('request_page_token', requestToken);
         
-        // Using direct location change for more reliable redirection
+        // Create a direct link to the request page for more reliable navigation
+        const requestUrl = `/request-page/${requestToken}`;
+        const link = document.createElement('a');
+        link.href = requestUrl;
+        link.textContent = 'Redirecting to request page...';
+        link.target = '_self';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        
+        // Delay slightly to ensure toast is visible
         setTimeout(() => {
-          // Force full page navigation to ensure proper loading
-          window.location.replace(`/request-page/${requestToken}`);
-        }, 800);
+          console.log('Navigating to:', requestUrl);
+          link.click();
+        }, 1200);
       } else {
         console.log('No token found, redirecting to organization request page');
-        setTimeout(() => {
-          window.location.replace(`/request/${organizationId}`);
-        }, 800);
+        // Use a simple redirect for the organization request page
+        window.location.href = `/request/${organizationId}`;
       }
       
       return;

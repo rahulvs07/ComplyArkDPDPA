@@ -16,7 +16,7 @@ import AdminTemplates from "@/pages/admin/templates";
 import UserSettings from "@/pages/user/settings";
 import WelcomePage from "@/pages/welcome";
 import RequestPage from "@/pages/RequestPage";
-import RequestPageNew from "@/pages/request-page";
+import RequestPageNew from "@/pages/request-page/index";
 import RequestStatusPage from "@/pages/RequestStatusPage";
 import OTPAuthPage from "@/pages/OTPAuthPage";
 // React is already imported by JSX
@@ -149,7 +149,7 @@ function Router() {
       {/* Public routes for external request submissions */}
       <Route path="/auth/otp/:orgId/:token?" component={OTPAuthPage} />
       <Route path="/request/:orgId/:type?" component={RequestPage} />
-      <Route path="/request-page/:token" component={import("@/pages/request-page").default} />
+      <Route path="/request-page/:token" component={RequestPageNew} />
       <Route path="/request-status" component={RequestStatusPage} />
       
       {/* Fallback to 404 */}
