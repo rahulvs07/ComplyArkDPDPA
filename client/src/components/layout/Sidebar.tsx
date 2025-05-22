@@ -66,64 +66,54 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <nav className="p-2">
         <p className="px-4 py-2 text-xs font-semibold text-neutral-500 uppercase">Main</p>
         
-        <Link href="/dashboard">
-          <a className={cn(
-            "sidebar-item flex items-center px-4 py-3 rounded-md",
+        <Link href="/dashboard" className={cn(
+            "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
             isActive("/dashboard") || isActive("/") 
               ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
               : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
           )}>
             <span className="material-icons mr-3">dashboard</span>
             <span>Dashboard</span>
-          </a>
         </Link>
         
-        <Link href="/notice">
-          <a className={cn(
-            "sidebar-item flex items-center px-4 py-3 rounded-md",
+        <Link href="/notice" className={cn(
+            "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
             isActive("/notice") 
               ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
               : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
           )}>
             <span className="material-icons mr-3">description</span>
             <span>Notice Module</span>
-          </a>
         </Link>
         
-        <Link href="/dpr">
-          <a className={cn(
-            "sidebar-item flex items-center px-4 py-3 rounded-md",
+        <Link href="/dpr" className={cn(
+            "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
             isActive("/dpr") 
               ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
               : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
           )}>
             <span className="material-icons mr-3">assignment</span>
             <span>DPR Requests</span>
-          </a>
         </Link>
 
-        <Link href="/grievances">
-          <a className={cn(
-            "sidebar-item flex items-center px-4 py-3 rounded-md",
+        <Link href="/grievances" className={cn(
+            "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
             isActive("/grievances") 
               ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
               : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
           )}>
             <span className="material-icons mr-3">report_problem</span>
             <span>Grievances</span>
-          </a>
         </Link>
         
-        <Link href="/compliance-documents">
-          <a className={cn(
-            "sidebar-item flex items-center px-4 py-3 rounded-md",
+        <Link href="/compliance-documents" className={cn(
+            "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
             isActive("/compliance-documents") 
               ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
               : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
           )}>
             <span className="material-icons mr-3">folder</span>
             <span>Compliance Docs</span>
-          </a>
         </Link>
         
         {/* Admin section only visible to admins */}
@@ -131,16 +121,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <>
             <p className="px-4 py-2 mt-6 text-xs font-semibold text-neutral-500 uppercase">Admin</p>
             
-            <Link href="/admin/users">
-              <a className={cn(
-                "sidebar-item flex items-center px-4 py-3 rounded-md",
+            <Link href="/admin/users" className={cn(
+                "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
                 isActive("/admin/users") 
                   ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
                   : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
               )}>
                 <span className="material-icons mr-3">people</span>
                 <span>Users</span>
-              </a>
             </Link>
             
             <Link href="/admin">

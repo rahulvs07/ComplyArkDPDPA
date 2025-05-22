@@ -328,13 +328,17 @@ export default function DPRModule() {
               e.stopPropagation();
               handleViewRequest(row.original.requestId);
             }}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 text-[#2E77AE] border-[#2E77AE]/30 hover:bg-[#2E77AE]/10 hover:border-[#2E77AE]"
           >
             <FileEdit className="h-4 w-4" />
             <span className="sr-only">View</span>
           </Button>
           <Link to={`/dpr/${row.original.requestId}`}>
-            <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 w-8 p-0 text-[#0F3460] border-[#0F3460]/30 hover:bg-[#0F3460]/10 hover:border-[#0F3460]"
+            >
               <FileArchive className="h-4 w-4" />
               <span className="sr-only">Detail</span>
             </Button>
@@ -373,7 +377,7 @@ export default function DPRModule() {
             onClick={() => setCurrentTab(card.key)}
           >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-              <div className={`p-2 rounded-full mb-2 ${currentTab === card.key ? 'bg-primary/10' : 'bg-muted'}`}>
+              <div className={`p-2 rounded-full mb-2 ${currentTab === card.key ? 'bg-[#2E77AE]/10' : 'bg-muted'}`}>
                 {card.icon}
               </div>
               <div className="font-medium">{card.label}</div>
