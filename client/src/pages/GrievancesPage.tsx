@@ -292,12 +292,35 @@ export default function GrievancesPage() {
     updateMutation.mutate(values);
   };
   
-  // Define status cards with icons and counts
+  // Define status cards with icons and counts - calculate directly from grievance data
   const statusCards = useMemo(() => {
-    // Make sure statuses are loaded
-    if (!statuses || statuses.length === 0) {
+    // Make sure statuses and grievances are loaded
+    if (!statuses || statuses.length === 0 || !grievances) {
       return [];
     }
+    
+    // Calculate counts directly from grievance data (similar to DPR page)
+    const submittedStatus = getStatusIdByName("Submitted");
+    const inProgressStatus = getStatusIdByName("InProgress");
+    const awaitingInfoStatus = getStatusIdByName("AwaitingInfo");
+    const escalatedStatus = getStatusIdByName("Escalated");
+    const closedStatusId = getStatusIdByName("Closed") || "27";
+    
+    // Count grievances by status ID
+    const statusCounts: Record<string, number> = {};
+    grievances.forEach((grievance: any) => {
+      const statusId = grievance.statusId.toString();
+      statusCounts[statusId] = (statusCounts[statusId] || 0) + 1;
+    });
+    
+    console.log("Status counts calculated from grievances:", statusCounts);
+    console.log("Status IDs being used:", { 
+      submittedStatus, 
+      inProgressStatus, 
+      awaitingInfoStatus, 
+      escalatedStatus, 
+      closedStatusId 
+    });
     
     // Define a mapping of status names to ensure we don't have duplicates
     const uniqueStatusMap = new Map();
@@ -306,74 +329,63 @@ export default function GrievancesPage() {
     uniqueStatusMap.set("all", {
       key: "all",
       label: "All Grievances",
-      count: stats?.grievances?.total?.count || 0,
+      count: grievances.length || 0,
       icon: <ClipboardList className="h-5 w-5" />,
       description: "All time"
     });
     
-    // Debug stats object to ensure data is present
-    console.log("Dashboard stats in GrievancesPage:", stats);
-    
-    // Debug the stats object structure to confirm what we're working with
-    console.log("Full dashboard stats in GrievancesPage:", stats);
-    
-    // Use the direct status counts now available in the API response
-    const statusCounts = stats?.grievances?.statusCounts || {};
-    console.log("Direct status counts:", statusCounts);
-    
-    // Only add each status once
-    if (getStatusIdByName("Submitted")) {
+    // Only add each status once, with counts from our grievances array
+    if (submittedStatus) {
       uniqueStatusMap.set("Submitted", {
-        key: getStatusIdByName("Submitted"),
+        key: submittedStatus,
         label: "Submitted",
-        count: statusCounts.submitted || 0,
+        count: statusCounts[submittedStatus] || 0,
         icon: <Clock className="h-5 w-5 text-blue-500" />,
         description: "Newly submitted"
       });
     }
     
-    if (getStatusIdByName("InProgress")) {
+    if (inProgressStatus) {
       uniqueStatusMap.set("InProgress", {
-        key: getStatusIdByName("InProgress"),
+        key: inProgressStatus,
         label: "In Progress",
-        count: statusCounts.inProgress || 0,
+        count: statusCounts[inProgressStatus] || 0,
         icon: <HourglassIcon className="h-5 w-5 text-amber-500" />,
         description: "Being processed"
       });
     }
     
-    if (getStatusIdByName("AwaitingInfo")) {
+    if (awaitingInfoStatus) {
       uniqueStatusMap.set("AwaitingInfo", {
-        key: getStatusIdByName("AwaitingInfo"),
+        key: awaitingInfoStatus,
         label: "Awaiting Info",
-        count: statusCounts.awaiting || 0,
+        count: statusCounts[awaitingInfoStatus] || 0,
         icon: <Clock className="h-5 w-5 text-purple-500" />,
         description: "Waiting on requester"
       });
     }
     
-    if (getStatusIdByName("Escalated")) {
+    if (escalatedStatus) {
       uniqueStatusMap.set("Escalated", {
-        key: getStatusIdByName("Escalated"),
+        key: escalatedStatus,
         label: "Escalated",
-        count: statusCounts.escalated || 0,
+        count: statusCounts[escalatedStatus] || 0,
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
         description: "Requires attention"
       });
     }
     
-    const closedStatusId = getStatusIdByName("Closed") || "27"; 
     uniqueStatusMap.set("Closed", {
       key: closedStatusId,
       label: "Closed",
-      count: statusCounts.closed || 0,
+      count: statusCounts[closedStatusId] || 0,
       icon: <CheckCircle className="h-5 w-5 text-green-500" />,
       description: "Successfully completed"
     });
     
     // Convert Map values to an array
     return Array.from(uniqueStatusMap.values());
-  }, [stats, statuses, getStatusIdByName]);
+  }, [grievances, statuses, getStatusIdByName]);
   
   // Get Badge component with appropriate styling based on status
   const getStatusBadge = (statusId: number) => {
