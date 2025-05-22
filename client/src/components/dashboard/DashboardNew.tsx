@@ -271,7 +271,7 @@ export function DashboardNew() {
   const { data: stats, isLoading: isStatsLoading } = useQuery({
     queryKey: ['/api/dashboard/stats'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/dashboard/stats');
+      const response = await apiRequest('/api/dashboard/stats', { method: 'GET' });
       return response.json();
     },
     initialData: {
@@ -286,7 +286,7 @@ export function DashboardNew() {
   const { data: weeklyActivity, isLoading: isWeeklyLoading } = useQuery({
     queryKey: ['/api/dashboard/weekly-activity'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/dashboard/weekly-activity');
+      const response = await apiRequest('/api/dashboard/weekly-activity', { method: 'GET' });
       return response.json();
     },
     initialData: [
@@ -304,7 +304,7 @@ export function DashboardNew() {
   const { data: statusDistribution, isLoading: isDistributionLoading } = useQuery({
     queryKey: ['/api/dashboard/status-distribution'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/dashboard/status-distribution');
+      const response = await apiRequest('/api/dashboard/status-distribution', { method: 'GET' });
       return response.json();
     },
     initialData: [
@@ -319,7 +319,7 @@ export function DashboardNew() {
   const { data: escalatedRequests, isLoading: isEscalatedLoading } = useQuery({
     queryKey: ['/api/dashboard/escalated-requests'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/dashboard/escalated-requests');
+      const response = await apiRequest('/api/dashboard/escalated-requests', { method: 'GET' });
       return response.json();
     },
     initialData: [
@@ -356,7 +356,7 @@ export function DashboardNew() {
   const { data: upcomingDueRequests, isLoading: isUpcomingLoading } = useQuery({
     queryKey: ['/api/dashboard/upcoming-due-requests'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/dashboard/upcoming-due-requests');
+      const response = await apiRequest('/api/dashboard/upcoming-due-requests', { method: 'GET' });
       return response.json();
     },
     initialData: [
