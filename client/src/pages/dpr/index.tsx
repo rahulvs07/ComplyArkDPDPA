@@ -637,33 +637,36 @@ export default function DPRModule() {
                             )}
                           />
                           
-                          <FormField
-                            control={form.control}
-                            name="assignedToUserId"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Assigned To</FormLabel>
-                                <Select 
-                                  onValueChange={field.onChange} 
-                                  defaultValue={field.value}
-                                  disabled={updateMutation.isPending}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Assign to user" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="">Unassigned</SelectItem>
-                                    {users.map((user: any) => (
-                                      <SelectItem key={user.id} value={user.id.toString()}>
-                                        {user.firstName} {user.lastName}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          {/* Only Org Admins can change the assigned staff */}
+                          {user?.role === "admin" && (
+                            <FormField
+                              control={form.control}
+                              name="assignedToUserId"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Assigned To</FormLabel>
+                                  <Select 
+                                    onValueChange={field.onChange} 
+                                    defaultValue={field.value}
+                                    disabled={updateMutation.isPending}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Assign to user" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="">Unassigned</SelectItem>
+                                      {users.map((user: any) => (
+                                        <SelectItem key={user.id} value={user.id.toString()}>
+                                          {user.firstName} {user.lastName}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          )}
                           
                           {statuses.some((s: any) => 
                             s.statusId.toString() === form.watch("statusId") && 
