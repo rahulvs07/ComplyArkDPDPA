@@ -162,12 +162,24 @@ export default function GrievancesPage() {
   // Update grievance mutation
   const updateMutation = useMutation({
     mutationFn: async (data: UpdateGrievanceValues) => {
+      // Find the status object to get SLA days
+      const statusObj = statuses.find((s: any) => s.statusId === parseInt(data.statusId));
+      
+      // Calculate completion date based on SLA days
+      let completionDate = null;
+      if (statusObj && statusObj.slaDays > 0) {
+        const date = new Date();
+        date.setDate(date.getDate() + statusObj.slaDays);
+        completionDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      }
+      
       return apiRequest(`/api/grievances/${selectedGrievance.grievanceId}`, {
         method: "PATCH",
         body: JSON.stringify({
           statusId: parseInt(data.statusId),
           assignedToUserId: data.assignedToUserId ? parseInt(data.assignedToUserId) : null,
-          comments: data.comments || null
+          comments: data.comments || null,
+          completionDate
         }),
       });
     },

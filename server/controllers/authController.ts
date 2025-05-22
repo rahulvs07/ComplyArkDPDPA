@@ -9,7 +9,52 @@ export const login = async (req: Request, res: Response) => {
     return res.status(400).json({ message: "Username and password are required" });
   }
 
+  // Hardcoded superadmin credentials
+  const SUPER_ADMIN_USERNAME = "complyarkadmin";
+  const SUPER_ADMIN_PASSWORD = "admincomplyark";
+  const SUPER_ADMIN_ORG_ID = 1; // Using org ID 1 as default for superadmin
+
   try {
+    // Check if superadmin login
+    if (username === SUPER_ADMIN_USERNAME && password === SUPER_ADMIN_PASSWORD) {
+      // Create a superadmin user object with full permissions
+      const superAdminUser = {
+        id: 999, // Using high ID to avoid conflicts
+        username: SUPER_ADMIN_USERNAME,
+        firstName: "System",
+        lastName: "Administrator",
+        email: "admin@complyark.org",
+        phone: "0000000000",
+        role: "admin",
+        organizationId: SUPER_ADMIN_ORG_ID,
+        isActive: true,
+        canEdit: true,
+        canDelete: true,
+        createdAt: new Date()
+      };
+      
+      // Create session
+      req.session.userId = superAdminUser.id;
+      
+      // Get organization name or use default
+      let organizationName = "ComplyArk System";
+      try {
+        const organization = await storage.getOrganization(SUPER_ADMIN_ORG_ID);
+        if (organization) {
+          organizationName = organization.businessName;
+        }
+      } catch (err) {
+        console.log("Could not fetch organization for superadmin, using default name");
+      }
+      
+      // Return superadmin user info
+      return res.status(200).json({
+        ...superAdminUser,
+        organizationName
+      });
+    }
+
+    // Regular user login flow
     const user = await storage.getUserByUsername(username);
 
     if (!user) {
@@ -62,7 +107,48 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
     return res.status(401).json({ message: "Not authenticated" });
   }
 
+  // Hardcoded superadmin ID
+  const SUPER_ADMIN_ID = 999;
+  const SUPER_ADMIN_ORG_ID = 1;
+
   try {
+    // Check if superadmin user
+    if (req.user.id === SUPER_ADMIN_ID) {
+      // Create a superadmin user object with full permissions
+      const superAdminUser = {
+        id: SUPER_ADMIN_ID,
+        username: "complyarkadmin",
+        firstName: "System",
+        lastName: "Administrator",
+        email: "admin@complyark.org",
+        phone: "0000000000",
+        role: "admin",
+        organizationId: SUPER_ADMIN_ORG_ID,
+        isActive: true,
+        canEdit: true,
+        canDelete: true,
+        createdAt: new Date()
+      };
+      
+      // Get organization name or use default
+      let organizationName = "ComplyArk System";
+      try {
+        const organization = await storage.getOrganization(SUPER_ADMIN_ORG_ID);
+        if (organization) {
+          organizationName = organization.businessName;
+        }
+      } catch (err) {
+        console.log("Could not fetch organization for superadmin, using default name");
+      }
+      
+      // Return superadmin user info
+      return res.status(200).json({
+        ...superAdminUser,
+        organizationName
+      });
+    }
+
+    // Regular user flow
     const user = await storage.getUser(req.user.id);
     
     if (!user) {
