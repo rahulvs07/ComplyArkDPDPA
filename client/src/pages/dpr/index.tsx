@@ -189,9 +189,10 @@ export default function DPRModule() {
     // Convert values to the right format
     const formattedValues = {
       statusId: parseInt(values.statusId),
-      assignedToUserId: values.assignedToUserId ? parseInt(values.assignedToUserId) : null,
+      assignedToUserId: values.assignedToUserId === "0" ? null : (values.assignedToUserId ? parseInt(values.assignedToUserId) : null),
       closureComments: values.closureComments || null
     };
+    console.log("Submitting values:", formattedValues);
     updateMutation.mutate(formattedValues);
   };
   
