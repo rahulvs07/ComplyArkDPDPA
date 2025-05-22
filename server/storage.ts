@@ -574,4 +574,586 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+import { db } from "./db";
+import { eq, and, desc, sql, count, isNull } from "drizzle-orm";
+import crypto from "crypto";
+
+export class DatabaseStorage implements IStorage {
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
+    return result.rowCount > 0;
+  }
+
+  async listUsers(organizationId?: number): Promise<User[]> {
+    if (organizationId) {
+      return db.select().from(users).where(eq(users.organizationId, organizationId));
+    }
+    return db.select().from(users);
+  }
+
+  // Organization operations
+  async getOrganization(id: number): Promise<Organization | undefined> {
+    const [organization] = await db.select().from(organizations).where(eq(organizations.id, id));
+    return organization;
+  }
+
+  async createOrganization(organization: InsertOrganization): Promise<Organization> {
+    const [org] = await db.insert(organizations).values(organization).returning();
+    return org;
+  }
+
+  async updateOrganization(id: number, updates: Partial<InsertOrganization>): Promise<Organization | undefined> {
+    const [organization] = await db
+      .update(organizations)
+      .set(updates)
+      .where(eq(organizations.id, id))
+      .returning();
+    return organization;
+  }
+
+  async deleteOrganization(id: number): Promise<boolean> {
+    const result = await db.delete(organizations).where(eq(organizations.id, id));
+    return result.rowCount > 0;
+  }
+
+  async listOrganizations(): Promise<Organization[]> {
+    return db.select().from(organizations);
+  }
+
+  // Industry operations
+  async getIndustry(id: number): Promise<Industry | undefined> {
+    const [industry] = await db.select().from(industries).where(eq(industries.industryId, id));
+    return industry;
+  }
+
+  async createIndustry(industry: InsertIndustry): Promise<Industry> {
+    const [newIndustry] = await db.insert(industries).values(industry).returning();
+    return newIndustry;
+  }
+
+  async updateIndustry(id: number, updates: Partial<InsertIndustry>): Promise<Industry | undefined> {
+    const [industry] = await db
+      .update(industries)
+      .set(updates)
+      .where(eq(industries.industryId, id))
+      .returning();
+    return industry;
+  }
+
+  async deleteIndustry(id: number): Promise<boolean> {
+    const result = await db.delete(industries).where(eq(industries.industryId, id));
+    return result.rowCount > 0;
+  }
+
+  async listIndustries(): Promise<Industry[]> {
+    return db.select().from(industries);
+  }
+
+  // Template operations
+  async getTemplate(id: number): Promise<Template | undefined> {
+    const [template] = await db.select().from(templates).where(eq(templates.templateId, id));
+    return template;
+  }
+
+  async createTemplate(template: InsertTemplate): Promise<Template> {
+    const [newTemplate] = await db.insert(templates).values(template).returning();
+    return newTemplate;
+  }
+
+  async updateTemplate(id: number, updates: Partial<InsertTemplate>): Promise<Template | undefined> {
+    const [template] = await db
+      .update(templates)
+      .set(updates)
+      .where(eq(templates.templateId, id))
+      .returning();
+    return template;
+  }
+
+  async deleteTemplate(id: number): Promise<boolean> {
+    const result = await db.delete(templates).where(eq(templates.templateId, id));
+    return result.rowCount > 0;
+  }
+
+  async listTemplates(industryId?: number): Promise<Template[]> {
+    if (industryId) {
+      return db.select().from(templates).where(eq(templates.industryId, industryId));
+    }
+    return db.select().from(templates);
+  }
+
+  // Notice operations
+  async getNotice(id: number): Promise<Notice | undefined> {
+    const [notice] = await db.select().from(notices).where(eq(notices.noticeId, id));
+    return notice;
+  }
+
+  async createNotice(notice: InsertNotice): Promise<Notice> {
+    const [newNotice] = await db.insert(notices).values(notice).returning();
+    return newNotice;
+  }
+
+  async updateNotice(id: number, updates: Partial<InsertNotice>): Promise<Notice | undefined> {
+    const [notice] = await db
+      .update(notices)
+      .set(updates)
+      .where(eq(notices.noticeId, id))
+      .returning();
+    return notice;
+  }
+
+  async deleteNotice(id: number): Promise<boolean> {
+    const result = await db.delete(notices).where(eq(notices.noticeId, id));
+    return result.rowCount > 0;
+  }
+
+  async listNotices(organizationId: number): Promise<Notice[]> {
+    return db
+      .select()
+      .from(notices)
+      .where(eq(notices.organizationId, organizationId));
+  }
+
+  // Translated Notice operations
+  async getTranslatedNotice(id: number): Promise<TranslatedNotice | undefined> {
+    const [translatedNotice] = await db
+      .select()
+      .from(translatedNotices)
+      .where(eq(translatedNotices.id, id));
+    return translatedNotice;
+  }
+
+  async createTranslatedNotice(translatedNotice: InsertTranslatedNotice): Promise<TranslatedNotice> {
+    const [newTranslatedNotice] = await db
+      .insert(translatedNotices)
+      .values(translatedNotice)
+      .returning();
+    return newTranslatedNotice;
+  }
+
+  async deleteTranslatedNotice(id: number): Promise<boolean> {
+    const result = await db
+      .delete(translatedNotices)
+      .where(eq(translatedNotices.id, id));
+    return result.rowCount > 0;
+  }
+
+  async listTranslatedNotices(noticeId: number): Promise<TranslatedNotice[]> {
+    return db
+      .select()
+      .from(translatedNotices)
+      .where(eq(translatedNotices.noticeId, noticeId));
+  }
+
+  // Request Status operations
+  async getRequestStatus(id: number): Promise<RequestStatus | undefined> {
+    const [status] = await db
+      .select()
+      .from(requestStatuses)
+      .where(eq(requestStatuses.statusId, id));
+    return status;
+  }
+
+  async createRequestStatus(status: InsertRequestStatus): Promise<RequestStatus> {
+    const [newStatus] = await db
+      .insert(requestStatuses)
+      .values(status)
+      .returning();
+    return newStatus;
+  }
+
+  async listRequestStatuses(): Promise<RequestStatus[]> {
+    return db.select().from(requestStatuses);
+  }
+
+  // DP Request operations
+  async getDPRequest(id: number): Promise<DPRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(dpRequests)
+      .where(eq(dpRequests.requestId, id));
+    return request;
+  }
+
+  async createDPRequest(request: InsertDPRequest): Promise<DPRequest> {
+    const [newRequest] = await db
+      .insert(dpRequests)
+      .values({
+        ...request,
+        lastUpdatedAt: new Date(),
+      })
+      .returning();
+    return newRequest;
+  }
+
+  async updateDPRequest(id: number, updates: Partial<InsertDPRequest>): Promise<DPRequest | undefined> {
+    const [request] = await db
+      .update(dpRequests)
+      .set({
+        ...updates,
+        lastUpdatedAt: new Date(),
+      })
+      .where(eq(dpRequests.requestId, id))
+      .returning();
+    return request;
+  }
+
+  async deleteDPRequest(id: number): Promise<boolean> {
+    const result = await db
+      .delete(dpRequests)
+      .where(eq(dpRequests.requestId, id));
+    return result.rowCount > 0;
+  }
+
+  async listDPRequests(organizationId: number, statusId?: number): Promise<DPRequest[]> {
+    if (statusId) {
+      return db
+        .select()
+        .from(dpRequests)
+        .where(
+          and(
+            eq(dpRequests.organizationId, organizationId),
+            eq(dpRequests.statusId, statusId)
+          )
+        );
+    }
+    return db
+      .select()
+      .from(dpRequests)
+      .where(eq(dpRequests.organizationId, organizationId));
+  }
+
+  // DP Request History operations
+  async createDPRequestHistory(history: InsertDPRequestHistory): Promise<DPRequestHistory> {
+    const [newHistory] = await db
+      .insert(dpRequestHistory)
+      .values(history)
+      .returning();
+    return newHistory;
+  }
+
+  async listDPRequestHistory(requestId: number): Promise<DPRequestHistory[]> {
+    return db
+      .select()
+      .from(dpRequestHistory)
+      .where(eq(dpRequestHistory.requestId, requestId))
+      .orderBy(desc(dpRequestHistory.changeDate));
+  }
+
+  // Dashboard operations
+  async getDashboardStats(organizationId: number): Promise<any> {
+    // Get all statuses
+    const statuses = await db.select().from(requestStatuses);
+    
+    // Find status IDs
+    const submitStatus = statuses.find(s => s.statusName === "Submitted");
+    const inProgressStatus = statuses.find(s => s.statusName === "In Progress");
+    const completedStatus = statuses.find(s => s.statusName === "Completed");
+    const overdueStatus = statuses.find(s => s.statusName === "Overdue");
+    
+    // Count requests by status
+    const pendingCount = submitStatus 
+      ? await db.select({ count: count() }).from(dpRequests)
+          .where(and(
+            eq(dpRequests.organizationId, organizationId),
+            eq(dpRequests.statusId, submitStatus.statusId)
+          ))
+          .then(result => result[0].count)
+      : 0;
+    
+    const inProgressCount = inProgressStatus
+      ? await db.select({ count: count() }).from(dpRequests)
+          .where(and(
+            eq(dpRequests.organizationId, organizationId),
+            eq(dpRequests.statusId, inProgressStatus.statusId)
+          ))
+          .then(result => result[0].count)
+      : 0;
+    
+    const completedCount = completedStatus
+      ? await db.select({ count: count() }).from(dpRequests)
+          .where(and(
+            eq(dpRequests.organizationId, organizationId),
+            eq(dpRequests.statusId, completedStatus.statusId)
+          ))
+          .then(result => result[0].count)
+      : 0;
+    
+    const overdueCount = overdueStatus
+      ? await db.select({ count: count() }).from(dpRequests)
+          .where(and(
+            eq(dpRequests.organizationId, organizationId),
+            eq(dpRequests.statusId, overdueStatus.statusId)
+          ))
+          .then(result => result[0].count)
+      : 0;
+    
+    return {
+      pending: {
+        count: pendingCount,
+        trend: { value: "8% from last week", isPositive: false }
+      },
+      inProgress: {
+        count: inProgressCount,
+        trend: { value: "5% from last week", isPositive: true }
+      },
+      completed: {
+        count: completedCount,
+        trend: { value: "12% from last week", isPositive: true }
+      },
+      overdue: {
+        count: overdueCount,
+        trend: { value: "2% from last week", isPositive: false }
+      }
+    };
+  }
+
+  async getRecentActivities(organizationId: number): Promise<any[]> {
+    // Join request history with users, requests, and statuses
+    const activityLimit = 5;
+    const activities = await db
+      .select({
+        historyId: dpRequestHistory.historyId,
+        requestId: dpRequestHistory.requestId,
+        changeDate: dpRequestHistory.changeDate,
+        changedByFirstName: users.firstName,
+        changedByLastName: users.lastName,
+        oldStatusName: sql<string>`old_status.statusName`.mapWith(String),
+        newStatusName: sql<string>`new_status.statusName`.mapWith(String),
+        comments: dpRequestHistory.comments,
+        requestType: dpRequests.requestType,
+        requesterFirstName: dpRequests.firstName,
+        requesterLastName: dpRequests.lastName
+      })
+      .from(dpRequestHistory)
+      .innerJoin(users, eq(dpRequestHistory.changedByUserId, users.id))
+      .innerJoin(dpRequests, eq(dpRequestHistory.requestId, dpRequests.requestId))
+      .leftJoin(
+        requestStatuses.as("old_status"), 
+        eq(dpRequestHistory.oldStatusId, sql`old_status.statusId`)
+      )
+      .leftJoin(
+        requestStatuses.as("new_status"), 
+        eq(dpRequestHistory.newStatusId, sql`new_status.statusId`)
+      )
+      .where(eq(dpRequests.organizationId, organizationId))
+      .orderBy(desc(dpRequestHistory.changeDate))
+      .limit(activityLimit);
+
+    // Transform to the expected format
+    return activities.map(activity => {
+      const timeAgo = this.getTimeAgo(activity.changeDate);
+      let type = "status_change";
+      let message = `Request from ${activity.requesterFirstName} ${activity.requesterLastName} status changed`;
+      
+      if (activity.oldStatusName && activity.newStatusName) {
+        message = `Request from ${activity.requesterFirstName} ${activity.requesterLastName} status changed from ${activity.oldStatusName} to ${activity.newStatusName}`;
+      }
+      
+      return {
+        id: activity.historyId,
+        type,
+        message,
+        timeAgo,
+        icon: "assignment",
+        iconClass: "bg-primary-50 text-primary-500"
+      };
+    });
+  }
+
+  async getRecentRequests(organizationId: number): Promise<any[]> {
+    const requestLimit = 5;
+    const requests = await db
+      .select({
+        requestId: dpRequests.requestId,
+        firstName: dpRequests.firstName,
+        lastName: dpRequests.lastName,
+        requestType: dpRequests.requestType,
+        createdAt: dpRequests.createdAt,
+        statusName: requestStatuses.statusName
+      })
+      .from(dpRequests)
+      .leftJoin(requestStatuses, eq(dpRequests.statusId, requestStatuses.statusId))
+      .where(eq(dpRequests.organizationId, organizationId))
+      .orderBy(desc(dpRequests.createdAt))
+      .limit(requestLimit);
+
+    return requests.map(request => {
+      const timeAgo = this.getTimeAgo(request.createdAt);
+      return {
+        id: request.requestId,
+        requesterName: `${request.firstName} ${request.lastName}`,
+        requestType: request.requestType,
+        status: request.statusName,
+        timeAgo,
+        statusClass: this.getStatusClass(request.statusName || "")
+      };
+    });
+  }
+
+  // Helper function to calculate time ago
+  private getTimeAgo(date: Date): string {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHr / 24);
+    
+    if (diffSec < 60) {
+      return `${diffSec} seconds ago`;
+    } else if (diffMin < 60) {
+      return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+    } else if (diffHr < 24) {
+      return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
+    } else {
+      return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    }
+  }
+
+  // Helper function to get status CSS class
+  private getStatusClass(status: string): string {
+    switch (status.toLowerCase()) {
+      case "submitted":
+        return "bg-blue-100 text-blue-800";
+      case "in progress":
+        return "bg-yellow-100 text-yellow-800";
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "overdue":
+        return "bg-red-100 text-red-800";
+      case "closed":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  }
+}
+
+// Initialize the database with default values if empty
+async function initializeDatabase() {
+  // Check if we have any industries
+  const industryCount = await db.select({ count: count() }).from(industries);
+  if (industryCount[0].count === 0) {
+    // Create default industries
+    await db.insert(industries).values([
+      { industryName: "E-commerce" },
+      { industryName: "Healthcare" },
+      { industryName: "Online Gaming" },
+      { industryName: "Social Media" },
+      { industryName: "Educational Institution" }
+    ]);
+  }
+
+  // Check if we have any request statuses
+  const statusCount = await db.select({ count: count() }).from(requestStatuses);
+  if (statusCount[0].count === 0) {
+    // Create default request statuses
+    await db.insert(requestStatuses).values([
+      { statusName: "Submitted", slaDays: 7 },
+      { statusName: "In Progress", slaDays: 5 },
+      { statusName: "Completed", slaDays: 0 },
+      { statusName: "Closed", slaDays: 0 },
+      { statusName: "Overdue", slaDays: 0 }
+    ]);
+  }
+
+  // Check if we have any organizations
+  const orgCount = await db.select({ count: count() }).from(organizations);
+  if (orgCount[0].count === 0) {
+    // Get the first industry id
+    const [firstIndustry] = await db.select().from(industries).limit(1);
+    
+    if (firstIndustry) {
+      // Create admin organization
+      const token = crypto.randomBytes(16).toString('hex');
+      const [adminOrg] = await db.insert(organizations).values({
+        businessName: "ComplyArk Admin",
+        businessAddress: "Admin Building, 123 Admin Street, Admin City",
+        industryId: firstIndustry.industryId,
+        contactPersonName: "Admin User",
+        contactEmail: "admin@complyark.com",
+        contactPhone: "123-456-7890",
+        noOfUsers: 1,
+        remarks: "System admin organization",
+        requestPageUrlToken: token
+      }).returning();
+
+      // Create a sample organization
+      const orgToken = crypto.randomBytes(16).toString('hex');
+      const [sampleOrg] = await db.insert(organizations).values({
+        businessName: "TechCorp Solutions",
+        businessAddress: "456 Tech Street, Innovation City, TC 12345",
+        industryId: firstIndustry.industryId,
+        contactPersonName: "John Smith",
+        contactEmail: "john@techcorp.com",
+        contactPhone: "987-654-3210",
+        noOfUsers: 5,
+        remarks: "Sample organization for testing",
+        requestPageUrlToken: orgToken
+      }).returning();
+
+      // Check if we have any users
+      const userCount = await db.select({ count: count() }).from(users);
+      if (userCount[0].count === 0 && adminOrg && sampleOrg) {
+        // Create admin user
+        await db.insert(users).values({
+          username: "complyarkadmin",
+          password: "complyarkadmin", // In a real app, this would be hashed
+          firstName: "Admin",
+          lastName: "User",
+          email: "admin@complyark.com",
+          phone: "123-456-7890",
+          role: "admin",
+          organizationId: adminOrg.id,
+          isActive: true,
+          canEdit: true,
+          canDelete: true
+        });
+
+        // Create sample user
+        await db.insert(users).values({
+          username: "user",
+          password: "password", // In a real app, this would be hashed
+          firstName: "John",
+          lastName: "Doe",
+          email: "john.doe@techcorp.com",
+          phone: "555-123-4567",
+          role: "user",
+          organizationId: sampleOrg.id,
+          isActive: true,
+          canEdit: false,
+          canDelete: false
+        });
+      }
+    }
+  }
+}
+
+// Initialize the database and export the storage instance
+initializeDatabase().catch(console.error);
+export const storage = new DatabaseStorage();

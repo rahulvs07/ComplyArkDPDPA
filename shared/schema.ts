@@ -2,6 +2,26 @@ import { pgTable, text, serial, integer, boolean, date, timestamp, unique, forei
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Industries Table
+export const industries = pgTable("industries", {
+  industryId: serial("industryId").primaryKey(),
+  industryName: text("industryName").notNull().unique(),
+});
+
+// Organizations Table
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  businessName: text("businessName").notNull(),
+  businessAddress: text("businessAddress").notNull(),
+  industryId: integer("industryId").notNull().references(() => industries.industryId),
+  contactPersonName: text("contactPersonName").notNull(),
+  contactEmail: text("contactEmail").notNull(),
+  contactPhone: text("contactPhone").notNull(),
+  noOfUsers: integer("noOfUsers").notNull(),
+  remarks: text("remarks"),
+  requestPageUrlToken: text("requestPageUrlToken"),
+});
+
 // Users Table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -12,31 +32,11 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   phone: text("phone").notNull(),
   role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
-  organizationId: integer("organizationId").notNull(),
+  organizationId: integer("organizationId").notNull().references(() => organizations.id),
   isActive: boolean("isActive").notNull().default(true),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   canEdit: boolean("canEdit").notNull().default(false),
   canDelete: boolean("canDelete").notNull().default(false),
-});
-
-// Organizations Table
-export const organizations = pgTable("organizations", {
-  id: serial("id").primaryKey(),
-  businessName: text("businessName").notNull(),
-  businessAddress: text("businessAddress").notNull(),
-  industryId: integer("industryId").notNull(),
-  contactPersonName: text("contactPersonName").notNull(),
-  contactEmail: text("contactEmail").notNull(),
-  contactPhone: text("contactPhone").notNull(),
-  noOfUsers: integer("noOfUsers").notNull(),
-  remarks: text("remarks"),
-  requestPageUrlToken: text("requestPageUrlToken"),
-});
-
-// Industries Table
-export const industries = pgTable("industries", {
-  industryId: serial("industryId").primaryKey(),
-  industryName: text("industryName").notNull().unique(),
 });
 
 // Templates Table
@@ -44,17 +44,17 @@ export const templates = pgTable("templates", {
   templateId: serial("templateId").primaryKey(),
   templateName: text("templateName").notNull(),
   templateBody: text("templateBody").notNull(),
-  industryId: integer("industryId").notNull(),
+  industryId: integer("industryId").notNull().references(() => industries.industryId),
   templatePath: text("templatePath"),
 });
 
 // Notices Table
 export const notices = pgTable("notices", {
   noticeId: serial("noticeId").primaryKey(),
-  organizationId: integer("organizationId").notNull(),
+  organizationId: integer("organizationId").notNull().references(() => organizations.id),
   noticeName: text("noticeName").notNull(),
   noticeBody: text("noticeBody").notNull(),
-  createdBy: integer("createdBy").notNull(),
+  createdBy: integer("createdBy").notNull().references(() => users.id),
   createdOn: timestamp("createdOn").notNull().defaultNow(),
   noticeType: text("noticeType"),
   version: text("version"),
@@ -64,7 +64,7 @@ export const notices = pgTable("notices", {
 // TranslatedNotices Table
 export const translatedNotices = pgTable("translatedNotices", {
   id: serial("id").primaryKey(),
-  noticeId: integer("noticeId").notNull(),
+  noticeId: integer("noticeId").notNull().references(() => notices.noticeId),
   language: text("language").notNull(),
   translatedBody: text("translatedBody").notNull(),
   filePath: text("filePath"),
@@ -81,15 +81,15 @@ export const requestStatuses = pgTable("requestStatuses", {
 // DPRequests Table
 export const dpRequests = pgTable("dpRequests", {
   requestId: serial("requestId").primaryKey(),
-  organizationId: integer("organizationId").notNull(),
+  organizationId: integer("organizationId").notNull().references(() => organizations.id),
   firstName: text("firstName").notNull(),
   lastName: text("lastName").notNull(),
   email: text("email").notNull(),
   phone: text("phone").notNull(),
   requestType: text("requestType", { enum: ["Access", "Correction", "Nomination", "Erasure"] }).notNull(),
   requestComment: text("requestComment"),
-  statusId: integer("statusId").notNull(),
-  assignedToUserId: integer("assignedToUserId"),
+  statusId: integer("statusId").notNull().references(() => requestStatuses.statusId),
+  assignedToUserId: integer("assignedToUserId").references(() => users.id),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   lastUpdatedAt: timestamp("lastUpdatedAt"),
   completionDate: date("completionDate"),
@@ -101,13 +101,13 @@ export const dpRequests = pgTable("dpRequests", {
 // DPRequestHistory Table
 export const dpRequestHistory = pgTable("dpRequestHistory", {
   historyId: serial("historyId").primaryKey(),
-  requestId: integer("requestId").notNull(),
+  requestId: integer("requestId").notNull().references(() => dpRequests.requestId),
   changeDate: timestamp("changeDate").notNull().defaultNow(),
-  changedByUserId: integer("changedByUserId").notNull(),
-  oldStatusId: integer("oldStatusId"),
-  newStatusId: integer("newStatusId"),
-  oldAssignedToUserId: integer("oldAssignedToUserId"),
-  newAssignedToUserId: integer("newAssignedToUserId"),
+  changedByUserId: integer("changedByUserId").notNull().references(() => users.id),
+  oldStatusId: integer("oldStatusId").references(() => requestStatuses.statusId),
+  newStatusId: integer("newStatusId").references(() => requestStatuses.statusId),
+  oldAssignedToUserId: integer("oldAssignedToUserId").references(() => users.id),
+  newAssignedToUserId: integer("newAssignedToUserId").references(() => users.id),
   comments: text("comments"),
 });
 
