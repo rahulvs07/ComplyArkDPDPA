@@ -47,7 +47,8 @@ type EmailFormValues = z.infer<typeof emailSchema>;
 type OTPFormValues = z.infer<typeof otpSchema>;
 
 export default function OTPVerificationPage() {
-  const [match, params] = useRoute('/otp-verification/:token');
+  const [, params] = useRoute('/otp-verification/:token');
+  const [, requestPageParams] = useRoute('/request-page/:token');
   const [, navigate] = useLocation();
   const { toast } = useToast();
   
@@ -61,17 +62,21 @@ export default function OTPVerificationPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
   
+  // Get token from either route
+  const token = params?.token || requestPageParams?.token;
+  
   // Fetch organization from token
   useEffect(() => {
     const fetchOrganization = async () => {
-      if (!params || !params.token) {
+      if (!token) {
         setError('Invalid URL. Please check the link and try again.');
         setIsLoading(false);
         return;
       }
       
       try {
-        const response = await fetch(`/api/request-page/${params.token}`);
+        console.log("Fetching organization with token:", token);
+        const response = await fetch(`/api/request-page/${token}`);
         
         if (!response.ok) {
           throw new Error('Invalid or expired token');
