@@ -15,6 +15,7 @@ import * as requestPageController from './controllers/requestPageController';
 import * as grievanceController from './controllers/grievanceController';
 import * as complianceDocumentController from './controllers/complianceDocumentController';
 import { requestStatusController } from './controllers/requestStatusController';
+import * as dashboardController from './controllers/dashboardController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session
@@ -152,6 +153,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/organizations/:orgId/compliance-documents', isAuthenticated, isSameOrganization, complianceDocumentController.upload.single('document'), complianceDocumentController.uploadComplianceDocument);
   app.delete('/api/compliance-documents/:id', isAuthenticated, complianceDocumentController.deleteComplianceDocument);
   app.post('/api/organizations/:orgId/compliance-folders', isAuthenticated, isSameOrganization, complianceDocumentController.createFolder);
+  
+  // Dashboard routes
+  import * as dashboardController from './controllers/dashboardController';
+  app.get('/api/dashboard/stats', isAuthenticated, dashboardController.getDashboardStats);
+  app.get('/api/dashboard/weekly-activity', isAuthenticated, dashboardController.getWeeklyActivity);
+  app.get('/api/dashboard/status-distribution', isAuthenticated, dashboardController.getStatusDistribution);
+  app.get('/api/dashboard/escalated-requests', isAuthenticated, dashboardController.getEscalatedRequests);
+  app.get('/api/dashboard/upcoming-due-requests', isAuthenticated, dashboardController.getUpcomingDueRequests);
   
   const httpServer = createServer(app);
 
