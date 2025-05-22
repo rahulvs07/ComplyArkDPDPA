@@ -120,11 +120,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/request-page/:token/submit', requestPageController.submitRequest);
   app.get('/api/request-page/status', requestPageController.checkRequestStatus);
   
+  // Add storage to requests
+  app.use((req: any, res, next) => {
+    req.storage = storage;
+    next();
+  });
+
   // OTP authentication for request pages
-  app.post('/api/request-page/:organizationId/send-otp', otpAuthController.generateOTPForEmail);
-  app.post('/api/request-page/verify-otp', otpAuthController.verifyOTP);
+  app.post('/api/otp/generate', otpAuthController.generateOTPForEmail);
+  app.post('/api/otp/verify', otpAuthController.verifyOTP);
   app.post('/api/otp/check-auth', otpAuthController.checkAuthentication);
   app.post('/api/otp/logout', otpAuthController.logout);
+  
+  // Public organization endpoint for request pages
+  app.get('/api/organizations/:id/public', async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid organization ID" });
+    }
+    
+    try {
+      const organization = await storage.getOrganization(id);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+      
+      // Only return public information
+      return res.status(200).json({
+        id: organization.id,
+        name: organization.businessName
+      });
+    } catch (error) {
+      console.error("Public organization fetch error:", error);
+      return res.status(500).json({ message: "An error occurred while fetching the organization" });
+    }
+  });
   
   // Grievance routes
   app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, async (req, res) => {

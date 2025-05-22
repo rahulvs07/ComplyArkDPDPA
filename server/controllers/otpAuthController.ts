@@ -70,8 +70,8 @@ async function sendOTPEmail(email: string, otp: string, organizationName: string
 // Generate and send OTP
 export const generateOTPForEmail = async (req: Request, res: Response) => {
   try {
-    const { organizationId } = req.params;
-    const orgId = parseInt(organizationId, 10);
+    const { organizationId } = req.body;
+    const orgId = parseInt(organizationId.toString(), 10);
     
     if (isNaN(orgId)) {
       return res.status(400).json({ message: 'Invalid organization ID' });

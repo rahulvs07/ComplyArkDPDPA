@@ -68,8 +68,8 @@ export default function OTPAuthPage() {
         
         setOrgId(orgIdNum);
         
-        // Fetch organization name
-        const response = await fetch(`/api/organizations/${orgIdNum}`);
+        // Fetch organization name from public endpoint
+        const response = await fetch(`/api/organizations/${orgIdNum}/public`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch organization information');
@@ -104,6 +104,7 @@ export default function OTPAuthPage() {
     setLoading(true);
     
     try {
+      console.log('Sending OTP request with:', { email: values.email, organizationId: orgId });
       const response = await fetch('/api/otp/generate', {
         method: 'POST',
         headers: {
