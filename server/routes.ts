@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/dashboard/recent-requests', isAuthenticated, dprController.getRecentRequests);
   
   // Request Status routes (viewing allowed for all users, management for admins)
-  app.get('/api/request-statuses', canManageRequests, requestStatusController.getRequestStatuses);
+  app.get('/api/request-statuses', isAuthenticated, requestStatusController.getRequestStatuses);
   app.get('/api/request-statuses/:id', canManageRequests, requestStatusController.getRequestStatus);
   app.post('/api/request-statuses', isAuthenticated, isAdmin, requestStatusController.createRequestStatus);
   app.put('/api/request-statuses/:id', isAuthenticated, isAdmin, requestStatusController.updateRequestStatus);
