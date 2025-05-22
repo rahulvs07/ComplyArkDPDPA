@@ -197,57 +197,78 @@ export default function DPRModule() {
     updateMutation.mutate(formattedValues);
   };
   
-  // Define status cards with icons and counts
+  // Define status cards with icons and counts - use a Set to track unique status names
   const statusCards = useMemo(() => {
     // Make sure statuses are loaded
     if (!statuses || statuses.length === 0) {
       return [];
     }
     
-    return [
-      {
-        key: "all",
-        label: "All Requests",
-        count: stats?.total?.count || 0,
-        icon: <ClipboardList className="h-5 w-5" />,
-        description: "All time"
-      },
-      {
+    // Define a mapping of status names to ensure we don't have duplicates
+    const uniqueStatusMap = new Map();
+    
+    // Default cards
+    uniqueStatusMap.set("all", {
+      key: "all",
+      label: "All Requests",
+      count: stats?.total?.count || 0,
+      icon: <ClipboardList className="h-5 w-5" />,
+      description: "All time"
+    });
+    
+    // Only add each status once
+    if (getStatusIdByName("Submitted")) {
+      uniqueStatusMap.set("Submitted", {
         key: getStatusIdByName("Submitted"),
         label: "Submitted",
         count: stats?.submitted?.count || 0,
         icon: <Clock className="h-5 w-5 text-blue-500" />,
         description: "Newly submitted"
-      },
-      {
+      });
+    }
+    
+    if (getStatusIdByName("InProgress")) {
+      uniqueStatusMap.set("InProgress", {
         key: getStatusIdByName("InProgress"),
         label: "In Progress",
         count: stats?.inProgress?.count || 0,
         icon: <HourglassIcon className="h-5 w-5 text-amber-500" />,
         description: "Being processed"
-      },
-      {
+      });
+    }
+    
+    if (getStatusIdByName("AwaitingInfo")) {
+      uniqueStatusMap.set("AwaitingInfo", {
         key: getStatusIdByName("AwaitingInfo"),
         label: "Awaiting Info",
         count: stats?.awaiting?.count || 0,
         icon: <Clock className="h-5 w-5 text-purple-500" />,
         description: "Waiting on requester"
-      },
-      {
-        key: getStatusIdByName("Escalated"), 
+      });
+    }
+    
+    if (getStatusIdByName("Escalated")) {
+      uniqueStatusMap.set("Escalated", {
+        key: getStatusIdByName("Escalated"),
         label: "Escalated",
         count: stats?.escalated?.count || 0,
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
         description: "Requires attention"
-      },
-      {
+      });
+    }
+    
+    if (closedStatusId) {
+      uniqueStatusMap.set("Closed", {
         key: closedStatusId,
         label: "Closed",
         count: stats?.completed?.count || 0,
         icon: <CheckCircle className="h-5 w-5 text-green-500" />,
         description: "Successfully completed"
-      }
-    ];
+      });
+    }
+    
+    // Convert Map values to an array
+    return Array.from(uniqueStatusMap.values());
   }, [stats, statuses, getStatusIdByName, closedStatusId]);
   
   // Table columns configuration
