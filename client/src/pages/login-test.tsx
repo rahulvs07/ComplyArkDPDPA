@@ -18,7 +18,13 @@ export default function LoginTest() {
     
     try {
       await login(username, password);
-      setSuccess(`Login successful! Welcome to the dashboard.`);
+      setSuccess(`Login successful! Redirecting to dashboard...`);
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1500);
+      
     } catch (error) {
       toast({
         title: "Login Failed",
