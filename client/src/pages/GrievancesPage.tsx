@@ -625,7 +625,7 @@ export default function GrievancesPage() {
                                       <SelectValue placeholder="Select a user" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="">Unassigned</SelectItem>
+                                      <SelectItem value="0">Unassigned</SelectItem>
                                       {users.map((user: any) => (
                                         <SelectItem key={user.id} value={user.id.toString()}>
                                           {user.firstName} {user.lastName}
