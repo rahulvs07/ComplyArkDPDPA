@@ -167,11 +167,8 @@ export default function OTPAuthPage() {
           description: "You are now verified to submit requests using test mode.",
         });
         
-        // Redirect back to request page with authentication token
-        setTimeout(() => {
-          // Just use a direct path without any search parameters for testing
-          push(`/request/${organizationId}`);
-        }, 1000);
+        // Just show success message and don't attempt navigation for test mode
+        setLoading(false);
         
         return;
       }
