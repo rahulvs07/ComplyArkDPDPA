@@ -192,10 +192,20 @@ export default function GrievancesPage() {
   // Update grievance mutation
   const updateMutation = useMutation({
     mutationFn: async (data: UpdateGrievanceValues) => {
+      if (!data.statusId) {
+        throw new Error("Status is required");
+      }
+      
       console.log("Updating grievance with data:", data);
       
+      // Ensure we have a valid status ID
+      const statusId = parseInt(data.statusId);
+      if (isNaN(statusId)) {
+        throw new Error("Invalid status ID");
+      }
+      
       // Find the status object to get SLA days
-      const statusObj = statuses.find((s: any) => s.statusId === parseInt(data.statusId));
+      const statusObj = statuses.find((s: any) => s.statusId === statusId);
       console.log("Found status object:", statusObj);
       
       // Calculate completion date based on SLA days
@@ -206,16 +216,20 @@ export default function GrievancesPage() {
         completionDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
       }
       
-      // Debug: Log the data we're sending in the request
+      // Prepare the request data
       const requestData = {
-        statusId: parseInt(data.statusId),
+        statusId: statusId,
         assignedToUserId: data.assignedToUserId ? parseInt(data.assignedToUserId) : null,
-        comments: data.comments || null,
+        comments: data.comments || "",
         completionDate
       };
       console.log("Sending update request:", requestData);
       
       try {
+        if (!selectedGrievance || !selectedGrievance.grievanceId) {
+          throw new Error("No grievance selected");
+        }
+        
         const response = await apiRequest(`/api/grievances/${selectedGrievance.grievanceId}`, {
           method: "PATCH",
           body: JSON.stringify(requestData),
