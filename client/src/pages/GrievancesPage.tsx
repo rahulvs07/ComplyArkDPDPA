@@ -56,6 +56,12 @@ export default function GrievancesPage() {
   const { data: statuses = [], isLoading: statusesLoading } = useQuery({
     queryKey: ['/api/request-statuses'],
     enabled: true,
+    onSuccess: (data) => {
+      console.log("Status data loaded:", data);
+    },
+    onError: (error) => {
+      console.error("Error loading statuses:", error);
+    }
   });
   
   // Fetch all users for assignment info
