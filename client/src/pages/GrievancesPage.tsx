@@ -311,6 +311,9 @@ export default function GrievancesPage() {
       description: "All time"
     });
     
+    // Debug stats object to ensure data is present
+    console.log("Dashboard stats in GrievancesPage:", stats);
+    
     // Only add each status once
     if (getStatusIdByName("Submitted")) {
       uniqueStatusMap.set("Submitted", {
@@ -352,11 +355,11 @@ export default function GrievancesPage() {
       });
     }
     
-    const closedStatusId = "27"; // Assuming 27 is the 'Closed' status ID
+    const closedStatusId = getStatusIdByName("Closed") || "27"; 
     uniqueStatusMap.set("Closed", {
       key: closedStatusId,
       label: "Closed",
-      count: stats?.grievances?.completed?.count || 0,
+      count: stats?.grievances?.closed?.count || 0, // Changed from 'completed' to 'closed' to match dashboard controller
       icon: <CheckCircle className="h-5 w-5 text-green-500" />,
       description: "Successfully completed"
     });

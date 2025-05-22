@@ -44,27 +44,64 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
       return -1; // Invalid status ID
     };
     
+    // Debug status IDs
+    console.log('Status IDs for grievances dashboard:', {
+      submitted: submittedStatusId,
+      inProgress: inProgressStatusId,
+      awaitingInfo: awaitingInfoStatusId,
+      escalated: escalatedStatusId,
+      closed: closedStatusId
+    });
+    
+    // Log a sample of grievances to debug status comparison
+    if (grievances.length > 0) {
+      console.log('Sample grievance:', grievances[0]);
+      console.log('Sample grievance statusId (raw):', grievances[0].statusId);
+      console.log('Sample grievance statusId (normalized):', normalizeStatusId(grievances[0].statusId));
+    }
+    
     // Detailed grievance status counts for GrievancesPage using normalized status ID comparison
+    // We must handle both cases - when statusId is stored directly or when status_name is used
     const grievanceStatusCounts = {
       total: { count: grievances.length, change: +5 },
       submitted: { 
-        count: submittedStatusId ? grievances.filter(g => normalizeStatusId(g.statusId) === normalizeStatusId(submittedStatusId)).length : 0, 
+        count: submittedStatusId ? 
+          grievances.filter(g => 
+            normalizeStatusId(g.statusId) === normalizeStatusId(submittedStatusId) || 
+            (g.status_name && g.status_name.toLowerCase() === 'submitted')
+          ).length : 0, 
         change: 0 
       },
       inProgress: { 
-        count: inProgressStatusId ? grievances.filter(g => normalizeStatusId(g.statusId) === normalizeStatusId(inProgressStatusId)).length : 0, 
+        count: inProgressStatusId ? 
+          grievances.filter(g => 
+            normalizeStatusId(g.statusId) === normalizeStatusId(inProgressStatusId) || 
+            (g.status_name && g.status_name.toLowerCase() === 'inprogress')
+          ).length : 0, 
         change: 0 
       },
       awaiting: { 
-        count: awaitingInfoStatusId ? grievances.filter(g => normalizeStatusId(g.statusId) === normalizeStatusId(awaitingInfoStatusId)).length : 0, 
+        count: awaitingInfoStatusId ? 
+          grievances.filter(g => 
+            normalizeStatusId(g.statusId) === normalizeStatusId(awaitingInfoStatusId) || 
+            (g.status_name && g.status_name.toLowerCase() === 'awaitinginfo')
+          ).length : 0, 
         change: 0 
       },
       escalated: { 
-        count: escalatedStatusId ? grievances.filter(g => normalizeStatusId(g.statusId) === normalizeStatusId(escalatedStatusId)).length : 0, 
+        count: escalatedStatusId ? 
+          grievances.filter(g => 
+            normalizeStatusId(g.statusId) === normalizeStatusId(escalatedStatusId) || 
+            (g.status_name && g.status_name.toLowerCase() === 'escalated')
+          ).length : 0, 
         change: 0 
       },
       closed: { 
-        count: closedStatusId ? grievances.filter(g => normalizeStatusId(g.statusId) === normalizeStatusId(closedStatusId)).length : 0, 
+        count: closedStatusId ? 
+          grievances.filter(g => 
+            normalizeStatusId(g.statusId) === normalizeStatusId(closedStatusId) || 
+            (g.status_name && g.status_name.toLowerCase() === 'closed')
+          ).length : 0, 
         change: 0 
       }
     };
