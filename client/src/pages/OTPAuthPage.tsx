@@ -24,7 +24,8 @@ type OTPFormValues = z.infer<typeof otpSchema>;
 
 export default function OTPAuthPage() {
   const { push } = useLocation();
-  const [, params] = useRoute('/request/:orgId/*');
+  const [, params] = useRoute('/auth/otp/:orgId/*');
+  const { token } = useParams<{ token: string }>();
   const search = useSearch();
   const { toast } = useToast();
   
@@ -50,9 +51,21 @@ export default function OTPAuthPage() {
     },
   });
 
+  // State to track if we came from a request page token
+  const [requestPageToken, setRequestPageToken] = useState<string | null>(null);
+  
   // Get organization info on load
   useEffect(() => {
     const fetchOrgInfo = async () => {
+      // First check the URL path to see if we came from a request page with a token
+      const pathSegments = window.location.pathname.split('/');
+      const otpIndex = pathSegments.findIndex(segment => segment === 'otp');
+      
+      if (otpIndex > 0 && pathSegments[otpIndex - 1] === 'auth' && pathSegments[otpIndex + 2]) {
+        // Format is /auth/otp/:orgId/:token
+        setRequestPageToken(pathSegments[otpIndex + 2]);
+      }
+
       if (!params) return;
       
       try {
@@ -167,9 +180,14 @@ export default function OTPAuthPage() {
           description: "You are now verified to submit requests using test mode.",
         });
         
-        // Just show success message and don't attempt navigation for test mode
-        setLoading(false);
+        // Handle redirection for test code as well
+        if (requestPageToken) {
+          push(`/request-page/${requestPageToken}`);
+        } else {
+          push(`/request/${organizationId}${search || ''}`);
+        }
         
+        setLoading(false);
         return;
       }
       
@@ -197,8 +215,13 @@ export default function OTPAuthPage() {
         description: "You are now verified to submit requests.",
       });
       
-      // Redirect back to request page with authentication token
-      push(`/request/${organizationId}${search || ''}`);
+      // Check if we need to redirect to a request-page with token
+      if (requestPageToken) {
+        push(`/request-page/${requestPageToken}`);
+      } else {
+        // Redirect back to regular request page
+        push(`/request/${organizationId}${search || ''}`);
+      }
     } catch (error) {
       console.error('Error verifying OTP:', error);
       toast({

@@ -71,9 +71,9 @@ export default function RequestPage() {
   // Redirect to OTP verification if not authenticated
   useEffect(() => {
     if (!isLoading && !error && organization && !isAuthenticated) {
-      navigate(`/auth/otp/${organization.id}`);
+      navigate(`/auth/otp/${organization.id}/${token}`);
     }
-  }, [isLoading, error, organization, isAuthenticated, navigate]);
+  }, [isLoading, error, organization, isAuthenticated, navigate, token]);
 
   if (isLoading) {
     return (
