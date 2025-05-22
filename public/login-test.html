@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Test</title>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f7fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      width: 100%;
+      max-width: 400px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .logo {
+      background-color: #4f46e5;
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+    }
+    .logo-text {
+      color: white;
+      font-weight: bold;
+      font-size: 1.5rem;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      color: #111827;
+    }
+    p {
+      color: #6b7280;
+      margin-top: 0.5rem;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #374151;
+    }
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #4338ca;
+    }
+    .credentials {
+      margin-top: 1rem;
+      text-align: center;
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+    #error-message {
+      color: #ef4444;
+      margin-top: 1rem;
+      text-align: center;
+      display: none;
+    }
+    #success-message {
+      color: #10b981;
+      margin-top: 1rem;
+      text-align: center;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="header">
+      <div class="logo">
+        <span class="logo-text">C</span>
+      </div>
+      <h1>ComplyArk</h1>
+      <p>Enter your credentials to access your account</p>
+    </div>
+    
+    <form id="login-form">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      
+      <button type="submit" id="submit-btn">Sign In</button>
+    </form>
+    
+    <div id="error-message"></div>
+    <div id="success-message"></div>
+    
+    <div class="credentials">
+      <p>Demo Credentials:</p>
+      <p>Admin: complyarkadmin / complyarkadmin</p>
+      <p>User: hospital_user / password</p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const submitBtn = document.getElementById('submit-btn');
+      const errorMessage = document.getElementById('error-message');
+      const successMessage = document.getElementById('success-message');
+      
+      // Reset messages
+      errorMessage.style.display = 'none';
+      successMessage.style.display = 'none';
+      
+      // Disable button and show loading state
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing in...';
+      
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Invalid username or password');
+        }
+        
+        const userData = await response.json();
+        
+        // Show success message
+        successMessage.textContent = `Login successful! Welcome, ${userData.firstName} ${userData.lastName}`;
+        successMessage.style.display = 'block';
+        
+        // Redirect to dashboard after a delay
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 2000);
+        
+      } catch (error) {
+        // Show error message
+        errorMessage.textContent = error.message;
+        errorMessage.style.display = 'block';
+        
+        // Reset button
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In';
+      }
+    });
+  </script>
+</body>
+</html>
