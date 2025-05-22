@@ -113,8 +113,8 @@ export async function createDPRequest(req: Request, res: Response) {
     // Calculate completion date based on SLA
     const completionDate = await calculateCompletionDate(initialStatus.statusId);
     
-    // Create the DPRequest
-    const requestData = {
+    // Create the DPRequest with Drizzle type-safe insert
+    const requestValues: any = {
       firstName: validatedData.firstName,
       lastName: validatedData.lastName,
       email: validatedData.email,
@@ -128,11 +128,11 @@ export async function createDPRequest(req: Request, res: Response) {
     
     // Only add completionDate if it's calculated
     if (completionDate) {
-      requestData["completionDate"] = completionDate;
+      requestValues.completionDate = completionDate;
     }
     
     const [dpRequest] = await db.insert(dpRequests)
-      .values(requestData)
+      .values(requestValues)
       .returning();
     
     // Create initial history record
@@ -197,7 +197,7 @@ export async function createGrievance(req: Request, res: Response) {
     const completionDate = await calculateCompletionDate(initialStatus.statusId);
     
     // Create the Grievance
-    const grievanceData = {
+    const grievanceValues: any = {
       firstName: validatedData.firstName,
       lastName: validatedData.lastName,
       email: validatedData.email,
@@ -210,11 +210,11 @@ export async function createGrievance(req: Request, res: Response) {
     
     // Only add completionDate if it's calculated
     if (completionDate) {
-      grievanceData["completionDate"] = completionDate;
+      grievanceValues.completionDate = completionDate;
     }
     
     const [grievance] = await db.insert(grievances)
-      .values(grievanceData)
+      .values(grievanceValues)
       .returning();
     
     // Create initial history record
