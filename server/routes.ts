@@ -114,8 +114,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Request Page URL Generation route (for organization management)
   // Replace missing function with a placeholder until implemented
-  app.post('/api/organizations/:organizationId/request-page-token', isAuthenticated, isAdmin, (req, res) => {
-    res.status(200).json({ token: 'generated-token-' + Date.now() });
+  app.post('/api/organizations/:organizationId/request-page-token', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      if (isNaN(organizationId)) {
+        return res.status(400).json({ error: 'Invalid organization ID' });
+      }
+      
+      // Import the organizations schema
+      const { organizations } = await import('@shared/schema');
+      
+      // Get organization to verify it exists
+      const organization = await db.query.organizations.findFirst({
+        where: eq(organizations.id, organizationId)
+      });
+      
+      if (!organization) {
+        return res.status(404).json({ error: 'Organization not found' });
+      }
+      
+      // Generate a secure token (using a timestamp and random string)
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 15);
+      const token = `${organizationId}-${timestamp}-${randomString}`;
+      
+      // Update the organization with the new token
+      await db.update(organizations)
+        .set({ requestPageUrlToken: token })
+        .where(eq(organizations.id, organizationId));
+      
+      // Generate the full URL with the token
+      const host = req.get('host');
+      const protocol = req.protocol || 'http';
+      const requestPageUrl = `${protocol}://${host}/request-page/${token}`;
+      
+      return res.status(200).json({ 
+        token, 
+        requestPageUrl
+      });
+    } catch (error) {
+      console.error('Error generating request page token:', error);
+      return res.status(500).json({ error: 'Failed to generate request page token' });
+    }
   });
   
   // External Request Page routes (no authentication)

@@ -41,7 +41,8 @@ export default function RequestPageUrlGenerator({
       }
       
       const data = await response.json();
-      setRequestPageUrl(data.requestPageUrl);
+      const fullUrl = data.requestPageUrl;
+      setRequestPageUrl(fullUrl);
       
       toast({
         title: 'URL Generated',
@@ -50,6 +51,7 @@ export default function RequestPageUrlGenerator({
       
       // Invalidate organization query to refresh the data
       queryClient.invalidateQueries({ queryKey: ['/api/organizations', organizationId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/organizations'] });
     } catch (error) {
       console.error('Error generating request page URL:', error);
       
