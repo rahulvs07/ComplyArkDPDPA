@@ -183,35 +183,36 @@ async function insertGrievanceData() {
           grievanceId: grievance.grievanceId,
           changeDate: grievance.createdAt,
           changedByUserId: grievance.assignedToUserId || users[0].id,
-          oldStatusId: null,
+          oldStatusId: null, // No previous status for new grievances
           newStatusId: grievance.statusId,
           oldAssignedToUserId: null,
           newAssignedToUserId: grievance.assignedToUserId,
           comments: "Grievance received and logged."
         });
         
-        // Add additional history entries for non-new grievances
-        if (grievance.statusId !== 1) {
+        // For grievances with status other than the initial status (Submitted),
+        // add a history entry showing the transition from Submitted to current status
+        if (grievance.statusId !== statusMap.submitted) {
           await db.insert(grievanceHistory).values({
             grievanceId: grievance.grievanceId,
             changeDate: new Date(new Date(grievance.createdAt).setDate(new Date(grievance.createdAt).getDate() + 1)),
             changedByUserId: grievance.assignedToUserId || users[0].id,
-            oldStatusId: 1, // New
-            newStatusId: grievance.statusId !== 10 ? 2 : 2, // In Progress
+            oldStatusId: statusMap.submitted, // Previously it was Submitted
+            newStatusId: grievance.statusId !== statusMap.closed ? statusMap.inProgress : statusMap.inProgress, // Typically transitions to In Progress
             oldAssignedToUserId: null,
             newAssignedToUserId: grievance.assignedToUserId,
             comments: "Grievance assigned and investigation started."
           });
         }
         
-        // Add closure history entry for closed grievances
-        if (grievance.statusId === 10) {
+        // Add closure history entry for completed or closed grievances
+        if (grievance.statusId === statusMap.completed || grievance.statusId === statusMap.closed) {
           await db.insert(grievanceHistory).values({
             grievanceId: grievance.grievanceId,
-            changeDate: grievance.closedDateTime!,
+            changeDate: grievance.closedDateTime || new Date(new Date(grievance.createdAt).setDate(new Date(grievance.createdAt).getDate() + 7)),
             changedByUserId: grievance.assignedToUserId || users[0].id,
-            oldStatusId: 2, // In Progress
-            newStatusId: 10, // Closed
+            oldStatusId: statusMap.inProgress, // Previously In Progress
+            newStatusId: grievance.statusId, // To Completed or Closed
             oldAssignedToUserId: grievance.assignedToUserId,
             newAssignedToUserId: grievance.assignedToUserId,
             comments: grievance.closureComments || "Grievance resolved and closed."
