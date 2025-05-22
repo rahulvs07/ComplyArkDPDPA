@@ -154,15 +154,28 @@ export default function OTPAuthPage() {
         // Store the token in sessionStorage to ensure it's available after redirect
         sessionStorage.setItem('request_page_token', requestToken);
         
-        // Using window.location.href for the most direct navigation approach
-        // This bypasses any client-side routing issues
-        console.log('Setting up hard navigation redirect to:', `/request-page/${requestToken}`);
+        // Create a direct method for navigation with an actual anchor element
+        const requestPageUrl = `/request-page/${requestToken}`;
+        console.log('Creating physical navigation link to request page:', requestPageUrl);
         
-        // Delay slightly to ensure toast is visible
+        // Create and append a real link to the page
+        const navLink = document.createElement('a');
+        navLink.href = requestPageUrl;
+        navLink.innerText = "Continue to request page";
+        navLink.className = "block w-full mt-4 p-3 text-center bg-primary text-white rounded-md hover:bg-primary/90";
+        
+        // Add the link to the form container which we know exists
         setTimeout(() => {
-          // Force a complete page reload/navigation
-          window.top.location.href = `/request-page/${requestToken}`;
-        }, 1500);
+          // Find either the form container or use the main form element as fallback
+          const formContainer = document.querySelector('form')?.parentElement;
+          if (formContainer) {
+            formContainer.appendChild(navLink);
+          } else {
+            // Fallback to body if no form is found
+            document.body.appendChild(navLink);
+          }
+          setLoading(false);
+        }, 1000);
       } else {
         console.log('No token found, redirecting to organization request page');
         // Use a simple redirect for the organization request page
