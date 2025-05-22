@@ -248,6 +248,17 @@ export default function GrievancesPage() {
   
   // Form submission handler
   const onSubmit = (values: UpdateGrievanceValues) => {
+    // Make sure we have valid values
+    if (!values.statusId) {
+      toast({
+        title: "Error",
+        description: "Please select a status",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log("Submitting form with values:", values);
     updateMutation.mutate(values);
   };
   
@@ -633,15 +644,18 @@ export default function GrievancesPage() {
                                 <FormLabel>Status</FormLabel>
                                 <Select 
                                   onValueChange={field.onChange} 
-                                  defaultValue={field.value}
+                                  value={field.value || ""}
                                   disabled={updateMutation.isPending}
                                 >
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select a status" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {statuses.map((status: any) => (
-                                      <SelectItem key={status.statusId} value={status.statusId.toString()}>
+                                    {Array.isArray(statuses) && statuses.map((status: any) => (
+                                      <SelectItem 
+                                        key={status.statusId} 
+                                        value={status.statusId.toString()}
+                                      >
                                         {status.statusName}
                                       </SelectItem>
                                     ))}
