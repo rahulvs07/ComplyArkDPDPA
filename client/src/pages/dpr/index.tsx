@@ -43,16 +43,32 @@ export default function DPRModule() {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
+  const [requestTypeFilter, setRequestTypeFilter] = useState("all"); // For filtering by request type
   
   // Fetch requests
   const { data: requests = [], isLoading } = useQuery({
-    queryKey: [`/api/organizations/${user?.organizationId}/dpr`, currentTab],
+    queryKey: [`/api/organizations/${user?.organizationId}/dpr`, currentTab, requestTypeFilter],
     select: (data) => {
-      // Filter out closed requests when on "open" tab
+      let filteredData = data;
+      
+      // Filter by status tab
       if (currentTab === "open") {
-        return data.filter((request: any) => request.statusId.toString() !== closedStatusId);
+        filteredData = filteredData.filter((request: any) => request.statusId.toString() !== closedStatusId);
+      } else if (currentTab !== "all") {
+        filteredData = filteredData.filter((request: any) => request.statusId.toString() === currentTab);
       }
-      return data;
+      
+      // Filter by request type
+      if (requestTypeFilter !== "all") {
+        filteredData = filteredData.filter((request: any) => 
+          request.requestType === requestTypeFilter
+        );
+      }
+      
+      // Sort by most recent first
+      return [...filteredData].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
     }
   });
   
@@ -253,6 +269,23 @@ export default function DPRModule() {
             <p className="text-neutral-600 mt-1">
               Manage data principal requests and track their status.
             </p>
+          </div>
+          <div className="mt-4 md:mt-0">
+            <Select
+              value={requestTypeFilter}
+              onValueChange={setRequestTypeFilter}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="All Request Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Request Types</SelectItem>
+                <SelectItem value="Access">Access</SelectItem>
+                <SelectItem value="Correction">Correction</SelectItem>
+                <SelectItem value="Nomination">Nomination</SelectItem>
+                <SelectItem value="Erasure">Erasure</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
