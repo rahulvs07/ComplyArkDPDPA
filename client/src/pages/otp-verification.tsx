@@ -322,7 +322,7 @@ export default function OTPVerificationPage() {
           <CardFooter>
             <Button 
               className="w-full bg-primary-600 hover:bg-primary-700"
-              onClick={() => navigate(`/request-page/${params?.token}`)}
+              onClick={() => navigate(`/request-form/${token}`)}
             >
               Continue to Request Page
               <ChevronRight className="ml-2 h-4 w-4" />
