@@ -1,18 +1,43 @@
 import { Request, Response } from "express";
 import { storage } from "../storage";
 import { z } from "zod";
+import { AuthRequest } from "../middleware/auth";
 
 export const grievanceController = {
   // List all grievances for an organization
-  async listGrievances(req: Request, res: Response) {
+  async listGrievances(req: AuthRequest, res: Response) {
     const orgId = parseInt(req.params.orgId);
     if (isNaN(orgId)) {
       return res.status(400).json({ message: "Invalid organization ID" });
     }
+    
+    // Ensure users can only view data from their own organization
+    if (req.user && req.user.role !== 'superadmin' && orgId !== req.user.organizationId) {
+      return res.status(403).json({ message: "You can only access data from your own organization" });
+    }
 
     try {
       const grievances = await storage.listGrievances(orgId);
-      return res.status(200).json(grievances);
+      
+      // Enrich with status names and assigned user names
+      const enrichedGrievances = await Promise.all(
+        grievances.map(async (grievance) => {
+          const status = await storage.getRequestStatus(grievance.statusId);
+          let assignedUser = null;
+          
+          if (grievance.assignedToUserId) {
+            assignedUser = await storage.getUser(grievance.assignedToUserId);
+          }
+          
+          return {
+            ...grievance,
+            statusName: status?.statusName || 'Unknown',
+            assignedToName: assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'Unassigned'
+          };
+        })
+      );
+      
+      return res.status(200).json(enrichedGrievances);
     } catch (error) {
       console.error(`Error fetching grievances for organization ${orgId}:`, error);
       return res.status(500).json({ message: "Failed to fetch grievances" });
@@ -20,7 +45,7 @@ export const grievanceController = {
   },
 
   // Get a single grievance by ID
-  async getGrievance(req: Request, res: Response) {
+  async getGrievance(req: AuthRequest, res: Response) {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid grievance ID" });
@@ -31,7 +56,27 @@ export const grievanceController = {
       if (!grievance) {
         return res.status(404).json({ message: "Grievance not found" });
       }
-      return res.status(200).json(grievance);
+      
+      // Ensure users can only view grievances from their organization
+      if (req.user && req.user.role !== 'superadmin' && grievance.organizationId !== req.user.organizationId) {
+        return res.status(403).json({ message: "You can only access grievances from your own organization" });
+      }
+      
+      // Enrich with status name and assigned user
+      const status = await storage.getRequestStatus(grievance.statusId);
+      let assignedUser = null;
+      
+      if (grievance.assignedToUserId) {
+        assignedUser = await storage.getUser(grievance.assignedToUserId);
+      }
+      
+      const enrichedGrievance = {
+        ...grievance,
+        statusName: status?.statusName || 'Unknown',
+        assignedToName: assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'Unassigned'
+      };
+      
+      return res.status(200).json(enrichedGrievance);
     } catch (error) {
       console.error(`Error fetching grievance ${id}:`, error);
       return res.status(500).json({ message: "Failed to fetch grievance" });
@@ -39,7 +84,7 @@ export const grievanceController = {
   },
 
   // Get history for a grievance
-  async getGrievanceHistory(req: Request, res: Response) {
+  async getGrievanceHistory(req: AuthRequest, res: Response) {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid grievance ID" });
@@ -50,9 +95,55 @@ export const grievanceController = {
       if (!grievance) {
         return res.status(404).json({ message: "Grievance not found" });
       }
+      
+      // Ensure users can only view grievances from their organization
+      if (req.user && req.user.role !== 'superadmin' && grievance.organizationId !== req.user.organizationId) {
+        return res.status(403).json({ message: "You can only access grievances from your own organization" });
+      }
 
-      const history = await storage.getGrievanceHistory(id);
-      return res.status(200).json(history);
+      const history = await storage.listGrievanceHistory(id);
+      
+      // Enrich with user names and status details
+      const enrichedHistory = await Promise.all(
+        history.map(async (entry) => {
+          let changedBy = null;
+          let oldStatus = null;
+          let newStatus = null;
+          let oldAssignedTo = null;
+          let newAssignedTo = null;
+          
+          if (entry.changedByUserId) {
+            changedBy = await storage.getUser(entry.changedByUserId);
+          }
+          
+          if (entry.oldStatusId) {
+            oldStatus = await storage.getRequestStatus(entry.oldStatusId);
+          }
+          
+          if (entry.newStatusId) {
+            newStatus = await storage.getRequestStatus(entry.newStatusId);
+          }
+          
+          if (entry.oldAssignedToUserId) {
+            oldAssignedTo = await storage.getUser(entry.oldAssignedToUserId);
+          }
+          
+          if (entry.newAssignedToUserId) {
+            newAssignedTo = await storage.getUser(entry.newAssignedToUserId);
+          }
+          
+          return {
+            ...entry,
+            changedByName: changedBy ? `${changedBy.firstName} ${changedBy.lastName}` : 'System',
+            oldStatusName: oldStatus ? oldStatus.statusName : 'None',
+            newStatusName: newStatus ? newStatus.statusName : 'None',
+            oldAssignedToName: oldAssignedTo ? `${oldAssignedTo.firstName} ${oldAssignedTo.lastName}` : 'None',
+            newAssignedToName: newAssignedTo ? `${newAssignedTo.firstName} ${newAssignedTo.lastName}` : 'None',
+          };
+        })
+      );
+      
+      return res.status(200).json(enrichedHistory);
     } catch (error) {
       console.error(`Error fetching history for grievance ${id}:`, error);
       return res.status(500).json({ message: "Failed to fetch grievance history" });
