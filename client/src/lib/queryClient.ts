@@ -11,8 +11,14 @@ export async function apiRequest(
   url: string,
   options?: RequestInit,
 ): Promise<any> {
+  // Set default headers for JSON content
+  const headers = options?.body 
+    ? { 'Content-Type': 'application/json', ...options.headers }
+    : options?.headers || {};
+    
   const res = await fetch(url, {
     ...options,
+    headers,
     credentials: "include",
   });
 

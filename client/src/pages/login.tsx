@@ -50,7 +50,7 @@ export default function Login() {
       
       // Redirect to dashboard after a short delay
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        setLocation("/dashboard");
       }, 1500);
       
     } catch (error) {

@@ -58,8 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const res = await apiRequest("POST", "/api/auth/login", { username, password });
-      const userData = await res.json();
+      const userData = await apiRequest("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ username, password })
+      });
       setUser(userData);
     } catch (error) {
       console.error("Login failed:", error);
@@ -73,7 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const logout = async () => {
     setIsLoading(true);
     try {
-      await apiRequest("POST", "/api/auth/logout", {});
+      await apiRequest("/api/auth/logout", {
+        method: "POST"
+      });
       setUser(null);
       window.location.href = "/login";
     } catch (error) {
