@@ -4,14 +4,26 @@ import { organizations } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { encodeOrganizationId } from '../utils/tokenGenerator';
 
+// Define custom interface for User in request
+declare global {
+  namespace Express {
+    interface User {
+      id: number;
+      username: string;
+      role: string;
+      organizationId?: number;
+    }
+  }
+}
+
 /**
  * Generates a request page URL token for an organization
  */
 export async function generateRequestPageUrl(req: Request, res: Response) {
   try {
-    // Only super admin should be able to generate URLs
-    if (!req.session?.isSuperAdmin) {
-      return res.status(403).json({ message: 'Unauthorized. Only super admin can generate request page URLs.' });
+    // Only admin users should be able to generate URLs
+    if (!req.user || req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Unauthorized. Only administrators can generate request page URLs.' });
     }
 
     const { organizationId } = req.params;

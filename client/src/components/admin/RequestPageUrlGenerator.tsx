@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+// Using fetch directly since this component needs to handle response parsing
 import { Loader2, Copy, CheckCircle2, RefreshCw } from 'lucide-react';
 
 interface RequestPageUrlGeneratorProps {
@@ -24,11 +24,17 @@ export default function RequestPageUrlGenerator({
   const generateUrl = async () => {
     setIsGenerating(true);
     try {
-      const response = await apiRequest(
-        'POST',
-        `/api/organizations/${organizationId}/request-page-url`,
-        {}
-      );
+      const response = await fetch(`/api/organizations/${organizationId}/request-page-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate request page URL');
+      }
       
       const data = await response.json();
       setUrl(data.requestPageUrl);

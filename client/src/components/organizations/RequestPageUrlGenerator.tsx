@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Copy, RefreshCw, Check, Link, ExternalLink } from 'lucide-react';
+import { Loader2, Copy, RefreshCw, Check, Link, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface RequestPageUrlGeneratorProps {
@@ -109,6 +110,15 @@ export default function RequestPageUrlGenerator({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {requestPageUrl && (
+          <Alert className="mb-4 border-amber-200 bg-amber-50 text-amber-800">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              If you regenerate this URL, the previous URL will no longer work. Users will need the new URL to access the request page.
+            </AlertDescription>
+          </Alert>
+        )}
+      
         {requestPageUrl ? (
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
@@ -138,7 +148,7 @@ export default function RequestPageUrlGenerator({
             </div>
             <p className="text-sm text-muted-foreground">
               Share this URL with individuals who need to submit data protection requests or
-              grievances to this organization.
+              grievances to this organization. Users will need to verify their email with an OTP.
             </p>
           </div>
         ) : (
