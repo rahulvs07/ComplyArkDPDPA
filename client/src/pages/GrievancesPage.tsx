@@ -26,7 +26,8 @@ const updateGrievanceSchema = z.object({
   assignedToUserId: z.string().optional(),
   comments: z.string().optional().refine((val, ctx) => {
     // Make comments mandatory when status is "Closed"
-    if (ctx.path && ctx.path[0] === "statusId" && ctx.data.statusId === "27" && (!val || val.trim() === "")) {
+    const isClosing = ctx.data && ctx.data.statusId === "35"; // Using the actual Closed status ID
+    if (isClosing && (!val || val.trim() === "")) {
       return false;
     }
     return true;
