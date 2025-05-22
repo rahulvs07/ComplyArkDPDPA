@@ -204,8 +204,14 @@ export default function RequestPage() {
     
     // Otherwise redirect to OTP verification
     if (!isLoading && !error && organization && !isAuthenticated) {
-      console.log('Redirecting to OTP verification:', `/auth/otp/${organization.id}/${token}`);
-      navigate(`/auth/otp/${organization.id}/${token}`);
+      console.log('Redirecting to OTP verification:', `/otp-verification/${token}`);
+      
+      // Store the token in session storage for later use
+      if (token) {
+        sessionStorage.setItem('request_page_token', token);
+      }
+      
+      navigate(`/otp-verification/${token}`);
     }
   }, [isLoading, error, organization, isAuthenticated, navigate, token]);
 

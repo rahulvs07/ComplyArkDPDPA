@@ -19,6 +19,7 @@ import RequestPage from "@/pages/RequestPage";
 import RequestPageNew from "@/pages/request-page/index";
 import RequestStatusPage from "@/pages/RequestStatusPage";
 import OTPAuthPage from "@/pages/OTPAuthPage";
+import OTPVerificationPage from "@/pages/otp-verification";
 // React is already imported by JSX
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "./components/layout/AppLayout";
@@ -149,6 +150,7 @@ function Router() {
       {/* Public routes for external request submissions */}
       <Route path="/auth/otp/:orgId/:token?" component={OTPAuthPage} />
       <Route path="/request/:orgId/:type?" component={RequestPage} />
+      <Route path="/otp-verification/:token" component={OTPVerificationPage} />
       <Route path="/request-page/:token" component={RequestPageNew} />
       <Route path="/request-status" component={RequestStatusPage} />
       
