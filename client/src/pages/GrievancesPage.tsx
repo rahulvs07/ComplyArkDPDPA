@@ -15,9 +15,15 @@ export default function GrievancesPage() {
   const [activeTab, setActiveTab] = useState("all");
   const { user } = useAuth();
   
-  // Fetch grievances data
+  // Fetch grievances data with console logging for debugging
   const { data: grievances = [], isLoading } = useQuery({
     queryKey: ["/api/grievances"],
+    onSuccess: (data) => {
+      console.log("Grievances data fetched successfully:", data);
+    },
+    onError: (error) => {
+      console.error("Error fetching grievances:", error);
+    }
   });
   
   // Filter grievances based on search term and active tab
