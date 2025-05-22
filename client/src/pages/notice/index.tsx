@@ -104,7 +104,7 @@ export default function NoticeModule() {
           </div>
           <div className="mt-4 md:mt-0">
             <Button 
-              className="bg-primary-500 text-white rounded-md font-medium flex items-center shadow-sm hover:bg-primary-600 transition"
+              className="bg-[#2E77AE] hover:bg-[#0F3460] text-white rounded-md font-medium flex items-center shadow-sm transition"
               onClick={() => {
                 setQuestionnaireData(null);
                 setNoticeData(null);

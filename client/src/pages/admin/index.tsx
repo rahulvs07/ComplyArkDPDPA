@@ -36,7 +36,7 @@ export default function AdminPanel() {
           </div>
           <div className="mt-4 md:mt-0">
             <Link href="/dashboard">
-              <Button variant="outline" className="flex items-center">
+              <Button variant="outline" className="flex items-center text-[#2E77AE] border-[#2E77AE]/30 hover:bg-[#2E77AE]/10 hover:border-[#2E77AE]">
                 <span className="material-icons text-sm mr-2">arrow_back</span>
                 <span>Back to Application</span>
               </Button>
