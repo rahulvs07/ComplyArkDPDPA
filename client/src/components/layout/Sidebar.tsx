@@ -98,6 +98,30 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <span>DPR Requests</span>
           </a>
         </Link>
+
+        <Link href="/grievances">
+          <a className={cn(
+            "sidebar-item flex items-center px-4 py-3 rounded-md",
+            isActive("/grievances") 
+              ? "active text-primary-500" 
+              : "text-neutral-600 hover:text-primary-500"
+          )}>
+            <span className="material-icons mr-3">report_problem</span>
+            <span>Grievances</span>
+          </a>
+        </Link>
+        
+        <Link href="/compliance-documents">
+          <a className={cn(
+            "sidebar-item flex items-center px-4 py-3 rounded-md",
+            isActive("/compliance-documents") 
+              ? "active text-primary-500" 
+              : "text-neutral-600 hover:text-primary-500"
+          )}>
+            <span className="material-icons mr-3">folder</span>
+            <span>Compliance Docs</span>
+          </a>
+        </Link>
         
         {/* Admin section only visible to admins */}
         {user?.role === 'admin' && (
