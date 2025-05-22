@@ -17,7 +17,8 @@ export const listUsers = async (req: AuthRequest, res: Response) => {
         const { password, ...userWithoutPassword } = user;
         return {
           ...userWithoutPassword,
-          organizationName: org?.businessName || 'Unknown Organization'
+          organizationName: org?.businessName || 'Unknown Organization',
+          fullName: `${user.firstName} ${user.lastName}`
         };
       })
     );

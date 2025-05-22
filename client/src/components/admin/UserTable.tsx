@@ -74,9 +74,8 @@ export default function UserTable({ onEdit, organizationId }: UserTableProps) {
   const columns = [
     { key: "id", header: "ID" },
     { 
-      key: "name", 
+      key: "fullName", 
       header: "Name",
-      render: (_: any, row: any) => `${row.firstName} ${row.lastName}`
     },
     { key: "email", header: "Email" },
     { key: "phone", header: "Phone" },
@@ -84,19 +83,27 @@ export default function UserTable({ onEdit, organizationId }: UserTableProps) {
       key: "role", 
       header: "Role",
       render: (value: string) => (
-        <Badge variant={value === "admin" ? "default" : "secondary"}>
-          {value === "admin" ? "Admin" : "User"}
-        </Badge>
+        value ? (
+          <Badge variant={value === "admin" ? "default" : "secondary"}>
+            {value === "admin" ? "Admin" : "User"}
+          </Badge>
+        ) : <span>N/A</span>
       )
     },
-    { key: "organizationName", header: "Organization" },
+    { 
+      key: "organizationName", 
+      header: "Organization",
+      render: (value: string) => value || "N/A" 
+    },
     { 
       key: "isActive", 
       header: "Status",
       render: (value: boolean) => (
-        <Badge variant={value ? "success" : "destructive"}>
-          {value ? "Active" : "Inactive"}
-        </Badge>
+        typeof value === 'boolean' ? (
+          <Badge variant={value ? "default" : "destructive"}>
+            {value ? "Active" : "Inactive"}
+          </Badge>
+        ) : <span>N/A</span>
       )
     },
   ];
