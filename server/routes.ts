@@ -120,8 +120,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // External Request Page routes (no authentication)
   app.get('/api/request-page/:token', requestPageController.getOrganizationByToken);
-  
-  // External form submission endpoints
   app.post('/api/dpr/create', requestPageController.createDPRequest);
   app.post('/api/grievance/create', requestPageController.createGrievance);
   

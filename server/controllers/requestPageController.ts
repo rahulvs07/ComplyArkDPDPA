@@ -113,20 +113,27 @@ export async function createDPRequest(req: Request, res: Response) {
     // Calculate completion date based on SLA
     const completionDate = await calculateCompletionDate(initialStatus.statusId);
     
-    // Create the DPRequest with properly typed date
-    const [dpRequest] = await db.insert(dpRequests).values({
+    // Create the DPRequest
+    const requestData = {
       firstName: validatedData.firstName,
       lastName: validatedData.lastName,
       email: validatedData.email,
       phone: validatedData.phone,
-      requestType: validatedData.requestType,
-      requestComment: validatedData.requestComment,
+      requestType: validatedData.requestType as "Access" | "Correction" | "Nomination" | "Erasure",
+      requestComment: validatedData.requestComment || "",
       organizationId: validatedData.organizationId,
       statusId: initialStatus.statusId,
-      assignedToUserId: adminId,
-      completionDate: completionDate ? completionDate.toISOString() : null,
-      createdAt: new Date().toISOString(),
-    }).returning();
+      assignedToUserId: adminId
+    };
+    
+    // Only add completionDate if it's calculated
+    if (completionDate) {
+      requestData["completionDate"] = completionDate;
+    }
+    
+    const [dpRequest] = await db.insert(dpRequests)
+      .values(requestData)
+      .returning();
     
     // Create initial history record
     await db.insert(dpRequestHistory).values({
@@ -190,18 +197,25 @@ export async function createGrievance(req: Request, res: Response) {
     const completionDate = await calculateCompletionDate(initialStatus.statusId);
     
     // Create the Grievance
-    const [grievance] = await db.insert(grievances).values({
+    const grievanceData = {
       firstName: validatedData.firstName,
       lastName: validatedData.lastName,
       email: validatedData.email,
       phone: validatedData.phone,
-      grievanceComment: validatedData.grievanceComment,
+      grievanceComment: validatedData.grievanceComment || "",
       organizationId: validatedData.organizationId,
       statusId: initialStatus.statusId,
-      assignedToUserId: adminId,
-      completionDate: completionDate ? completionDate.toISOString() : null,
-      createdAt: new Date().toISOString(),
-    }).returning();
+      assignedToUserId: adminId
+    };
+    
+    // Only add completionDate if it's calculated
+    if (completionDate) {
+      grievanceData["completionDate"] = completionDate;
+    }
+    
+    const [grievance] = await db.insert(grievances)
+      .values(grievanceData)
+      .returning();
     
     // Create initial history record
     await db.insert(grievanceHistory).values({
