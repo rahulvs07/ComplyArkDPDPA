@@ -169,7 +169,8 @@ export default function OTPAuthPage() {
         
         // Redirect back to request page with authentication token
         setTimeout(() => {
-          push(`/request/${organizationId}${search || ''}`);
+          // Just use a direct path without any search parameters for testing
+          push(`/request/${organizationId}`);
         }, 1000);
         
         return;
