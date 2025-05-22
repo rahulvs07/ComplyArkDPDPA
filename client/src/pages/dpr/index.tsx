@@ -1,26 +1,23 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import DataTable from "@/components/shared/DataTable";
-import DeleteConfirmationDialog from "@/components/shared/DeleteConfirmationDialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import StatCard from "@/components/shared/StatCard";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColor } from "@/lib/utils";
+import { Search, Plus, ClipboardList, Clock, HourglassIcon, AlertTriangle, CheckCircle, FileEdit, FileArchive } from "lucide-react";
 
 // Request form schema
 const requestFormSchema = z.object({
@@ -39,11 +36,13 @@ export default function DPRModule() {
   
   // Default to showing only open requests (all except closed status)
   const closedStatusId = "27"; // Assuming 27 is the 'Closed' status ID
-  const [currentTab, setCurrentTab] = useState("open");
+  const [currentTab, setCurrentTab] = useState("all");
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
-  const [requestTypeFilter, setRequestTypeFilter] = useState("all"); // For filtering by request type
+  const [requestTypeFilter, setRequestTypeFilter] = useState("all");
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Fetch requests
   const { data: requests = [], isLoading } = useQuery({
@@ -65,11 +64,23 @@ export default function DPRModule() {
         );
       }
       
+      // Filter by search query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filteredData = filteredData.filter((request: any) => 
+          request.firstName?.toLowerCase().includes(query) ||
+          request.lastName?.toLowerCase().includes(query) ||
+          request.email?.toLowerCase().includes(query) ||
+          request.requestId?.toString().includes(query)
+        );
+      }
+      
       // Sort by most recent first
       return [...filteredData].sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
-    }
+    },
+    enabled: !!user?.organizationId
   });
   
   // Fetch status options
@@ -87,30 +98,32 @@ export default function DPRModule() {
     queryKey: ["/api/dashboard/stats"],
   });
   
+  // Helper function to get status name from status ID
+  const getStatusName = (statusId: number) => {
+    const status = statuses.find((s: any) => s.statusId === statusId);
+    return status ? status.statusName : "Unknown";
+  };
+  
+  // Helper function to get status ID from status name
+  const getStatusIdByName = (statusName: string) => {
+    const status = statuses.find((s: any) => s.statusName === statusName);
+    return status ? status.statusId.toString() : "";
+  };
+  
   // Fetch request history when a request is selected
   useEffect(() => {
     if (selectedRequest) {
       const fetchHistory = async () => {
         try {
-          const response = await fetch(`/api/dpr/${selectedRequest.requestId}/history`, {
-            credentials: "include"
+          const historyData = await apiRequest(`/api/dpr/${selectedRequest.requestId}/history`, {
+            method: "GET",
           });
-          
-          if (response.ok) {
-            const data = await response.json();
-            setHistoryData(data);
-          } else {
-            toast({
-              title: "Error",
-              description: "Failed to fetch request history",
-              variant: "destructive",
-            });
-          }
+          setHistoryData(historyData);
         } catch (error) {
-          console.error("Fetch history error:", error);
+          console.error("Failed to fetch history:", error);
           toast({
             title: "Error",
-            description: "An error occurred while fetching history",
+            description: "Failed to load request history",
             variant: "destructive",
           });
         }
@@ -120,7 +133,50 @@ export default function DPRModule() {
     }
   }, [selectedRequest, toast]);
   
-  // Update request form
+  // Function to handle viewing a request
+  const handleViewRequest = (requestId: number) => {
+    const request = requests.find((r: any) => r.requestId === requestId);
+    if (request) {
+      setSelectedRequest(request);
+      setDetailDialogOpen(true);
+      
+      // Initialize form with current request data
+      form.reset({
+        statusId: request.statusId.toString(),
+        assignedToUserId: request.assignedToUserId ? request.assignedToUserId.toString() : "",
+        closureComments: request.closureComments || ""
+      });
+    }
+  };
+  
+  // Update request mutation
+  const updateMutation = useMutation({
+    mutationFn: async (data: RequestFormValues) => {
+      return apiRequest(`/api/dpr/${selectedRequest.requestId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Request updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/organizations/${user?.organizationId}/dpr`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      setDetailDialogOpen(false);
+    },
+    onError: (error) => {
+      console.error("Failed to update request:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Form for updating requests
   const form = useForm<RequestFormValues>({
     resolver: zodResolver(requestFormSchema),
     defaultValues: {
@@ -130,249 +186,223 @@ export default function DPRModule() {
     }
   });
   
-  // Update form when selected request changes
-  useEffect(() => {
-    if (selectedRequest) {
-      form.reset({
-        statusId: selectedRequest.statusId.toString(),
-        assignedToUserId: selectedRequest.assignedToUserId ? selectedRequest.assignedToUserId.toString() : "",
-        closureComments: selectedRequest.closureComments || ""
-      });
-    }
-  }, [selectedRequest, form]);
-  
-  // Update request mutation
-  const updateMutation = useMutation({
-    mutationFn: (data: RequestFormValues & { requestId: number }) => 
-      apiRequest("PUT", `/api/dpr/${data.requestId}`, {
-        statusId: parseInt(data.statusId),
-        assignedToUserId: data.assignedToUserId ? parseInt(data.assignedToUserId) : null,
-        closureComments: data.closureComments
-      }),
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Request updated successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: [`/api/organizations/${user?.organizationId}/dpr`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/dpr/${selectedRequest?.requestId}/history`] });
-      setDetailDialogOpen(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to update request: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
-  
-  // Handle view request - now navigates to detail page
-  const handleViewRequest = (request: any) => {
-    // Navigate to the detail page instead of showing a dialog
-    setLocation(`/dpr/${request.requestId}`);
-  };
-  
-  // Handle update request
+  // Form submission handler
   const onSubmit = (values: RequestFormValues) => {
-    if (!selectedRequest) return;
-    
-    // Check if closure comments are provided when status is "Closed"
-    const newStatus = statuses.find((s: any) => s.statusId.toString() === values.statusId);
-    if (newStatus?.statusName === "Closed" && !values.closureComments) {
-      toast({
-        title: "Error",
-        description: "Closure comments are required when closing a request",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    updateMutation.mutate({
-      ...values,
-      requestId: selectedRequest.requestId
-    });
+    updateMutation.mutate(values);
   };
   
-  // Data table columns
-  const columns = [
-    { 
-      key: "requestId", 
-      header: "ID",
-      render: (value: number) => `#${value}`,
-      sortable: true
+  // Define status cards with icons and counts
+  const statusCards = [
+    {
+      key: "all",
+      label: "All Requests",
+      count: stats?.total?.count || 0,
+      icon: <ClipboardList className="h-5 w-5" />,
+      description: "All time"
     },
-    { 
-      key: "name", 
-      header: "Name",
-      render: (_: any, row: any) => row.firstName && row.lastName ? `${row.firstName} ${row.lastName}` : 'N/A',
-      sortable: true
+    {
+      key: getStatusIdByName("Submitted"),
+      label: "Submitted",
+      count: stats?.submitted?.count || 0,
+      icon: <Clock className="h-5 w-5 text-blue-500" />,
+      description: "Newly submitted"
     },
-    { 
-      key: "requestType", 
-      header: "Request Type", 
-      sortable: true,
-      filterable: true
+    {
+      key: getStatusIdByName("InProgress"),
+      label: "In Progress",
+      count: stats?.inProgress?.count || 0,
+      icon: <HourglassIcon className="h-5 w-5 text-amber-500" />,
+      description: "Being processed"
     },
-    { 
-      key: "statusName", 
-      header: "Status",
-      sortable: true,
-      filterable: true,
-      render: (value: string) => {
-        let statusClass = "";
-        switch (value?.toLowerCase()) {
-          case "in progress":
-          case "inprogress":
-            statusClass = "bg-warning-50 text-warning-500";
-            break;
-          case "completed":
-            statusClass = "bg-success-50 text-success-500";
-            break;
-          case "submitted":
-            statusClass = "bg-primary-50 text-primary-500";
-            break;
-          case "escalated":
-            statusClass = "bg-error-50 text-error-500";
-            break;
-          case "awaiting info":
-          case "awaitinginfo":
-            statusClass = "bg-info-50 text-info-500";
-            break;
-          case "reassigned":
-            statusClass = "bg-secondary-50 text-secondary-500";
-            break;
-          case "closed":
-            statusClass = "bg-neutral-50 text-neutral-500";
-            break;
-          default:
-            statusClass = "bg-neutral-50 text-neutral-500";
-        }
-        return (
-          <span className={`px-2 py-1 text-xs rounded-full ${statusClass}`}>
-            {value}
-          </span>
-        );
-      }
+    {
+      key: getStatusIdByName("AwaitingInfo"),
+      label: "Awaiting Info",
+      count: stats?.awaiting?.count || 0,
+      icon: <Clock className="h-5 w-5 text-purple-500" />,
+      description: "Waiting on requester"
     },
-    { 
-      key: "assignedToName", 
-      header: "Assigned To",
-      sortable: true,
-      filterable: true
+    {
+      key: getStatusIdByName("Escalated"), 
+      label: "Escalated",
+      count: stats?.escalated?.count || 0,
+      icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
+      description: "Requires attention"
     },
-    { 
-      key: "createdAt", 
-      header: "Created Date",
-      sortable: true,
-      render: (value: string) => {
-        if (!value) return "N/A";
-        const date = new Date(value);
-        return date.toLocaleDateString();
-      }
-    },
-    { 
-      key: "completionDate", 
-      header: "Due Date",
-      sortable: true,
-      render: (value: string) => {
-        if (!value) return "N/A";
-        const date = new Date(value);
-        return date.toLocaleDateString();
-      }
+    {
+      key: closedStatusId,
+      label: "Closed",
+      count: stats?.completed?.count || 0,
+      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+      description: "Successfully completed"
     }
   ];
   
-  // Format the status for tab filter
-  const getStatusIdByName = (name: string): string => {
-    const status = statuses.find((s: any) => s.statusName.toLowerCase() === name.toLowerCase());
-    return status ? status.statusId.toString() : "";
-  };
-  
+  // Table columns configuration
+  const columns = [
+    {
+      header: "ID",
+      accessorKey: "requestId",
+      cell: ({ row }: any) => (
+        <Link to={`/dpr/${row.original.requestId}`} className="text-primary hover:underline">
+          #{row.original.requestId}
+        </Link>
+      ),
+    },
+    {
+      header: "Requester",
+      accessorKey: "firstName",
+      cell: ({ row }: any) => (
+        <div>
+          <div className="font-medium">{`${row.original.firstName} ${row.original.lastName}`}</div>
+          <div className="text-muted-foreground text-xs">{row.original.email}</div>
+        </div>
+      ),
+    },
+    {
+      header: "Type",
+      accessorKey: "requestType",
+      cell: ({ row }: any) => {
+        const requestType = row.original.requestType;
+        let color = "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+        
+        if (requestType === "Correction") color = "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
+        if (requestType === "Nomination") color = "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300";
+        if (requestType === "Erasure") color = "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+        
+        return (
+          <Badge variant="outline" className={`px-2.5 py-0.5 ${color} border-0`}>
+            {requestType}
+          </Badge>
+        );
+      }
+    },
+    {
+      header: "Status",
+      accessorKey: "statusId",
+      cell: ({ row }: any) => {
+        const statusId = row.original.statusId;
+        const statusName = statuses.find((s: any) => s.statusId === statusId)?.statusName || "Unknown";
+        const color = getStatusColor(statusName);
+        
+        return (
+          <Badge variant="outline" className={`${color} border-${color}`}>
+            {statusName}
+          </Badge>
+        );
+      },
+    },
+    {
+      header: "Created",
+      accessorKey: "createdAt",
+      cell: ({ row }: any) => {
+        const date = new Date(row.original.createdAt);
+        return <div>{date.toLocaleDateString()}</div>;
+      },
+    },
+    {
+      header: "Due Date",
+      accessorKey: "completionDate",
+      cell: ({ row }: any) => {
+        if (!row.original.completionDate) return <div>-</div>;
+        
+        const completionDate = new Date(row.original.completionDate);
+        const today = new Date();
+        const isOverdue = completionDate < today && row.original.statusId.toString() !== closedStatusId;
+        
+        return (
+          <div className={isOverdue ? "text-red-600 dark:text-red-400 font-medium" : ""}>
+            {completionDate.toLocaleDateString()}
+            {isOverdue && <div className="text-xs">Overdue</div>}
+          </div>
+        );
+      },
+    },
+    {
+      header: "Actions",
+      cell: ({ row }: any) => (
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewRequest(row.original.requestId);
+            }}
+            className="h-8 w-8 p-0"
+          >
+            <FileEdit className="h-4 w-4" />
+            <span className="sr-only">View</span>
+          </Button>
+          <Link to={`/dpr/${row.original.requestId}`}>
+            <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+              <FileArchive className="h-4 w-4" />
+              <span className="sr-only">Detail</span>
+            </Button>
+          </Link>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6 border border-neutral-200">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-display font-semibold text-neutral-800">
-              DPR Requests
-            </h1>
-            <p className="text-neutral-600 mt-1">
-              Manage data principal requests and track their status.
-            </p>
-          </div>
-          <div className="mt-4 md:mt-0">
-            <Select
-              value={requestTypeFilter}
-              onValueChange={setRequestTypeFilter}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="All Request Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Request Types</SelectItem>
-                <SelectItem value="Access">Access</SelectItem>
-                <SelectItem value="Correction">Correction</SelectItem>
-                <SelectItem value="Nomination">Nomination</SelectItem>
-                <SelectItem value="Erasure">Erasure</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Page Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Data Principal Requests</h1>
+          <p className="text-muted-foreground mt-1">Manage data principal access, correction, nomination and erasure requests</p>
         </div>
+        
+        {user?.role === "admin" && (
+          <Button onClick={() => setCreateModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Request
+          </Button>
+        )}
       </div>
       
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Pending Requests"
-          value={stats?.pending?.count || 0}
-          icon="assignment"
-          iconColor="text-primary-500"
-          iconBgColor="bg-primary-50"
-          trend={stats?.pending?.trend}
-        />
-        
-        <StatCard
-          title="In Progress"
-          value={stats?.inProgress?.count || 0}
-          icon="hourglass_top"
-          iconColor="text-warning-500"
-          iconBgColor="bg-warning-50"
-          trend={stats?.inProgress?.trend}
-        />
-        
-        <StatCard
-          title="Completed"
-          value={stats?.completed?.count || 0}
-          icon="task_alt"
-          iconColor="text-success-500"
-          iconBgColor="bg-success-50"
-          trend={stats?.completed?.trend}
-        />
-        
-        <StatCard
-          title="Overdue"
-          value={stats?.overdue?.count || 0}
-          icon="report_problem"
-          iconColor="text-error-500"
-          iconBgColor="bg-error-50"
-          trend={stats?.overdue?.trend}
-        />
+      {/* Status Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {statusCards.map((card) => (
+          <Card 
+            key={card.key} 
+            className={`cursor-pointer hover:border-primary hover:shadow-sm transition-all ${currentTab === card.key ? 'border-primary shadow-sm' : ''}`}
+            onClick={() => setCurrentTab(card.key)}
+          >
+            <CardContent className="p-4 flex flex-col items-center justify-center text-center">
+              <div className={`p-2 rounded-full mb-2 ${currentTab === card.key ? 'bg-primary/10' : 'bg-muted'}`}>
+                {card.icon}
+              </div>
+              <div className="font-medium">{card.label}</div>
+              <div className="text-3xl font-bold mt-1">{card.count}</div>
+              <div className="text-xs text-muted-foreground mt-1">{card.description}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
       
       {/* Requests List */}
       <Card>
-        <CardHeader className="pb-0">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-            <CardTitle>Data Principal Requests</CardTitle>
-            <div className="flex gap-3 mt-4 md:mt-0">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <CardTitle>Requests List</CardTitle>
+            
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <div className="relative w-full sm:w-auto">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search requests..." 
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              
               <Select 
                 value={requestTypeFilter}
                 onValueChange={setRequestTypeFilter}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Request Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -387,106 +417,140 @@ export default function DPRModule() {
           </div>
         </CardHeader>
         
-        <Tabs defaultValue="open" value={currentTab} onValueChange={setCurrentTab}>
-          <div className="px-6 pt-2">
-            <TabsList className="w-full bg-muted">
-              <TabsTrigger value="open" className="flex-1">Open Requests</TabsTrigger>
-              <TabsTrigger value="all" className="flex-1">All Requests</TabsTrigger>
-              <TabsTrigger value={getStatusIdByName("Submitted")} className="flex-1">Submitted</TabsTrigger>
-              <TabsTrigger value={getStatusIdByName("InProgress")} className="flex-1">In Progress</TabsTrigger>
-              <TabsTrigger value={getStatusIdByName("Escalated")} className="flex-1">Escalated</TabsTrigger>
-              <TabsTrigger value={closedStatusId} className="flex-1">Closed</TabsTrigger>
-            </TabsList>
-          </div>
-          
-          <TabsContent value={currentTab}>
-            <CardContent>
-              <DataTable
-                columns={columns}
-                data={requests}
-                onView={handleViewRequest}
-                onRowClick={handleViewRequest}
-                searchable={true}
-                pagination={true}
-                searchPlaceholder="Search requests..."
-                defaultRowsPerPage={10}
-              />
-            </CardContent>
-          </TabsContent>
-        </Tabs>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : requests.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No data principal requests found</p>
+              <p className="text-sm mt-1">Try changing your filters or create a new request</p>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={requests}
+              onView={handleViewRequest}
+              onRowClick={handleViewRequest}
+              searchable={false} // We're handling search manually
+              pagination={true}
+              defaultRowsPerPage={10}
+            />
+          )}
+        </CardContent>
       </Card>
-      
+
       {/* Request Detail Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Request Details</DialogTitle>
+            <DialogTitle>Request #{selectedRequest?.requestId}</DialogTitle>
           </DialogHeader>
           
           {selectedRequest && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Request ID</Label>
-                  <div className="font-medium">#{selectedRequest.requestId}</div>
-                </div>
-                <div>
-                  <Label>Type</Label>
-                  <div className="font-medium">{selectedRequest.requestType}</div>
-                </div>
-                <div>
-                  <Label>Name</Label>
-                  <div className="font-medium">{selectedRequest.firstName} {selectedRequest.lastName}</div>
-                </div>
-                <div>
-                  <Label>Contact</Label>
-                  <div className="font-medium">{selectedRequest.email} | {selectedRequest.phone}</div>
-                </div>
-                <div>
-                  <Label>Status</Label>
-                  <div className="font-medium">{selectedRequest.statusName}</div>
-                </div>
-                <div>
-                  <Label>Due Date</Label>
-                  <div className="font-medium">
-                    {selectedRequest.completionDate ? new Date(selectedRequest.completionDate).toLocaleDateString() : "N/A"}
-                  </div>
-                </div>
-              </div>
-              
-              {selectedRequest.requestComment && (
-                <div>
-                  <Label>Request Comment</Label>
-                  <div className="p-3 border rounded-md bg-neutral-50">
-                    {selectedRequest.requestComment}
-                  </div>
-                </div>
-              )}
-              
-              {selectedRequest.closureComments && (
-                <div>
-                  <Label>Closure Comments</Label>
-                  <div className="p-3 border rounded-md bg-neutral-50">
-                    {selectedRequest.closureComments}
-                  </div>
-                </div>
-              )}
-              
-              <div>
-                <Label className="mb-2 block">Request History</Label>
-                <div className="border rounded-md overflow-hidden">
-                  <div className="max-h-60 overflow-y-auto">
-                    {historyData.length > 0 ? (
-                      <div className="divide-y">
-                        {historyData.map((entry) => (
-                          <div key={entry.historyId} className="p-3 hover:bg-neutral-50">
-                            <div className="flex items-start">
-                              <div className="p-2 rounded-full bg-primary-50 text-primary-500 flex-shrink-0 mr-3">
-                                <span className="material-icons text-sm">history</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Request Details */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Request Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-sm text-muted-foreground">Requester</div>
+                      <div className="text-sm font-medium">{selectedRequest.firstName} {selectedRequest.lastName}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-sm text-muted-foreground">Email</div>
+                      <div className="text-sm">{selectedRequest.email}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-sm text-muted-foreground">Phone</div>
+                      <div className="text-sm">{selectedRequest.phone}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-sm text-muted-foreground">Request Type</div>
+                      <div className="text-sm">
+                        <Badge 
+                          className={`
+                            ${selectedRequest.requestType === 'Access' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' : ''}
+                            ${selectedRequest.requestType === 'Correction' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' : ''}
+                            ${selectedRequest.requestType === 'Nomination' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300' : ''}
+                            ${selectedRequest.requestType === 'Erasure' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : ''}
+                          `}
+                          variant="outline"
+                        >
+                          {selectedRequest.requestType}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-sm text-muted-foreground">Status</div>
+                      <div className="text-sm">
+                        <Badge 
+                          variant="outline" 
+                          className={`${getStatusColor(getStatusName(selectedRequest.statusId))}`}
+                        >
+                          {getStatusName(selectedRequest.statusId)}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-sm text-muted-foreground">Assigned To</div>
+                      <div className="text-sm">
+                        {users.find((u: any) => u.id === selectedRequest.assignedToUserId)?.firstName || "Unassigned"}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-sm text-muted-foreground">Created</div>
+                      <div className="text-sm">{new Date(selectedRequest.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-sm text-muted-foreground">Due Date</div>
+                      <div className="text-sm">
+                        {selectedRequest.completionDate ? new Date(selectedRequest.completionDate).toLocaleDateString() : "N/A"}
+                      </div>
+                    </div>
+                    
+                    <div className="pt-2">
+                      <div className="text-sm text-muted-foreground mb-1">Request Comment</div>
+                      <div className="text-sm p-3 bg-muted rounded-md">
+                        {selectedRequest.requestComment || "No comment provided"}
+                      </div>
+                    </div>
+                    
+                    {selectedRequest.statusId.toString() === closedStatusId && selectedRequest.closureComments && (
+                      <div className="pt-2">
+                        <div className="text-sm text-muted-foreground mb-1">Closure Comments</div>
+                        <div className="text-sm p-3 bg-muted rounded-md">
+                          {selectedRequest.closureComments}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                {/* Request History */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Request History</CardTitle>
+                  </CardHeader>
+                  <CardContent className="max-h-80 overflow-y-auto">
+                    {historyData && historyData.length > 0 ? (
+                      <div className="space-y-4">
+                        {historyData.map((entry: any, index: number) => (
+                          <div key={entry.historyId} className="relative">
+                            {index !== historyData.length - 1 && (
+                              <div className="absolute top-5 left-3 bottom-0 w-px bg-border"></div>
+                            )}
+                            <div className="flex gap-3">
+                              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 z-10">
+                                <div className="w-2 h-2 rounded-full bg-primary"></div>
                               </div>
-                              <div>
-                                <p className="text-sm">
-                                  {entry.newStatusName && entry.oldStatusName && (
+                              <div className="pb-4">
+                                <p className="text-sm font-medium">
+                                  {entry.newStatusName && (
                                     <>Status changed from <span className="font-medium">{entry.oldStatusName}</span> to <span className="font-medium">{entry.newStatusName}</span></>
                                   )}
                                   {entry.newAssignedToName && entry.oldAssignedToName && (
@@ -499,13 +563,13 @@ export default function DPRModule() {
                                     <>{entry.comments}</>
                                   )}
                                 </p>
-                                <div className="flex items-center mt-1 text-xs text-neutral-500">
+                                <div className="flex items-center mt-1 text-xs text-muted-foreground">
                                   <span>{new Date(entry.changeDate).toLocaleString()}</span>
                                   <span className="mx-2">•</span>
                                   <span>By {entry.changedByName}</span>
                                 </div>
                                 {entry.comments && entry.newStatusName && (
-                                  <p className="text-sm mt-1 text-neutral-600">
+                                  <p className="text-sm mt-1 text-muted-foreground">
                                     Comment: {entry.comments}
                                   </p>
                                 )}
@@ -515,126 +579,120 @@ export default function DPRModule() {
                         ))}
                       </div>
                     ) : (
-                      <div className="p-4 text-center text-neutral-500">
+                      <div className="text-center text-muted-foreground py-4">
                         No history available
                       </div>
                     )}
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               </div>
               
-              {user?.role === "admin" || user?.canEdit && (
+              {(user?.role === "admin" || user?.canEdit) && (
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="statusId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Status</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
-                              defaultValue={field.value}
-                              disabled={updateMutation.isPending}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {statuses.map((status: any) => (
-                                  <SelectItem 
-                                    key={status.statusId} 
-                                    value={status.statusId.toString()}
-                                  >
-                                    {status.statusName}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      {user?.role === "admin" && (
-                        <FormField
-                          control={form.control}
-                          name="assignedToUserId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Assigned To</FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
-                                defaultValue={field.value}
-                                disabled={updateMutation.isPending}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select user" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="">Unassigned</SelectItem>
-                                  {users.map((user: any) => (
-                                    <SelectItem 
-                                      key={user.id} 
-                                      value={user.id.toString()}
-                                    >
-                                      {user.firstName} {user.lastName}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
-                      
-                      {form.watch("statusId") && statuses.find((s: any) => 
-                        s.statusId.toString() === form.watch("statusId") && 
-                        s.statusName === "Closed"
-                      ) && (
-                        <FormField
-                          control={form.control}
-                          name="closureComments"
-                          render={({ field }) => (
-                            <FormItem className="md:col-span-2">
-                              <FormLabel>Closure Comments</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  placeholder="Enter closure comments" 
-                                  {...field}
-                                  rows={3}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Update Request</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="statusId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Status</FormLabel>
+                                <Select 
+                                  onValueChange={field.onChange} 
+                                  defaultValue={field.value}
                                   disabled={updateMutation.isPending}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a status" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {statuses.map((status: any) => (
+                                      <SelectItem key={status.statusId} value={status.statusId.toString()}>
+                                        {status.statusName}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name="assignedToUserId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Assigned To</FormLabel>
+                                <Select 
+                                  onValueChange={field.onChange} 
+                                  defaultValue={field.value}
+                                  disabled={updateMutation.isPending}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Assign to user" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="">Unassigned</SelectItem>
+                                    {users.map((user: any) => (
+                                      <SelectItem key={user.id} value={user.id.toString()}>
+                                        {user.firstName} {user.lastName}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          {statuses.some((s: any) => 
+                            s.statusId.toString() === form.watch("statusId") && 
+                            s.statusName === "Closed"
+                          ) && (
+                            <FormField
+                              control={form.control}
+                              name="closureComments"
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-2">
+                                  <FormLabel>Closure Comments</FormLabel>
+                                  <FormControl>
+                                    <Textarea 
+                                      placeholder="Enter closure comments" 
+                                      {...field}
+                                      rows={3}
+                                      disabled={updateMutation.isPending}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                           )}
-                        />
-                      )}
-                    </div>
-                    
-                    <DialogFooter>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setDetailDialogOpen(false)}
-                        disabled={updateMutation.isPending}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        disabled={updateMutation.isPending}
-                      >
-                        {updateMutation.isPending ? "Updating..." : "Update Request"}
-                      </Button>
-                    </DialogFooter>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="flex justify-end space-x-2 border-t pt-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setDetailDialogOpen(false)}
+                          disabled={updateMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={updateMutation.isPending}
+                        >
+                          {updateMutation.isPending ? "Updating..." : "Update Request"}
+                        </Button>
+                      </CardFooter>
+                    </Card>
                   </form>
                 </Form>
               )}
