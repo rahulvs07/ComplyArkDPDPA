@@ -131,9 +131,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <span>Users</span>
             </Link>
             
-            <Link href="/admin">
-              <a className={cn(
-                "sidebar-item flex items-center px-4 py-3 rounded-md",
+            <Link href="/admin" className={cn(
+                "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
                 (isActive("/admin") && !isActive("/admin/users") && !isActive("/admin/organizations") 
                  && !isActive("/admin/industries") && !isActive("/admin/templates"))
                   ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
@@ -141,28 +140,25 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               )}>
                 <span className="material-icons mr-3">admin_panel_settings</span>
                 <span>Admin Panel</span>
-              </a>
             </Link>
           </>
         )}
         
         <p className="px-4 py-2 mt-6 text-xs font-semibold text-neutral-500 uppercase">Account</p>
         
-        <Link href="/settings">
-          <a className={cn(
-            "sidebar-item flex items-center px-4 py-3 rounded-md",
+        <Link href="/settings" className={cn(
+            "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
             isActive("/settings") 
               ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
               : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
           )}>
             <span className="material-icons mr-3">settings</span>
             <span>Settings</span>
-          </a>
         </Link>
         
         <button 
           onClick={() => logout()}
-          className="sidebar-item w-full text-left flex items-center px-4 py-3 text-neutral-600 hover:text-primary-500 rounded-md"
+          className="sidebar-item w-full text-left flex items-center px-4 py-3 rounded-md cursor-pointer text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
         >
           <span className="material-icons mr-3">logout</span>
           <span>Logout</span>

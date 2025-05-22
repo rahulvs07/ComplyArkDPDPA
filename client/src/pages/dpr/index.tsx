@@ -552,8 +552,8 @@ export default function DPRModule() {
                               <div className="absolute top-5 left-3 bottom-0 w-px bg-border"></div>
                             )}
                             <div className="flex gap-3">
-                              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 z-10">
-                                <div className="w-2 h-2 rounded-full bg-primary"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#2E77AE]/10 flex items-center justify-center flex-shrink-0 z-10">
+                                <div className="w-2 h-2 rounded-full bg-[#2E77AE]"></div>
                               </div>
                               <div className="pb-4">
                                 <p className="text-sm font-medium">
@@ -695,6 +695,7 @@ export default function DPRModule() {
                         <Button
                           type="submit"
                           disabled={updateMutation.isPending}
+                          className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
                         >
                           {updateMutation.isPending ? "Updating..." : "Update Request"}
                         </Button>
