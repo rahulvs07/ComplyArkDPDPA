@@ -2,6 +2,7 @@ import { Route, Switch } from "wouter";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
+import LoginTest from "@/pages/login-test";
 import Dashboard from "@/pages/dashboard";
 import NoticeModule from "@/pages/notice";
 import DPRModule from "@/pages/dpr";
@@ -40,6 +41,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/login-test" component={LoginTest} />
       
       <Route path="/">
         <AppLayout>
