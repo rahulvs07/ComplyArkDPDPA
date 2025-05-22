@@ -8,7 +8,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import DataTable from "@/components/shared/DataTable";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
@@ -17,16 +17,33 @@ import { z } from "zod";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColor } from "@/lib/utils";
-import { Search, Plus, ClipboardList, Clock, HourglassIcon, AlertTriangle, CheckCircle, FileEdit, FileArchive } from "lucide-react";
+import { 
+  Search, Plus, ClipboardList, Clock, HourglassIcon, AlertTriangle, 
+  CheckCircle, FileEdit, FileArchive, Save, X 
+} from "lucide-react";
 
-// Request form schema
+// Request update form schema
 const requestFormSchema = z.object({
   statusId: z.string().min(1, "Status is required"),
   assignedToUserId: z.string().optional(),
   closureComments: z.string().optional()
 });
 
+// Create request form schema
+const createRequestSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().min(5, "Phone number is required"),
+  requestType: z.enum(["Access", "Correction", "Nomination", "Erasure"], {
+    required_error: "Request type is required",
+  }),
+  requestComment: z.string().optional(),
+  assignedToUserId: z.string().optional(),
+});
+
 type RequestFormValues = z.infer<typeof requestFormSchema>;
+type CreateRequestValues = z.infer<typeof createRequestSchema>;
 
 export default function DPRModule() {
   const { user } = useAuth();
@@ -147,6 +164,11 @@ export default function DPRModule() {
     }
   };
   
+  // Function to handle creating a new request
+  const handleAddNewRequest = () => {
+    setCreateModalOpen(true);
+  };
+  
   // Update request mutation
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -174,6 +196,38 @@ export default function DPRModule() {
     },
   });
   
+  // Create request mutation
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest(`/api/dpr`, {
+        method: "POST",
+        body: JSON.stringify({
+          ...data,
+          organizationId: user?.organizationId,
+          statusId: getStatusIdByName("Submitted")
+        })
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "New request created successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/organizations/${user?.organizationId}/dpr`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      setCreateModalOpen(false);
+      createForm.reset();
+    },
+    onError: (error) => {
+      console.error("Failed to create request:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Form for updating requests
   const form = useForm<RequestFormValues>({
     resolver: zodResolver(requestFormSchema),
@@ -181,6 +235,20 @@ export default function DPRModule() {
       statusId: "",
       assignedToUserId: "",
       closureComments: ""
+    }
+  });
+  
+  // Form for creating new requests
+  const createForm = useForm<CreateRequestValues>({
+    resolver: zodResolver(createRequestSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      requestType: undefined,
+      requestComment: "",
+      assignedToUserId: ""
     }
   });
   
