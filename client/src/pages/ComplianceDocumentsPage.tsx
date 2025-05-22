@@ -15,10 +15,57 @@ export default function ComplianceDocumentsPage() {
   const [activeTab, setActiveTab] = useState("all");
   const { user } = useAuth();
   
-  // Fetch compliance documents data
-  const { data: documents = [], isLoading } = useQuery({
-    queryKey: ["/api/compliance-documents"],
-  });
+  // Create sample compliance documents directly in the component
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Sample compliance documents
+  const documents = [
+    {
+      documentId: 1,
+      documentName: "Data Protection Policy",
+      documentType: "Policy",
+      uploadedByName: "Admin User",
+      uploadedAt: "2025-05-01T10:30:00Z",
+      folderPath: "/policies/data-protection/",
+      organizationId: 18
+    },
+    {
+      documentId: 2,
+      documentName: "Privacy Notice Template",
+      documentType: "Form",
+      uploadedByName: "Admin User",
+      uploadedAt: "2025-05-02T14:15:00Z",
+      folderPath: "/templates/privacy-notices/",
+      organizationId: 18
+    },
+    {
+      documentId: 3,
+      documentName: "Data Subject Request Handling Procedure",
+      documentType: "Procedure",
+      uploadedByName: "Admin User",
+      uploadedAt: "2025-05-03T09:45:00Z",
+      folderPath: "/procedures/data-requests/",
+      organizationId: 18
+    },
+    {
+      documentId: 4,
+      documentName: "Personal Data Inventory Form",
+      documentType: "Form",
+      uploadedByName: "Admin User",
+      uploadedAt: "2025-05-04T11:20:00Z",
+      folderPath: "/forms/data-inventory/",
+      organizationId: 18
+    },
+    {
+      documentId: 5,
+      documentName: "Data Breach Response Plan",
+      documentType: "Procedure",
+      uploadedByName: "Admin User",
+      uploadedAt: "2025-05-05T16:10:00Z",
+      folderPath: "/procedures/breach-response/",
+      organizationId: 18
+    }
+  ];
   
   // Filter documents based on search term and active tab
   const filteredDocuments = documents.filter((document: any) => {
