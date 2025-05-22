@@ -8,6 +8,7 @@ import OrganizationsTab from "./organizations";
 import UsersTab from "./users";
 import IndustriesTab from "./industries";
 import TemplatesTab from "./templates";
+import RequestStatusesTab from "./requeststatuses";
 
 export default function AdminPanel() {
   const { user } = useAuth();
@@ -31,7 +32,7 @@ export default function AdminPanel() {
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
           <div>
             <h1 className="text-2xl font-display font-semibold text-neutral-800">Admin Panel</h1>
-            <p className="text-neutral-600 mt-1">Manage organizations, users, industries, and templates.</p>
+            <p className="text-neutral-600 mt-1">Manage organizations, users, industries, templates, and request statuses.</p>
           </div>
           <div className="mt-4 md:mt-0">
             <Link href="/dashboard">
@@ -72,6 +73,12 @@ export default function AdminPanel() {
             >
               Templates
             </TabsTrigger>
+            <TabsTrigger 
+              value="requeststatuses" 
+              className="px-6 py-3 text-sm rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary-500 data-[state=active]:text-primary-500"
+            >
+              Request Statuses
+            </TabsTrigger>
           </TabsList>
           
           <CardContent className="p-6">
@@ -89,6 +96,10 @@ export default function AdminPanel() {
             
             <TabsContent value="templates" className="m-0">
               <TemplatesTab />
+            </TabsContent>
+            
+            <TabsContent value="requeststatuses" className="m-0">
+              <RequestStatusesTab />
             </TabsContent>
           </CardContent>
         </Tabs>
