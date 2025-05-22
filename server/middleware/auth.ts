@@ -22,6 +22,23 @@ export const isAuthenticated = async (
   // Check if user is authenticated via session
   if (req.session && req.session.userId) {
     try {
+      // Check for superadmin user (hardcoded ID)
+      const SUPER_ADMIN_ID = 999;
+      
+      if (req.session.userId === SUPER_ADMIN_ID) {
+        // Create superadmin user object
+        req.user = {
+          id: SUPER_ADMIN_ID,
+          username: "complyarkadmin",
+          firstName: "System",
+          lastName: "Administrator",
+          organizationId: 1, // Default organization
+          role: "admin"
+        };
+        return next();
+      }
+      
+      // For regular users, get from database
       const user = await storage.getUser(req.session.userId);
       
       if (user && user.isActive) {
