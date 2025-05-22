@@ -23,14 +23,39 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
       escalatedGrievances: grievances.filter(g => g.status_name?.toLowerCase() === 'escalated').length
     };
 
+    // Fetch status mappings
+    const statuses = await storage.listRequestStatuses();
+    
+    // Get status IDs for more reliable filtering
+    const submittedStatusId = statuses.find(s => s.statusName.toLowerCase() === 'submitted')?.statusId;
+    const inProgressStatusId = statuses.find(s => s.statusName.toLowerCase() === 'inprogress')?.statusId;
+    const awaitingInfoStatusId = statuses.find(s => s.statusName.toLowerCase() === 'awaitinginfo')?.statusId;
+    const escalatedStatusId = statuses.find(s => s.statusName.toLowerCase() === 'escalated')?.statusId;
+    const closedStatusId = statuses.find(s => s.statusName.toLowerCase() === 'closed')?.statusId;
+    
     // Detailed grievance status counts for GrievancesPage
     const grievanceStatusCounts = {
       total: { count: grievances.length, change: +5 },
-      submitted: { count: grievances.filter(g => g.status_name?.toLowerCase() === 'submitted').length, change: 0 },
-      inProgress: { count: grievances.filter(g => g.status_name?.toLowerCase() === 'inprogress').length, change: 0 },
-      awaiting: { count: grievances.filter(g => g.status_name?.toLowerCase() === 'awaitinginfo').length, change: 0 },
-      escalated: { count: grievances.filter(g => g.status_name?.toLowerCase() === 'escalated').length, change: 0 },
-      closed: { count: grievances.filter(g => g.status_name?.toLowerCase() === 'closed').length, change: 0 }
+      submitted: { 
+        count: submittedStatusId ? grievances.filter(g => g.statusId === submittedStatusId).length : 0, 
+        change: 0 
+      },
+      inProgress: { 
+        count: inProgressStatusId ? grievances.filter(g => g.statusId === inProgressStatusId).length : 0, 
+        change: 0 
+      },
+      awaiting: { 
+        count: awaitingInfoStatusId ? grievances.filter(g => g.statusId === awaitingInfoStatusId).length : 0, 
+        change: 0 
+      },
+      escalated: { 
+        count: escalatedStatusId ? grievances.filter(g => g.statusId === escalatedStatusId).length : 0, 
+        change: 0 
+      },
+      closed: { 
+        count: closedStatusId ? grievances.filter(g => g.statusId === closedStatusId).length : 0, 
+        change: 0 
+      }
     };
 
     return res.json({
