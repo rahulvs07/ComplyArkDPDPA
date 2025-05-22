@@ -152,13 +152,50 @@ export default function DPRDetailPage() {
   const formatHistoryItems = () => {
     if (!history.length) return [];
     
-    return history.map((item: any) => ({
-      title: item.newStatusId ? getStatusName(item.newStatusId) : "Request Updated",
-      date: format(new Date(item.changeDate), "PPP p"),
-      description: item.comments || "Status updated",
-      icon: item.newStatusId ? undefined : "edit",
-      color: item.newStatusId ? getStatusColor(item.newStatusId, statuses) : undefined,
-    }));
+    return history.map((item: any) => {
+      let title = "Request Updated";
+      let icon = "edit" as "check" | "edit" | "clock" | "alert";
+      let description = item.comments || "";
+      let additionalDesc = "";
+      
+      // Status change
+      if (item.newStatusId) {
+        title = getStatusName(item.newStatusId);
+        icon = "check";
+        if (item.oldStatusId) {
+          additionalDesc += `Status changed from ${getStatusName(item.oldStatusId)} to ${getStatusName(item.newStatusId)}. `;
+        } else {
+          additionalDesc += `Status set to ${getStatusName(item.newStatusId)}. `;
+        }
+      }
+      
+      // Assignment change
+      if (item.newAssignedToUserId) {
+        if (!item.newStatusId) {
+          title = "Assignment Changed";
+        }
+        if (item.oldAssignedToUserId) {
+          additionalDesc += `Reassigned from ${item.oldAssignedToName} to ${item.newAssignedToName}. `;
+        } else {
+          additionalDesc += `Assigned to ${item.newAssignedToName}. `;
+        }
+      }
+      
+      // If we have both comments and additional description
+      if (description && additionalDesc) {
+        description = `${description} (${additionalDesc.trim()})`;
+      } else if (additionalDesc) {
+        description = additionalDesc.trim();
+      }
+      
+      return {
+        title,
+        date: format(new Date(item.changeDate), "PPP p"),
+        description,
+        icon,
+        color: item.newStatusId ? getStatusColor(item.newStatusId, statuses) : undefined,
+      };
+    });
   };
   
   // Loading state
@@ -228,11 +265,26 @@ export default function DPRDetailPage() {
       
       {/* Request details card */}
       <Card>
-        <CardHeader>
-          <CardTitle>Request #{request.requestId}</CardTitle>
-          <CardDescription>
-            {request.requestType} Request submitted on {format(new Date(request.createdAt), "PPP")}
-          </CardDescription>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between mb-2">
+            <CardTitle>Request #{request.requestId}</CardTitle>
+            {request.assignedToUserId && (
+              <div className="text-sm text-muted-foreground">
+                Assigned to: <span className="font-medium">{getUserName(request.assignedToUserId)}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <CardDescription>
+              {request.requestType} Request submitted on {format(new Date(request.createdAt), "PPP")}
+            </CardDescription>
+            {request.completionDate && (
+              <CardDescription>
+                <span className="mx-2">•</span>
+                Target completion: {format(new Date(request.completionDate), "PPP")}
+              </CardDescription>
+            )}
+          </div>
         </CardHeader>
         
         <Tabs defaultValue="details" value={currentTab} onValueChange={setCurrentTab}>
