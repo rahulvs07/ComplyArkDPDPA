@@ -147,7 +147,7 @@ function Router() {
       </Route>
       
       {/* Public routes for external request submissions */}
-      <Route path="/auth/otp/:orgId/:type?" component={OTPAuthPage} />
+      <Route path="/auth/otp/:orgId/:token?" component={OTPAuthPage} />
       <Route path="/request/:orgId/:type?" component={RequestPage} />
       <Route path="/request-page/:token" component={RequestPageNew} />
       <Route path="/request-status" component={RequestStatusPage} />

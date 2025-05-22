@@ -24,15 +24,14 @@ type OTPFormValues = z.infer<typeof otpSchema>;
 
 export default function OTPAuthPage() {
   const { push } = useLocation();
-  const [, params] = useRoute('/auth/otp/:orgId/*');
-  const { token } = useParams<{ token: string }>();
+  const [, params] = useRoute('/auth/otp/:orgId');
   const search = useSearch();
   const { toast } = useToast();
   
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
-  const [orgId, setOrgId] = useState<number | null>(null);
+  const [organizationId, setOrganizationId] = useState<number | null>(null);
   const [orgName, setOrgName] = useState('');
 
   // Email form
@@ -80,7 +79,7 @@ export default function OTPAuthPage() {
           return;
         }
         
-        setOrgId(orgIdNum);
+        setOrganizationId(orgIdNum);
         
         // Fetch organization name from public endpoint
         const response = await fetch(`/api/organizations/${orgIdNum}/public`);
@@ -181,12 +180,15 @@ export default function OTPAuthPage() {
           description: "You are now verified to submit requests using test mode.",
         });
         
-        // Handle redirection for test code as well
-        if (requestPageToken) {
-          push(`/request-page/${requestPageToken}`);
-        } else {
-          push(`/request/${organizationId}${search || ''}`);
-        }
+        // Just redirect to the homepage for testing until we fix the token issue
+        push('/');
+        
+        // Disabled until fixed:
+        // if (requestPageToken) {
+        //   push(`/request-page/${requestPageToken}`);
+        // } else {
+        //   push(`/request/${organizationId}${search || ''}`);
+        // }
         
         setLoading(false);
         return;
