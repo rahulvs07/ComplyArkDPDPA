@@ -6,8 +6,18 @@ import { insertUserSchema } from '@shared/schema';
 // Get all users
 export const listUsers = async (req: AuthRequest, res: Response) => {
   try {
-    // Get all users
-    const users = await storage.listUsers();
+    let users;
+    
+    // Only the superadmin can see all users, organization admins can only see their org users
+    if (req.user && req.user.role === 'superadmin') {
+      // Superadmin gets all users
+      users = await storage.listUsers();
+    } else if (req.user) {
+      // Regular users and org admins only get users from their organization
+      users = await storage.listUsers(req.user.organizationId);
+    } else {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     
     // Get organization names for each user
     const usersWithOrgs = await Promise.all(
@@ -43,6 +53,11 @@ export const getUser = async (req: AuthRequest, res: Response) => {
     
     if (!user) {
       return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Ensure users can only view users from their own organization unless they're superadmin
+    if (req.user && req.user.role !== 'superadmin' && user.organizationId !== req.user.organizationId) {
+      return res.status(403).json({ message: "You can only access users from your own organization" });
     }
     
     const organization = await storage.getOrganization(user.organizationId);

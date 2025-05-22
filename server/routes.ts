@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from 'multer';
 import session from 'express-session';
-import { isAuthenticated, isSameOrganization, isAdmin, AuthRequest } from './middleware/auth';
+import { isAuthenticated, isSameOrganization, isAdmin, isSuperAdmin, AuthRequest } from './middleware/auth';
 import * as authController from './controllers/authController';
 import * as organizationController from './controllers/organizationController';
 import * as userController from './controllers/userController';
@@ -40,13 +40,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Organization routes
   app.get('/api/organizations', isAuthenticated, organizationController.listOrganizations);
   app.get('/api/organizations/:id', isAuthenticated, organizationController.getOrganization);
-  app.post('/api/organizations', isAuthenticated, isAdmin, organizationController.createOrganization);
-  app.put('/api/organizations/:id', isAuthenticated, isAdmin, organizationController.updateOrganization);
-  app.delete('/api/organizations/:id', isAuthenticated, isAdmin, organizationController.deleteOrganization);
+  app.post('/api/organizations', isAuthenticated, isSuperAdmin, organizationController.createOrganization);
+  app.put('/api/organizations/:id', isAuthenticated, isSuperAdmin, organizationController.updateOrganization);
+  app.delete('/api/organizations/:id', isAuthenticated, isSuperAdmin, organizationController.deleteOrganization);
   app.get('/api/organizations/:orgId/users', isAuthenticated, isSameOrganization, organizationController.getOrganizationUsers);
   
   // User routes
-  app.get('/api/users', isAuthenticated, isAdmin, userController.listUsers);
+  app.get('/api/users', isAuthenticated, userController.listUsers); // Will filter by organization in controller
   app.get('/api/users/:id', isAuthenticated, userController.getUser);
   app.post('/api/users', isAuthenticated, isAdmin, userController.createUser);
   app.put('/api/users/:id', isAuthenticated, userController.updateUser);

@@ -15,6 +15,11 @@ export const listDPRequests = async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ message: "Invalid organization ID" });
   }
   
+  // Ensure users can only view data from their own organization
+  if (req.user && req.user.role !== 'superadmin' && orgId !== req.user.organizationId) {
+    return res.status(403).json({ message: "You can only access data from your own organization" });
+  }
+  
   const statusId = req.query.statusId ? parseInt(req.query.statusId as string) : undefined;
   
   try {

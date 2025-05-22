@@ -64,13 +64,28 @@ export const isAuthenticated = async (
   });
 };
 
-// Middleware to check if user is an admin
+// Middleware to check if user is the superadmin
+export const isSuperAdmin = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (req.user && req.user.role === 'superadmin') {
+    return next();
+  }
+  
+  return res.status(403).json({
+    message: "Forbidden. Super Admin privileges required."
+  });
+};
+
+// Middleware to check if user is an organization admin
 export const isAdmin = (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) => {
-  if (req.user && req.user.role === 'admin') {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'superadmin')) {
     return next();
   }
   
@@ -87,7 +102,13 @@ export const isSameOrganization = (
 ) => {
   const orgId = parseInt(req.params.orgId);
   
-  if (req.user && (req.user.organizationId === orgId || req.user.role === 'admin')) {
+  // Super admin can access any organization's data
+  if (req.user && req.user.role === 'superadmin') {
+    return next();
+  }
+  
+  // Organization users/admins can only access their own organization's data
+  if (req.user && req.user.organizationId === orgId) {
     return next();
   }
   
