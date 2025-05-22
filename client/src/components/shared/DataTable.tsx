@@ -75,13 +75,16 @@ const DataTable: React.FC<DataTableProps> = ({
     let sortableData = [...data];
     if (sortConfig !== null) {
       sortableData.sort((a, b) => {
-        if (a[sortConfig.key] === null || a[sortConfig.key] === undefined) return sortConfig.direction === 'ascending' ? -1 : 1;
-        if (b[sortConfig.key] === null || b[sortConfig.key] === undefined) return sortConfig.direction === 'ascending' ? 1 : -1;
+        const column = columns.find(col => (col.key || col.accessorKey || col.id) === sortConfig.key);
+        const key = column?.key || column?.accessorKey || column?.id || sortConfig.key;
         
-        if (a[sortConfig.key] < b[sortConfig.key]) {
+        if (a[key] === null || a[key] === undefined) return sortConfig.direction === 'ascending' ? -1 : 1;
+        if (b[key] === null || b[key] === undefined) return sortConfig.direction === 'ascending' ? 1 : -1;
+        
+        if (a[key] < b[key]) {
           return sortConfig.direction === 'ascending' ? -1 : 1;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
+        if (a[key] > b[key]) {
           return sortConfig.direction === 'ascending' ? 1 : -1;
         }
         return 0;
@@ -206,8 +209,13 @@ const DataTable: React.FC<DataTableProps> = ({
                   onClick={() => handleRowClick(row)}
                 >
                   {columns.map((column) => (
-                    <td key={column.key} className="px-4 py-3 text-sm text-neutral-800">
-                      {column.render ? column.render(row[column.key], row) : (row[column.key] !== undefined ? row[column.key] : 'N/A')}
+                    <td key={column.key || column.accessorKey || column.id} className="px-4 py-3 text-sm text-neutral-800">
+                      {column.cell ? 
+                        column.cell({ row: { getValue: (key) => row[key], original: row } }) : 
+                        (column.render ? 
+                          column.render(row[column.key || column.accessorKey || column.id || ''], row) : 
+                          (row[column.key || column.accessorKey || column.id || ''] !== undefined ? 
+                            row[column.key || column.accessorKey || column.id || ''] : 'N/A'))}
                     </td>
                   ))}
                   {(onView || onEdit || onDelete) && (
