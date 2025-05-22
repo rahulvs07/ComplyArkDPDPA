@@ -1,102 +1,52 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import React from "react";
+import { cn } from "@/lib/utils";
+import { Check, Edit, Clock, AlertCircle } from "lucide-react";
 
-const Timeline = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("space-y-4", className)}
-    {...props}
-  />
-))
-Timeline.displayName = "Timeline"
+export type TimelineItem = {
+  title: string;
+  date: string;
+  description?: string;
+  icon?: "check" | "edit" | "clock" | "alert";
+  color?: string;
+};
 
-const TimelineItem = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("relative pl-8", className)}
-    {...props}
-  />
-))
-TimelineItem.displayName = "TimelineItem"
+interface TimelineProps {
+  items: TimelineItem[];
+  className?: string;
+}
 
-const TimelineConnector = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "absolute top-5 left-2.5 h-full w-0.5 bg-border",
-      className
-    )}
-    {...props}
-  />
-))
-TimelineConnector.displayName = "TimelineConnector"
+export function Timeline({ items, className }: TimelineProps) {
+  if (!items.length) return null;
 
-const TimelineIcon = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "absolute left-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary ring-8 ring-background",
-      className
-    )}
-    {...props}
-  />
-))
-TimelineIcon.displayName = "TimelineIcon"
-
-const TimelineHeader = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex items-center gap-2", className)}
-    {...props}
-  />
-))
-TimelineHeader.displayName = "TimelineHeader"
-
-const TimelineTitle = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
-  <p
-    ref={ref}
-    className={cn("font-semibold", className)}
-    {...props}
-  />
-))
-TimelineTitle.displayName = "TimelineTitle"
-
-const TimelineBody = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("", className)}
-    {...props}
-  />
-))
-TimelineBody.displayName = "TimelineBody"
-
-export {
-  Timeline,
-  TimelineItem,
-  TimelineConnector,
-  TimelineIcon,
-  TimelineHeader,
-  TimelineTitle,
-  TimelineBody,
+  return (
+    <div className={cn("space-y-4", className)}>
+      <ol className="relative border-l border-muted-foreground/20">
+        {items.map((item, index) => (
+          <li key={index} className="mb-6 ml-6">
+            <span
+              className={cn(
+                "absolute flex items-center justify-center w-8 h-8 rounded-full -left-4 ring-4 ring-background",
+                item.color || "bg-primary text-primary-foreground"
+              )}
+            >
+              {item.icon === "edit" ? (
+                <Edit className="w-4 h-4" />
+              ) : item.icon === "clock" ? (
+                <Clock className="w-4 h-4" />
+              ) : item.icon === "alert" ? (
+                <AlertCircle className="w-4 h-4" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+            </span>
+            <h3 className="font-semibold leading-tight pt-2">{item.title}</h3>
+            <time className="text-sm text-muted-foreground">{item.date}</time>
+            {item.description && (
+              <p className="text-base mt-2">{item.description}</p>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
 }

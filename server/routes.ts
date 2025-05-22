@@ -81,6 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/dpr/:id', isAuthenticated, dprController.getDPRequest);
   app.get('/api/dpr/:id/history', isAuthenticated, dprController.getDPRequestHistory);
   app.put('/api/dpr/:id', isAuthenticated, dprController.updateDPRequest);
+  app.patch('/api/dpr/:id', isAuthenticated, dprController.updateDPRequest);
   
   // Public DPR routes (no authentication)
   app.post('/api/public/request-otp', dprController.requestOTP);
