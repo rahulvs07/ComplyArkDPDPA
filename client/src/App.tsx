@@ -21,6 +21,7 @@ import RequestStatusPage from "@/pages/RequestStatusPage";
 // React is already imported by JSX
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "./components/layout/AppLayout";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 
 // Protected route component that redirects to login if not authenticated
 function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: { 
@@ -149,9 +150,11 @@ function Router() {
 function App() {
   return (
     <AuthProvider>
-      <TooltipProvider>
-        <Router />
-      </TooltipProvider>
+      <ThemeProvider defaultTheme="light" storageKey="complyark-theme">
+        <TooltipProvider>
+          <Router />
+        </TooltipProvider>
+      </ThemeProvider>
     </AuthProvider>
   );
 }
