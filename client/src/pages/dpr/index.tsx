@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -198,50 +198,57 @@ export default function DPRModule() {
   };
   
   // Define status cards with icons and counts
-  const statusCards = [
-    {
-      key: "all",
-      label: "All Requests",
-      count: stats?.total?.count || 0,
-      icon: <ClipboardList className="h-5 w-5" />,
-      description: "All time"
-    },
-    {
-      key: getStatusIdByName("Submitted"),
-      label: "Submitted",
-      count: stats?.submitted?.count || 0,
-      icon: <Clock className="h-5 w-5 text-blue-500" />,
-      description: "Newly submitted"
-    },
-    {
-      key: getStatusIdByName("InProgress"),
-      label: "In Progress",
-      count: stats?.inProgress?.count || 0,
-      icon: <HourglassIcon className="h-5 w-5 text-amber-500" />,
-      description: "Being processed"
-    },
-    {
-      key: getStatusIdByName("AwaitingInfo"),
-      label: "Awaiting Info",
-      count: stats?.awaiting?.count || 0,
-      icon: <Clock className="h-5 w-5 text-purple-500" />,
-      description: "Waiting on requester"
-    },
-    {
-      key: getStatusIdByName("Escalated"), 
-      label: "Escalated",
-      count: stats?.escalated?.count || 0,
-      icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
-      description: "Requires attention"
-    },
-    {
-      key: closedStatusId,
-      label: "Closed",
-      count: stats?.completed?.count || 0,
-      icon: <CheckCircle className="h-5 w-5 text-green-500" />,
-      description: "Successfully completed"
+  const statusCards = useMemo(() => {
+    // Make sure statuses are loaded
+    if (!statuses || statuses.length === 0) {
+      return [];
     }
-  ];
+    
+    return [
+      {
+        key: "all",
+        label: "All Requests",
+        count: stats?.total?.count || 0,
+        icon: <ClipboardList className="h-5 w-5" />,
+        description: "All time"
+      },
+      {
+        key: getStatusIdByName("Submitted"),
+        label: "Submitted",
+        count: stats?.submitted?.count || 0,
+        icon: <Clock className="h-5 w-5 text-blue-500" />,
+        description: "Newly submitted"
+      },
+      {
+        key: getStatusIdByName("InProgress"),
+        label: "In Progress",
+        count: stats?.inProgress?.count || 0,
+        icon: <HourglassIcon className="h-5 w-5 text-amber-500" />,
+        description: "Being processed"
+      },
+      {
+        key: getStatusIdByName("AwaitingInfo"),
+        label: "Awaiting Info",
+        count: stats?.awaiting?.count || 0,
+        icon: <Clock className="h-5 w-5 text-purple-500" />,
+        description: "Waiting on requester"
+      },
+      {
+        key: getStatusIdByName("Escalated"), 
+        label: "Escalated",
+        count: stats?.escalated?.count || 0,
+        icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
+        description: "Requires attention"
+      },
+      {
+        key: closedStatusId,
+        label: "Closed",
+        count: stats?.completed?.count || 0,
+        icon: <CheckCircle className="h-5 w-5 text-green-500" />,
+        description: "Successfully completed"
+      }
+    ];
+  }, [stats, statuses, getStatusIdByName, closedStatusId]);
   
   // Table columns configuration
   const columns = [
