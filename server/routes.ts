@@ -14,6 +14,7 @@ import * as dprController from './controllers/dprController';
 import * as requestPageController from './controllers/requestPageController';
 import * as grievanceController from './controllers/grievanceController';
 import * as complianceDocumentController from './controllers/complianceDocumentController';
+import { requestStatusController } from './controllers/requestStatusController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session
@@ -92,40 +93,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/dashboard/recent-requests', isAuthenticated, dprController.getRecentRequests);
   
   // Request Status routes (for admin)
-  app.get('/api/request-statuses', isAuthenticated, async (req, res) => {
-    try {
-      const statuses = await storage.listRequestStatuses();
-      return res.status(200).json(statuses);
-    } catch (error) {
-      console.error("Error fetching request statuses:", error);
-      return res.status(500).json({ message: "Failed to fetch request statuses" });
-    }
-  });
-  app.post('/api/request-statuses', isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const newStatus = await storage.createRequestStatus(req.body);
-      return res.status(201).json(newStatus);
-    } catch (error) {
-      console.error("Error creating request status:", error);
-      return res.status(500).json({ message: "Failed to create request status" });
-    }
-  });
-  app.put('/api/request-statuses/:id', isAuthenticated, isAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ message: "Invalid status ID" });
-    }
-    try {
-      const updatedStatus = await storage.updateRequestStatus(id, req.body);
-      if (!updatedStatus) {
-        return res.status(404).json({ message: "Request status not found" });
-      }
-      return res.status(200).json(updatedStatus);
-    } catch (error) {
-      console.error("Error updating request status:", error);
-      return res.status(500).json({ message: "Failed to update request status" });
-    }
-  });
+  app.get('/api/request-statuses', isAuthenticated, requestStatusController.getRequestStatuses);
+  app.get('/api/request-statuses/:id', isAuthenticated, requestStatusController.getRequestStatus);
+  app.post('/api/request-statuses', isAuthenticated, isAdmin, requestStatusController.createRequestStatus);
+  app.put('/api/request-statuses/:id', isAuthenticated, isAdmin, requestStatusController.updateRequestStatus);
+  app.delete('/api/request-statuses/:id', isAuthenticated, isAdmin, requestStatusController.deleteRequestStatus);
   
   // Request Page URL Generation route (for organization management)
   app.post('/api/organizations/:organizationId/request-page-token', isAuthenticated, isAdmin, requestPageController.generateRequestPageToken);
