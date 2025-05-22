@@ -45,7 +45,7 @@ function ProtectedRoute({ component: Component, adminOnly = false, superAdminOnl
   }
   
   // Check for admin access - organization admins can access these routes
-  if (adminOnly && user?.role !== 'admin' && user?.role !== 'superadmin') {
+  if (adminOnly && user?.role && user.role !== 'admin' && user.role !== 'superadmin') {
     console.log('Access denied: Admin access required');
     return <NotFound />;
   }

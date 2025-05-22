@@ -105,17 +105,17 @@ export default function OTPAuthPage() {
 
   // Submit email to generate OTP
   const onEmailSubmit = async (values: EmailFormValues) => {
-    if (!orgId) {
+    if (!organizationId) {
       // For testing, always use organizationId 1 if none is provided
       console.log('No organization ID provided, using default value of 1');
-      setOrgId(1);
+      setOrganizationId(1);
     }
     
     setLoading(true);
     
     try {
-      const organizationId = orgId || 1; // Ensure we always have a valid ID
-      console.log('Sending OTP request with:', { email: values.email, organizationId });
+      const orgId = organizationId || 1; // Ensure we always have a valid ID
+      console.log('Sending OTP request with:', { email: values.email, organizationId: orgId });
       const response = await fetch('/api/otp/generate', {
         method: 'POST',
         headers: {
@@ -123,7 +123,7 @@ export default function OTPAuthPage() {
         },
         body: JSON.stringify({
           email: values.email,
-          organizationId,
+          organizationId: orgId,
         }),
       });
       
@@ -156,17 +156,17 @@ export default function OTPAuthPage() {
 
   // Submit OTP for verification
   const onOTPSubmit = async (values: OTPFormValues) => {
-    if (!orgId) {
+    if (!organizationId) {
       // For testing, always use organizationId 1 if none is provided
       console.log('No organization ID provided for verification, using default value of 1');
-      setOrgId(1);
+      setOrganizationId(1);
     }
     
     setLoading(true);
     
     try {
-      const organizationId = orgId || 1; // Ensure we always have a valid ID
-      console.log('Verifying OTP with:', { email, otp: values.otp, organizationId });
+      const orgId = organizationId || 1; // Ensure we always have a valid ID
+      console.log('Verifying OTP with:', { email, otp: values.otp, organizationId: orgId });
       
       // Temporary test mode - always succeed with code "1234"
       if (values.otp === "1234") {
@@ -180,15 +180,13 @@ export default function OTPAuthPage() {
           description: "You are now verified to submit requests using test mode.",
         });
         
-        // Just redirect to the homepage for testing until we fix the token issue
-        push('/');
-        
-        // Disabled until fixed:
-        // if (requestPageToken) {
-        //   push(`/request-page/${requestPageToken}`);
-        // } else {
-        //   push(`/request/${organizationId}${search || ''}`);
-        // }
+        // Redirect to the appropriate page
+        if (requestPageToken) {
+          push(`/request-page/${requestPageToken}`);
+        } else {
+          // Redirect to request page
+          push(`/request/${orgId}${search || ''}`);
+        }
         
         setLoading(false);
         return;
@@ -223,7 +221,7 @@ export default function OTPAuthPage() {
         push(`/request-page/${requestPageToken}`);
       } else {
         // Redirect back to regular request page
-        push(`/request/${organizationId}${search || ''}`);
+        push(`/request/${orgId}${search || ''}`);
       }
     } catch (error) {
       console.error('Error verifying OTP:', error);
