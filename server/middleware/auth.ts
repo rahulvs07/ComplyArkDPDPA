@@ -80,13 +80,13 @@ export const isAuthenticated = async (
   });
 };
 
-// Middleware to check if user is the superadmin
+// Middleware to check if user is the superadmin (complyarkadmin only)
 export const isSuperAdmin = (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) => {
-  if (req.user && req.user.role === 'superadmin') {
+  if (req.user && req.user.username === 'complyarkadmin') {
     return next();
   }
   
