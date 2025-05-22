@@ -21,8 +21,110 @@ export default function RequestPage() {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('dpr');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState<{message: string, id: number, type: string} | null>(null);
   const { token } = useParams<{ token: string }>();
   const [, navigate] = useLocation();
+  
+  // Form submission handlers
+  const handleDPRequestSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!organization) return;
+    
+    setIsSubmitting(true);
+    setSubmitSuccess(null);
+    
+    try {
+      const formData = new FormData(e.currentTarget);
+      const requestData = {
+        firstName: formData.get('firstName') as string,
+        lastName: formData.get('lastName') as string,
+        email: formData.get('email') as string,
+        phone: formData.get('phone') as string,
+        requestType: formData.get('requestType') as 'Access' | 'Correction' | 'Nomination' | 'Erasure',
+        requestComment: formData.get('requestComment') as string,
+        organizationId: organization.id
+      };
+      
+      const response = await fetch('/api/dpr/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit request');
+      }
+      
+      const data = await response.json();
+      setSubmitSuccess({
+        message: data.message || 'Your data protection request has been submitted successfully.',
+        id: data.requestId,
+        type: 'dpr'
+      });
+      
+      // Reset form
+      e.currentTarget.reset();
+      
+    } catch (error) {
+      console.error('Error submitting DP request:', error);
+      setError(error instanceof Error ? error.message : 'Failed to submit request');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleGrievanceSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!organization) return;
+    
+    setIsSubmitting(true);
+    setSubmitSuccess(null);
+    
+    try {
+      const formData = new FormData(e.currentTarget);
+      const grievanceData = {
+        firstName: formData.get('grievanceFirstName') as string,
+        lastName: formData.get('grievanceLastName') as string,
+        email: formData.get('grievanceEmail') as string,
+        phone: formData.get('grievancePhone') as string,
+        grievanceComment: formData.get('grievanceComments') as string,
+        organizationId: organization.id
+      };
+      
+      const response = await fetch('/api/grievance/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(grievanceData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit grievance');
+      }
+      
+      const data = await response.json();
+      setSubmitSuccess({
+        message: data.message || 'Your grievance has been submitted successfully.',
+        id: data.grievanceId,
+        type: 'grievance'
+      });
+      
+      // Reset form
+      e.currentTarget.reset();
+      
+    } catch (error) {
+      console.error('Error submitting grievance:', error);
+      setError(error instanceof Error ? error.message : 'Failed to submit grievance');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     // Check session storage for authentication flag from OTP process
@@ -236,88 +338,128 @@ export default function RequestPage() {
                     {/* Data Protection Request Form */}
                     <div className="p-4 border rounded-md">
                       <h4 className="text-base font-medium mb-4">Submit Data Protection Request</h4>
-                      <form className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label htmlFor="firstName" className="text-sm font-medium">First Name <span className="text-red-500">*</span></label>
-                            <input 
-                              type="text" 
-                              id="firstName" 
-                              required
-                              className="w-full p-2 border rounded-md" 
-                              placeholder="Enter your first name"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label htmlFor="lastName" className="text-sm font-medium">Last Name <span className="text-red-500">*</span></label>
-                            <input 
-                              type="text" 
-                              id="lastName" 
-                              required
-                              className="w-full p-2 border rounded-md" 
-                              placeholder="Enter your last name"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label htmlFor="email" className="text-sm font-medium">Email <span className="text-red-500">*</span></label>
-                            <input 
-                              type="email" 
-                              id="email" 
-                              required
-                              className="w-full p-2 border rounded-md" 
-                              placeholder="your@email.com"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label htmlFor="phone" className="text-sm font-medium">Phone <span className="text-red-500">*</span></label>
-                            <input 
-                              type="tel" 
-                              id="phone" 
-                              required
-                              className="w-full p-2 border rounded-md" 
-                              placeholder="Your phone number"
-                            />
+                      
+                      {(submitSuccess && submitSuccess.type === 'dpr') ? (
+                        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                          <div className="flex">
+                            <div className="flex-shrink-0">
+                              <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="ml-3">
+                              <h3 className="text-sm font-medium text-green-800">Request Submitted Successfully!</h3>
+                              <div className="mt-2 text-sm text-green-700">
+                                <p>{submitSuccess.message}</p>
+                                <p className="mt-1">Your reference number: <span className="font-medium">DPR-{submitSuccess.id}</span></p>
+                              </div>
+                              <div className="mt-4">
+                                <Button variant="outline" size="sm" onClick={() => setSubmitSuccess(null)}>
+                                  Submit Another Request
+                                </Button>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        
-                        <div className="space-y-2">
-                          <label htmlFor="requestType" className="text-sm font-medium">Request Type <span className="text-red-500">*</span></label>
-                          <select 
-                            id="requestType" 
-                            required
-                            className="w-full p-2 border rounded-md"
-                          >
-                            <option value="">Select request type</option>
-                            <option value="Access">Access</option>
-                            <option value="Correction">Correction</option>
-                            <option value="Nomination">Nomination</option>
-                            <option value="Erasure">Erasure</option>
-                          </select>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <label htmlFor="requestComment" className="text-sm font-medium">Request Comment <span className="text-red-500">*</span></label>
-                          <textarea 
-                            id="requestComment" 
-                            rows={4} 
-                            required
-                            className="w-full p-2 border rounded-md" 
-                            placeholder="Please explain your request in detail"
-                          ></textarea>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <label className="flex items-center space-x-2">
-                            <input type="checkbox" required className="rounded border-gray-300" />
-                            <span className="text-sm">I confirm that all information provided is accurate</span>
-                          </label>
-                        </div>
-                        
-                        <Button type="submit" className="w-full">Submit Request</Button>
-                      </form>
+                      ) : (
+                        <form className="space-y-4" onSubmit={handleDPRequestSubmit}>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label htmlFor="firstName" className="text-sm font-medium">First Name <span className="text-red-500">*</span></label>
+                              <input 
+                                type="text" 
+                                id="firstName" 
+                                name="firstName"
+                                required
+                                className="w-full p-2 border rounded-md" 
+                                placeholder="Enter your first name"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label htmlFor="lastName" className="text-sm font-medium">Last Name <span className="text-red-500">*</span></label>
+                              <input 
+                                type="text" 
+                                id="lastName" 
+                                name="lastName"
+                                required
+                                className="w-full p-2 border rounded-md" 
+                                placeholder="Enter your last name"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label htmlFor="email" className="text-sm font-medium">Email <span className="text-red-500">*</span></label>
+                              <input 
+                                type="email" 
+                                id="email" 
+                                name="email"
+                                required
+                                className="w-full p-2 border rounded-md" 
+                                placeholder="your@email.com"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label htmlFor="phone" className="text-sm font-medium">Phone <span className="text-red-500">*</span></label>
+                              <input 
+                                type="tel" 
+                                id="phone" 
+                                name="phone"
+                                required
+                                className="w-full p-2 border rounded-md" 
+                                placeholder="Your phone number"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label htmlFor="requestType" className="text-sm font-medium">Request Type <span className="text-red-500">*</span></label>
+                            <select 
+                              id="requestType" 
+                              name="requestType"
+                              required
+                              className="w-full p-2 border rounded-md bg-white"
+                            >
+                              <option value="">Select a request type</option>
+                              <option value="Access">Access</option>
+                              <option value="Correction">Correction</option>
+                              <option value="Nomination">Nomination</option>
+                              <option value="Erasure">Erasure</option>
+                            </select>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label htmlFor="requestComment" className="text-sm font-medium">Additional Information <span className="text-red-500">*</span></label>
+                            <textarea 
+                              id="requestComment" 
+                              name="requestComment"
+                              rows={4} 
+                              required
+                              className="w-full p-2 border rounded-md" 
+                              placeholder="Please provide details about your request"
+                            ></textarea>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label className="flex items-center space-x-2">
+                              <input type="checkbox" required className="rounded border-gray-300" />
+                              <span className="text-sm">I confirm all information provided is accurate and complete</span>
+                            </label>
+                          </div>
+                          
+                          <Button type="submit" className="w-full" disabled={isSubmitting}>
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Submitting...
+                              </>
+                            ) : (
+                              "Submit Request"
+                            )}
+                          </Button>
+                        </form>
+                      )}
                     </div>
                   </div>
                 </TabsContent>
@@ -326,79 +468,118 @@ export default function RequestPage() {
                   <div className="rounded-lg border border-muted p-4">
                     <h3 className="font-medium text-lg mb-2">File a Grievance</h3>
                     <p className="text-muted-foreground mb-4">
-                      If you have a complaint regarding your data or privacy, use this form to submit a grievance.
+                      Use this form to report any privacy-related concerns or complaints.
                     </p>
                     
                     {/* Grievance Form */}
                     <div className="p-4 border rounded-md">
                       <h4 className="text-base font-medium mb-4">Submit Grievance</h4>
-                      <form className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label htmlFor="grievanceFirstName" className="text-sm font-medium">First Name <span className="text-red-500">*</span></label>
-                            <input 
-                              type="text" 
-                              id="grievanceFirstName" 
-                              required
-                              className="w-full p-2 border rounded-md" 
-                              placeholder="Enter your first name"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label htmlFor="grievanceLastName" className="text-sm font-medium">Last Name <span className="text-red-500">*</span></label>
-                            <input 
-                              type="text" 
-                              id="grievanceLastName" 
-                              required
-                              className="w-full p-2 border rounded-md" 
-                              placeholder="Enter your last name"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label htmlFor="grievanceEmail" className="text-sm font-medium">Email <span className="text-red-500">*</span></label>
-                            <input 
-                              type="email" 
-                              id="grievanceEmail" 
-                              required
-                              className="w-full p-2 border rounded-md" 
-                              placeholder="your@email.com"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label htmlFor="grievancePhone" className="text-sm font-medium">Phone <span className="text-red-500">*</span></label>
-                            <input 
-                              type="tel" 
-                              id="grievancePhone" 
-                              required
-                              className="w-full p-2 border rounded-md" 
-                              placeholder="Your phone number"
-                            />
+                      
+                      {submitSuccess && submitSuccess.type === 'grievance' ? (
+                        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                          <div className="flex">
+                            <div className="flex-shrink-0">
+                              <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="ml-3">
+                              <h3 className="text-sm font-medium text-green-800">Grievance Submitted Successfully!</h3>
+                              <div className="mt-2 text-sm text-green-700">
+                                <p>{submitSuccess.message}</p>
+                                <p className="mt-1">Your reference number: <span className="font-medium">GRV-{submitSuccess.id}</span></p>
+                              </div>
+                              <div className="mt-4">
+                                <Button variant="outline" size="sm" onClick={() => setSubmitSuccess(null)}>
+                                  Submit Another Grievance
+                                </Button>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        
-                        <div className="space-y-2">
-                          <label htmlFor="grievanceComments" className="text-sm font-medium">Grievance Comments <span className="text-red-500">*</span></label>
-                          <textarea 
-                            id="grievanceComments" 
-                            rows={4} 
-                            required
-                            className="w-full p-2 border rounded-md" 
-                            placeholder="Please describe your grievance in detail"
-                          ></textarea>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <label className="flex items-center space-x-2">
-                            <input type="checkbox" required className="rounded border-gray-300" />
-                            <span className="text-sm">I confirm all information provided is accurate and complete</span>
-                          </label>
-                        </div>
-                        
-                        <Button type="submit" className="w-full">Submit Grievance</Button>
-                      </form>
+                      ) : (
+                        <form className="space-y-4" onSubmit={handleGrievanceSubmit}>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label htmlFor="grievanceFirstName" className="text-sm font-medium">First Name <span className="text-red-500">*</span></label>
+                              <input 
+                                type="text" 
+                                id="grievanceFirstName" 
+                                name="grievanceFirstName"
+                                required
+                                className="w-full p-2 border rounded-md" 
+                                placeholder="Enter your first name"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label htmlFor="grievanceLastName" className="text-sm font-medium">Last Name <span className="text-red-500">*</span></label>
+                              <input 
+                                type="text" 
+                                id="grievanceLastName" 
+                                name="grievanceLastName"
+                                required
+                                className="w-full p-2 border rounded-md" 
+                                placeholder="Enter your last name"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label htmlFor="grievanceEmail" className="text-sm font-medium">Email <span className="text-red-500">*</span></label>
+                              <input 
+                                type="email" 
+                                id="grievanceEmail" 
+                                name="grievanceEmail"
+                                required
+                                className="w-full p-2 border rounded-md" 
+                                placeholder="your@email.com"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label htmlFor="grievancePhone" className="text-sm font-medium">Phone <span className="text-red-500">*</span></label>
+                              <input 
+                                type="tel" 
+                                id="grievancePhone" 
+                                name="grievancePhone"
+                                required
+                                className="w-full p-2 border rounded-md" 
+                                placeholder="Your phone number"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label htmlFor="grievanceComments" className="text-sm font-medium">Grievance Comments <span className="text-red-500">*</span></label>
+                            <textarea 
+                              id="grievanceComments" 
+                              name="grievanceComments"
+                              rows={4} 
+                              required
+                              className="w-full p-2 border rounded-md" 
+                              placeholder="Please describe your grievance in detail"
+                            ></textarea>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label className="flex items-center space-x-2">
+                              <input type="checkbox" required className="rounded border-gray-300" name="grievanceConsent" />
+                              <span className="text-sm">I confirm all information provided is accurate and complete</span>
+                            </label>
+                          </div>
+                          
+                          <Button type="submit" className="w-full" disabled={isSubmitting}>
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Submitting...
+                              </>
+                            ) : (
+                              "Submit Grievance"
+                            )}
+                          </Button>
+                        </form>
+                      )}
                     </div>
                   </div>
                 </TabsContent>
@@ -407,13 +588,10 @@ export default function RequestPage() {
           </Card>
         </div>
       </main>
-
-      <footer className="bg-white border-t border-gray-200 py-4 px-6">
+      
+      <footer className="py-4 px-6 bg-white border-t border-gray-200 mt-auto">
         <div className="max-w-6xl mx-auto text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} ComplyArk. All rights reserved.</p>
-          <p className="mt-1">
-            This is a secure portal for data protection requests. Your information is encrypted and protected.
-          </p>
+          <p>&copy; {new Date().getFullYear()} ComplyArk. All rights reserved.</p>
         </div>
       </footer>
     </div>

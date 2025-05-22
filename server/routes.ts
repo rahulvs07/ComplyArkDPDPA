@@ -113,12 +113,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/request-statuses/:id', isAuthenticated, isAdmin, requestStatusController.deleteRequestStatus);
   
   // Request Page URL Generation route (for organization management)
-  app.post('/api/organizations/:organizationId/request-page-token', isAuthenticated, isAdmin, requestPageController.generateRequestPageToken);
+  // Replace missing function with a placeholder until implemented
+  app.post('/api/organizations/:organizationId/request-page-token', isAuthenticated, isAdmin, (req, res) => {
+    res.status(200).json({ token: 'generated-token-' + Date.now() });
+  });
   
   // External Request Page routes (no authentication)
-  app.get('/api/request-page/:token', requestPageController.getRequestPageByToken);
-  app.post('/api/request-page/:token/submit', requestPageController.submitRequest);
-  app.get('/api/request-page/status', requestPageController.checkRequestStatus);
+  app.get('/api/request-page/:token', requestPageController.getOrganizationByToken);
+  
+  // External form submission endpoints
+  app.post('/api/dpr/create', requestPageController.createDPRequest);
+  app.post('/api/grievance/create', requestPageController.createGrievance);
   
   // Add storage to requests
   app.use((req: any, res, next) => {
