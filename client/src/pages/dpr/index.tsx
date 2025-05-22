@@ -205,12 +205,21 @@ export default function DPRModule() {
       const submittedStatus = statuses.find((s: any) => s.statusName === "Submitted");
       const statusId = submittedStatus ? submittedStatus.statusId : 26; // Default if not found
       
+      // Calculate completion date based on SLA days
+      let completionDate = null;
+      if (submittedStatus && submittedStatus.slaDays > 0) {
+        const date = new Date();
+        date.setDate(date.getDate() + submittedStatus.slaDays);
+        completionDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      }
+      
       return apiRequest(`/api/dpr`, {
         method: "POST",
         body: JSON.stringify({
           ...data,
           organizationId: user?.organizationId,
-          statusId
+          statusId,
+          completionDate
         })
       });
     },
@@ -260,12 +269,25 @@ export default function DPRModule() {
   
   // Form submission handler
   const onSubmit = (values: RequestFormValues) => {
+    // Find the status object to get SLA days
+    const statusObj = statuses.find((s: any) => s.statusId === parseInt(values.statusId));
+    
+    // Calculate completion date based on SLA days
+    let completionDate = null;
+    if (statusObj && statusObj.slaDays > 0) {
+      const date = new Date();
+      date.setDate(date.getDate() + statusObj.slaDays);
+      completionDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    }
+    
     // Convert values to the right format
     const formattedValues = {
       statusId: parseInt(values.statusId),
       assignedToUserId: values.assignedToUserId === "0" ? null : (values.assignedToUserId ? parseInt(values.assignedToUserId) : null),
-      closureComments: values.closureComments || null
+      closureComments: values.closureComments || null,
+      completionDate: completionDate
     };
+    
     console.log("Submitting values:", formattedValues);
     updateMutation.mutate(formattedValues);
   };
