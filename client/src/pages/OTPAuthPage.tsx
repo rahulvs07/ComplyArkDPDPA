@@ -166,9 +166,11 @@ export default function OTPAuthPage() {
         }),
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Invalid verification code');
+      // For our test system, just check the status instead of response.ok
+      // This is needed because we always return 200 OK from our test endpoint
+      const data = await response.json();
+      if (response.status !== 200) {
+        throw new Error(data.message || 'Invalid verification code');
       }
       
       toast({
