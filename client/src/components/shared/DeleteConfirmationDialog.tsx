@@ -21,28 +21,25 @@ export default function DeleteConfirmationDialog({
   isOpen,
   onClose,
   onConfirm,
-  title = "Delete Confirmation",
-  description = "Are you sure you want to delete this item? This action cannot be undone."
+  title = "Are you sure?",
+  description = "This action cannot be undone. This will permanently delete this item and remove the data from our servers."
 }: DeleteConfirmationDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-            <span className="material-icons text-red-500">delete</span>
-          </div>
-          <AlertDialogTitle className="text-center">{title}</AlertDialogTitle>
-          <AlertDialogDescription className="text-center">
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>
             {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>No, Cancel</AlertDialogCancel>
+          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
           <AlertDialogAction 
             onClick={onConfirm}
-            className="bg-red-500 text-white hover:bg-red-600"
+            className="bg-red-500 hover:bg-red-600"
           >
-            Yes, Delete
+            Delete
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

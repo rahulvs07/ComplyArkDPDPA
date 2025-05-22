@@ -10,57 +10,6 @@ import { Link } from "wouter";
 export default function Dashboard() {
   const { user } = useAuth();
   
-  // Fetch dashboard stats 
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["/api/dashboard/stats"],
-  });
-  
-  // Fetch recent requests
-  const { data: recentRequests, isLoading: requestsLoading } = useQuery({
-    queryKey: ["/api/dashboard/recent-requests"],
-  });
-  
-  // Fetch recent activities
-  const { data: activities, isLoading: activitiesLoading } = useQuery({
-    queryKey: ["/api/dashboard/activities"],
-  });
-  
-  const requestColumns = [
-    { key: "id", header: "ID" },
-    { key: "name", header: "Name" },
-    { key: "requestType", header: "Request Type" },
-    { 
-      key: "status", 
-      header: "Status",
-      render: (value: string) => {
-        let statusClass = "";
-        switch (value.toLowerCase()) {
-          case "in progress":
-            statusClass = "bg-warning-50 text-warning-500";
-            break;
-          case "completed":
-            statusClass = "bg-success-50 text-success-500";
-            break;
-          case "submitted":
-            statusClass = "bg-primary-50 text-primary-500";
-            break;
-          case "overdue":
-            statusClass = "bg-error-50 text-error-500";
-            break;
-          default:
-            statusClass = "bg-neutral-50 text-neutral-500";
-        }
-        return (
-          <span className={`px-2 py-1 text-xs rounded-full ${statusClass}`}>
-            {value}
-          </span>
-        );
-      }
-    },
-    { key: "assignedTo", header: "Assigned To" },
-    { key: "dueDate", header: "Due Date" },
-  ];
-  
   // Default stats for initial render
   const defaultStats = {
     pending: { 
@@ -153,9 +102,56 @@ export default function Dashboard() {
     }
   ];
   
-  const currentStats = stats || defaultStats;
-  const currentActivities = activities || defaultActivities;
-  const currentRequests = recentRequests || defaultRequests;
+  // Fetch dashboard stats 
+  const { data: stats = defaultStats, isLoading: statsLoading } = useQuery({
+    queryKey: ["/api/dashboard/stats"],
+  });
+  
+  // Fetch recent requests
+  const { data: recentRequests = defaultRequests, isLoading: requestsLoading } = useQuery({
+    queryKey: ["/api/dashboard/recent-requests"],
+  });
+  
+  // Fetch recent activities
+  const { data: activities = defaultActivities, isLoading: activitiesLoading } = useQuery({
+    queryKey: ["/api/dashboard/activities"],
+  });
+  
+  const requestColumns = [
+    { key: "id", header: "ID" },
+    { key: "name", header: "Name" },
+    { key: "requestType", header: "Request Type" },
+    { 
+      key: "status", 
+      header: "Status",
+      render: (value: string) => {
+        let statusClass = "";
+        switch (value.toLowerCase()) {
+          case "in progress":
+            statusClass = "bg-warning-50 text-warning-500";
+            break;
+          case "completed":
+            statusClass = "bg-success-50 text-success-500";
+            break;
+          case "submitted":
+            statusClass = "bg-primary-50 text-primary-500";
+            break;
+          case "overdue":
+            statusClass = "bg-error-50 text-error-500";
+            break;
+          default:
+            statusClass = "bg-neutral-50 text-neutral-500";
+        }
+        return (
+          <span className={`px-2 py-1 text-xs rounded-full ${statusClass}`}>
+            {value}
+          </span>
+        );
+      }
+    },
+    { key: "assignedTo", header: "Assigned To" },
+    { key: "dueDate", header: "Due Date" },
+  ];
   
   return (
     <div className="space-y-6">
@@ -185,38 +181,38 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Pending Requests"
-          value={currentStats.pending.count}
+          value={stats.pending.count}
           icon="assignment"
           iconColor="text-primary-500"
           iconBgColor="bg-primary-50"
-          trend={currentStats.pending.trend}
+          trend={stats.pending.trend}
         />
         
         <StatCard
           title="In Progress"
-          value={currentStats.inProgress.count}
+          value={stats.inProgress.count}
           icon="hourglass_top"
           iconColor="text-warning-500"
           iconBgColor="bg-warning-50"
-          trend={currentStats.inProgress.trend}
+          trend={stats.inProgress.trend}
         />
         
         <StatCard
           title="Completed"
-          value={currentStats.completed.count}
+          value={stats.completed.count}
           icon="task_alt"
           iconColor="text-success-500"
           iconBgColor="bg-success-50"
-          trend={currentStats.completed.trend}
+          trend={stats.completed.trend}
         />
         
         <StatCard
           title="Overdue"
-          value={currentStats.overdue.count}
+          value={stats.overdue.count}
           icon="report_problem"
           iconColor="text-error-500"
           iconBgColor="bg-error-50"
-          trend={currentStats.overdue.trend}
+          trend={stats.overdue.trend}
         />
       </div>
       
@@ -285,7 +281,7 @@ export default function Dashboard() {
           </div>
           
           <div className="space-y-4">
-            {currentActivities.map((activity) => (
+            {activities.map((activity) => (
               <div key={activity.id} className="flex items-start space-x-3">
                 <div className={`p-2 rounded-full ${activity.iconClass} flex-shrink-0`}>
                   <span className="material-icons text-sm">{activity.icon}</span>
@@ -313,7 +309,7 @@ export default function Dashboard() {
         <CardContent>
           <DataTable
             columns={requestColumns}
-            data={currentRequests}
+            data={recentRequests}
             onView={(row) => console.log("View", row)}
             onEdit={(row) => console.log("Edit", row)}
           />
