@@ -10,6 +10,9 @@ import * as industryController from './controllers/industryController';
 import * as templateController from './controllers/templateController';
 import * as noticeController from './controllers/noticeController';
 import * as dprController from './controllers/dprController';
+import * as requestPageController from './controllers/requestPageController';
+import * as grievanceController from './controllers/grievanceController';
+import * as complianceDocumentController from './controllers/complianceDocumentController';
 import { isAuthenticated, isAdmin, isSameOrganization } from './middleware/auth';
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -87,6 +90,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/dashboard/stats', isAuthenticated, dprController.getDashboardStats);
   app.get('/api/dashboard/activities', isAuthenticated, dprController.getRecentActivities);
   app.get('/api/dashboard/recent-requests', isAuthenticated, dprController.getRecentRequests);
+  
+  // Request Status routes (for admin)
+  app.get('/api/request-statuses', isAuthenticated, async (req, res) => {
+    try {
+      const statuses = await storage.listRequestStatuses();
+      return res.status(200).json(statuses);
+    } catch (error) {
+      console.error("Error fetching request statuses:", error);
+      return res.status(500).json({ message: "Failed to fetch request statuses" });
+    }
+  });
+  app.post('/api/request-statuses', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const newStatus = await storage.createRequestStatus(req.body);
+      return res.status(201).json(newStatus);
+    } catch (error) {
+      console.error("Error creating request status:", error);
+      return res.status(500).json({ message: "Failed to create request status" });
+    }
+  });
+  app.put('/api/request-statuses/:id', isAuthenticated, isAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid status ID" });
+    }
+    try {
+      const updatedStatus = await storage.updateRequestStatus(id, req.body);
+      if (!updatedStatus) {
+        return res.status(404).json({ message: "Request status not found" });
+      }
+      return res.status(200).json(updatedStatus);
+    } catch (error) {
+      console.error("Error updating request status:", error);
+      return res.status(500).json({ message: "Failed to update request status" });
+    }
+  });
+  
+  // Request Page URL Generation route (for organization management)
+  app.post('/api/organizations/:id/request-page-url', isAuthenticated, isAdmin, requestPageController.generateRequestPageUrl);
+  
+  // External Request Page routes (no authentication)
+  app.get('/api/request-page/:token', requestPageController.getRequestPageData);
+  app.post('/api/request-page/:token/dp-request', requestPageController.createDPRequest);
+  app.post('/api/request-page/:token/grievance', requestPageController.createGrievance);
+  
+  // Grievance routes
+  app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, grievanceController.getGrievances);
+  app.get('/api/grievances/:id', isAuthenticated, grievanceController.getGrievance);
+  app.put('/api/grievances/:id', isAuthenticated, grievanceController.updateGrievance);
+  app.get('/api/grievances/:id/history', isAuthenticated, grievanceController.getGrievanceHistory);
+  
+  // Compliance Document routes
+  app.get('/api/organizations/:orgId/compliance-documents', isAuthenticated, isSameOrganization, complianceDocumentController.getComplianceDocuments);
+  app.post('/api/organizations/:orgId/compliance-documents', isAuthenticated, isSameOrganization, complianceDocumentController.upload.single('document'), complianceDocumentController.uploadComplianceDocument);
+  app.delete('/api/compliance-documents/:id', isAuthenticated, complianceDocumentController.deleteComplianceDocument);
+  app.post('/api/organizations/:orgId/compliance-folders', isAuthenticated, isSameOrganization, complianceDocumentController.createFolder);
   
   const httpServer = createServer(app);
 

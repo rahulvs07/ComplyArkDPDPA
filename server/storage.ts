@@ -600,9 +600,172 @@ export class MemStorage implements IStorage {
 }
 
 import { db } from "./db";
-import { eq, and, desc, sql, count, isNull } from "drizzle-orm";
+import { eq, and, desc, sql, count, isNull, like } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
+  // RequestStatus operations
+  async updateRequestStatus(id: number, updates: Partial<InsertRequestStatus>): Promise<RequestStatus | undefined> {
+    const [updatedStatus] = await db
+      .update(requestStatuses)
+      .set(updates)
+      .where(eq(requestStatuses.statusId, id))
+      .returning();
+    return updatedStatus;
+  }
+  
+  async deleteRequestStatus(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(requestStatuses)
+        .where(eq(requestStatuses.statusId, id));
+      return result.rowCount ? result.rowCount > 0 : false;
+    } catch (error) {
+      console.error("Error deleting request status:", error);
+      return false;
+    }
+  }
+  
+  // Grievance operations
+  async getGrievance(id: number): Promise<Grievance | undefined> {
+    const [grievance] = await db
+      .select()
+      .from(grievances)
+      .where(eq(grievances.grievanceId, id));
+    return grievance;
+  }
+  
+  async createGrievance(insertGrievance: InsertGrievance): Promise<Grievance> {
+    const [grievance] = await db
+      .insert(grievances)
+      .values(insertGrievance)
+      .returning();
+    return grievance;
+  }
+  
+  async updateGrievance(id: number, updates: Partial<InsertGrievance>): Promise<Grievance | undefined> {
+    const [updatedGrievance] = await db
+      .update(grievances)
+      .set(updates)
+      .where(eq(grievances.grievanceId, id))
+      .returning();
+    return updatedGrievance;
+  }
+  
+  async deleteGrievance(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(grievances)
+        .where(eq(grievances.grievanceId, id));
+      return result.rowCount ? result.rowCount > 0 : false;
+    } catch (error) {
+      console.error("Error deleting grievance:", error);
+      return false;
+    }
+  }
+  
+  async listGrievances(organizationId: number, statusId?: number): Promise<Grievance[]> {
+    let query = db
+      .select()
+      .from(grievances)
+      .where(eq(grievances.organizationId, organizationId));
+    
+    if (statusId) {
+      query = query.where(eq(grievances.statusId, statusId));
+    }
+    
+    return query.orderBy(desc(grievances.createdAt));
+  }
+  
+  // Grievance History operations
+  async createGrievanceHistory(history: InsertGrievanceHistory): Promise<GrievanceHistory> {
+    const [grievanceHistory] = await db
+      .insert(grievanceHistory)
+      .values(history)
+      .returning();
+    return grievanceHistory;
+  }
+  
+  async listGrievanceHistory(grievanceId: number): Promise<GrievanceHistory[]> {
+    return db
+      .select()
+      .from(grievanceHistory)
+      .where(eq(grievanceHistory.grievanceId, grievanceId))
+      .orderBy(desc(grievanceHistory.changeDate));
+  }
+  
+  // Compliance Document operations
+  async getComplianceDocument(id: number): Promise<ComplianceDocument | undefined> {
+    const [document] = await db
+      .select()
+      .from(complianceDocuments)
+      .where(eq(complianceDocuments.documentId, id));
+    return document;
+  }
+  
+  async createComplianceDocument(document: InsertComplianceDocument): Promise<ComplianceDocument> {
+    const [createdDocument] = await db
+      .insert(complianceDocuments)
+      .values(document)
+      .returning();
+    return createdDocument;
+  }
+  
+  async updateComplianceDocument(id: number, updates: Partial<InsertComplianceDocument>): Promise<ComplianceDocument | undefined> {
+    const [updatedDocument] = await db
+      .update(complianceDocuments)
+      .set(updates)
+      .where(eq(complianceDocuments.documentId, id))
+      .returning();
+    return updatedDocument;
+  }
+  
+  async deleteComplianceDocument(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(complianceDocuments)
+        .where(eq(complianceDocuments.documentId, id));
+      return result.rowCount ? result.rowCount > 0 : false;
+    } catch (error) {
+      console.error("Error deleting compliance document:", error);
+      return false;
+    }
+  }
+  
+  async listComplianceDocuments(organizationId: number, folderPath?: string): Promise<ComplianceDocument[]> {
+    let query = db
+      .select()
+      .from(complianceDocuments)
+      .where(eq(complianceDocuments.organizationId, organizationId));
+    
+    if (folderPath) {
+      query = query.where(eq(complianceDocuments.folderPath, folderPath));
+    }
+    
+    return query.orderBy(desc(complianceDocuments.uploadedAt));
+  }
+  // Get org admin (first admin user in the organization)
+  async getOrgAdmin(organizationId: number): Promise<User | undefined> {
+    const [admin] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.organizationId, organizationId),
+          eq(users.role, "admin")
+        )
+      )
+      .limit(1);
+    return admin || undefined;
+  }
+  
+  // Get organization by token
+  async getOrganizationByToken(token: string): Promise<Organization | undefined> {
+    const [organization] = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.requestPageUrlToken, token));
+    return organization || undefined;
+  }
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
