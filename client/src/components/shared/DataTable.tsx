@@ -5,9 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 
 type Column = {
-  key: string;
+  key?: string;
+  accessorKey?: string;
+  id?: string;
   header: string;
   render?: (value: any, row?: any) => React.ReactNode;
+  cell?: ({ row }: { row: any }) => React.ReactNode;
   filterable?: boolean;
   sortable?: boolean;
 };
@@ -93,7 +96,9 @@ const DataTable: React.FC<DataTableProps> = ({
     
     return sortedData.filter(row => {
       return columns.some(column => {
-        const value = row[column.key];
+        const columnKey = column.key || column.accessorKey || column.id;
+        if (!columnKey) return false;
+        const value = row[columnKey];
         if (value === undefined || value === null) return false;
         return String(value).toLowerCase().includes(searchTerm.toLowerCase());
       });
@@ -171,13 +176,13 @@ const DataTable: React.FC<DataTableProps> = ({
             <tr className="bg-neutral-50 border-b border-neutral-200">
               {columns.map((column) => (
                 <th 
-                  key={column.key} 
+                  key={column.key || column.accessorKey || column.id} 
                   className={`px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider ${column.sortable ? 'cursor-pointer hover:bg-neutral-100' : ''}`}
-                  onClick={() => column.sortable && requestSort(column.key)}
+                  onClick={() => column.sortable && requestSort(column.key || column.accessorKey || column.id || '')}
                 >
                   <div className="flex items-center">
                     {column.header}
-                    {sortConfig && sortConfig.key === column.key && (
+                    {sortConfig && sortConfig.key === (column.key || column.accessorKey || column.id) && (
                       <span className="material-icons text-xs ml-1">
                         {sortConfig.direction === 'ascending' ? 'arrow_upward' : 'arrow_downward'}
                       </span>
