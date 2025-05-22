@@ -727,14 +727,14 @@ export class DatabaseStorage implements IStorage {
   
   // Grievance History operations
   async createGrievanceHistory(history: InsertGrievanceHistory): Promise<GrievanceHistory> {
-    const [grievanceHistory] = await db
+    const [newHistory] = await db
       .insert(grievanceHistory)
       .values(history)
       .returning();
-    return grievanceHistory;
+    return newHistory;
   }
   
-  async listGrievanceHistory(grievanceId: number): Promise<GrievanceHistory[]> {
+  async getGrievanceHistory(grievanceId: number): Promise<GrievanceHistory[]> {
     return db
       .select()
       .from(grievanceHistory)

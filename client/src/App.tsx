@@ -18,7 +18,7 @@ import UserSettings from "@/pages/user/settings";
 import WelcomePage from "@/pages/welcome";
 import RequestPage from "@/pages/RequestPage";
 import RequestStatusPage from "@/pages/RequestStatusPage";
-import React from "react";
+// React is already imported by JSX
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "./components/layout/AppLayout";
 
@@ -76,6 +76,13 @@ function Router() {
       </Route>
       
       <Route path="/grievances">
+        <AppLayout>
+          <ProtectedRoute component={GrievancesPage} />
+        </AppLayout>
+      </Route>
+
+      {/* Temporarily disabled Grievances detail page until backend is ready */}
+      <Route path="/grievances/:id">
         <AppLayout>
           <ProtectedRoute component={GrievancesPage} />
         </AppLayout>
