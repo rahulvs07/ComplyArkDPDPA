@@ -17,6 +17,7 @@ import UserSettings from "@/pages/user/settings";
 import WelcomePage from "@/pages/welcome";
 import RequestPage from "@/pages/RequestPage";
 import RequestStatusPage from "@/pages/RequestStatusPage";
+import OTPAuthPage from "@/pages/OTPAuthPage";
 // React is already imported by JSX
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "./components/layout/AppLayout";
@@ -145,6 +146,7 @@ function Router() {
       </Route>
       
       {/* Public routes for external request submissions */}
+      <Route path="/request-page/:token/auth" component={OTPAuthPage} />
       <Route path="/request-page/:token" component={RequestPage} />
       <Route path="/request-status" component={RequestStatusPage} />
       

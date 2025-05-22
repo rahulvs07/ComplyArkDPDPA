@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, KeyRound, ExternalLink } from 'lucide-react';
 
 // Schema for data protection request form
 const dpRequestSchema = z.object({
@@ -49,6 +49,57 @@ export default function RequestPage() {
   const [submissionId, setSubmissionId] = useState<number | null>(null);
   const [submissionType, setSubmissionType] = useState<'dpRequest' | 'grievance' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [organizationInfo, setOrganizationInfo] = useState<{
+    organizationId: number;
+    organizationName: string;
+  } | null>(null);
+  
+  // Check for authentication token when component mounts
+  useEffect(() => {
+    async function checkAuthentication() {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Get organization info first
+        const orgResponse = await fetch(`/api/request-page/${token}`);
+        
+        if (!orgResponse.ok) {
+          throw new Error('Invalid or expired request page URL');
+        }
+        
+        const orgData = await orgResponse.json();
+        setOrganizationInfo(orgData);
+        
+        // Check for authentication token in session storage
+        const accessToken = sessionStorage.getItem('requestPageAccessToken');
+        const email = sessionStorage.getItem('requestPageEmail');
+        
+        if (!accessToken || !email) {
+          // Not authenticated - redirect to auth page
+          setLocation(`/request-page/${token}/auth`);
+          return;
+        }
+        
+        setAuthenticated(true);
+      } catch (error) {
+        console.error('Error loading page:', error);
+        setError((error as Error).message || 'Failed to load request page');
+        
+        toast({
+          title: 'Error',
+          description: (error as Error).message || 'Failed to load request page',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    checkAuthentication();
+  }, [token, toast, setLocation]);
   
   // Form for data protection requests
   const dpRequestForm = useForm<DPRequestFormValues>({
@@ -165,6 +216,48 @@ export default function RequestPage() {
     setLocation('/request-status');
   };
   
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Show error if not authenticated or other errors
+  if (!authenticated || !organizationInfo) {
+    return (
+      <div className="container max-w-md mx-auto py-12 px-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-red-500 flex items-center gap-2">
+              <AlertCircle size={20} />
+              Authentication Required
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert variant="destructive">
+              <AlertTitle>Access Denied</AlertTitle>
+              <AlertDescription>
+                {error || 'Authentication is required to access this form. Please verify your email.'}
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              onClick={() => setLocation(`/request-page/${token}/auth`)} 
+              className="w-full"
+            >
+              <KeyRound className="mr-2 h-4 w-4" />
+              Go to Verification Page
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+  
   // If submission was successful, show success message and tracking info
   if (success && submissionId) {
     return (
@@ -191,7 +284,7 @@ export default function RequestPage() {
             <Alert>
               <AlertTitle>What happens next?</AlertTitle>
               <AlertDescription>
-                Your submission will be reviewed by the organization. You can check the status of your request
+                Your submission will be reviewed by {organizationInfo.organizationName}. You can check the status of your request
                 at any time using your reference number and email address.
               </AlertDescription>
             </Alert>
@@ -206,13 +299,14 @@ export default function RequestPage() {
     );
   }
   
+  // Main form display (authenticated)
   return (
     <div className="container max-w-2xl mx-auto py-12 px-4">
       <Card>
         <CardHeader>
-          <CardTitle>Data Protection Request Form</CardTitle>
+          <CardTitle>{organizationInfo.organizationName} - Request Form</CardTitle>
           <CardDescription>
-            Use this form to submit data protection requests or grievances to the organization.
+            Use this form to submit data protection requests or grievances to {organizationInfo.organizationName}.
           </CardDescription>
         </CardHeader>
         <CardContent>
