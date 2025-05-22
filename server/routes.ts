@@ -19,6 +19,7 @@ import * as grievanceController from './controllers/grievanceController';
 import * as complianceDocumentController from './controllers/complianceDocumentController';
 import { requestStatusController } from './controllers/requestStatusController';
 import * as dashboardController from './controllers/dashboardController';
+import * as otpAuthController from './controllers/otpAuthController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session
@@ -118,6 +119,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/request-page/:token', requestPageController.getRequestPageByToken);
   app.post('/api/request-page/:token/submit', requestPageController.submitRequest);
   app.get('/api/request-page/status', requestPageController.checkRequestStatus);
+  
+  // OTP authentication for request pages
+  app.post('/api/request-page/:organizationId/send-otp', otpAuthController.generateOTPForEmail);
+  app.post('/api/request-page/verify-otp', otpAuthController.verifyOTP);
   
   // Grievance routes
   app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, async (req, res) => {
