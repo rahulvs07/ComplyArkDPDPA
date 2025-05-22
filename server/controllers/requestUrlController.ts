@@ -1,19 +1,17 @@
-import { Request, Response } from 'express';
+import { Request as ExpressRequest, Response } from 'express';
 import { db } from '../db';
 import { organizations } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { encodeOrganizationId } from '../utils/tokenGenerator';
 
-// Define custom interface for User in request
-declare global {
-  namespace Express {
-    interface User {
-      id: number;
-      username: string;
-      role: string;
-      organizationId?: number;
-    }
-  }
+// Define a custom Request interface that includes the user property
+interface Request extends ExpressRequest {
+  user?: {
+    id: number;
+    username: string;
+    role: string;
+    organizationId?: number;
+  };
 }
 
 /**
@@ -22,7 +20,7 @@ declare global {
 export async function generateRequestPageUrl(req: Request, res: Response) {
   try {
     // Only admin users should be able to generate URLs
-    if (!req.user || req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
       return res.status(403).json({ message: 'Unauthorized. Only administrators can generate request page URLs.' });
     }
 
