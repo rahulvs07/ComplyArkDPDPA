@@ -268,6 +268,7 @@ async function seedDatabase() {
     await db.insert(translatedNotices).values([
       {
         noticeId: hospitalNotice.noticeId,
+        organizationId: hospitalOrg.id, // Adding organizationId reference
         language: 'Thai',
         translatedBody: `<h1>นโยบายความเป็นส่วนตัวของโรงพยาบาลซิตี้</h1>
 <p>นโยบายความเป็นส่วนตัวนี้อธิบายวิธีที่โรงพยาบาลซิตี้เก็บรวบรวม ใช้ และปกป้องข้อมูลส่วนบุคคลของคุณตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล</p>
@@ -300,6 +301,7 @@ async function seedDatabase() {
       },
       {
         noticeId: bankNotice.noticeId,
+        organizationId: bankOrg.id, // Adding organizationId reference
         language: 'Thai',
         translatedBody: `<h1>นโยบายความเป็นส่วนตัวของธนาคารโกลบอล</h1>
 <p>นโยบายความเป็นส่วนตัวนี้อธิบายวิธีที่ธนาคารโกลบอลเก็บรวบรวม ใช้ และปกป้องข้อมูลส่วนบุคคลของคุณตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล</p>

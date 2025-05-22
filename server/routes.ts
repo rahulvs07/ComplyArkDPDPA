@@ -45,11 +45,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/organizations/:id', isAuthenticated, isSuperAdmin, organizationController.deleteOrganization);
   app.get('/api/organizations/:orgId/users', isAuthenticated, isSameOrganization, organizationController.getOrganizationUsers);
   
-  // User routes
-  app.get('/api/users', isAuthenticated, userController.listUsers); // Will filter by organization in controller
-  app.get('/api/users/:id', isAuthenticated, userController.getUser);
+  // User routes - only admins can manage users
+  app.get('/api/users', isAuthenticated, isAdmin, userController.listUsers); // Will filter by organization in controller
+  app.get('/api/users/:id', isAuthenticated, isAdmin, userController.getUser);
   app.post('/api/users', isAuthenticated, isAdmin, userController.createUser);
-  app.put('/api/users/:id', isAuthenticated, userController.updateUser);
+  app.put('/api/users/:id', isAuthenticated, isAdmin, userController.updateUser);
   app.delete('/api/users/:id', isAuthenticated, isAdmin, userController.deleteUser);
   
   // Industry routes
@@ -101,9 +101,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/dashboard/activities', isAuthenticated, (req, res) => dprController.getRecentActivities(req, res));
   app.get('/api/dashboard/recent-requests', isAuthenticated, dprController.getRecentRequests);
   
-  // Request Status routes (for admin)
-  app.get('/api/request-statuses', isAuthenticated, requestStatusController.getRequestStatuses);
-  app.get('/api/request-statuses/:id', isAuthenticated, requestStatusController.getRequestStatus);
+  // Request Status routes (viewing allowed for all users, management for admins)
+  app.get('/api/request-statuses', canManageRequests, requestStatusController.getRequestStatuses);
+  app.get('/api/request-statuses/:id', canManageRequests, requestStatusController.getRequestStatus);
   app.post('/api/request-statuses', isAuthenticated, isAdmin, requestStatusController.createRequestStatus);
   app.put('/api/request-statuses/:id', isAuthenticated, isAdmin, requestStatusController.updateRequestStatus);
   app.delete('/api/request-statuses/:id', isAuthenticated, isAdmin, requestStatusController.deleteRequestStatus);
@@ -163,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.patch('/api/grievances/:id', isAuthenticated, async (req, res) => {
+  app.patch('/api/grievances/:id', canManageRequests, async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid grievance ID" });
@@ -198,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get('/api/grievances/:id/history', isAuthenticated, async (req, res) => {
+  app.get('/api/grievances/:id/history', canManageRequests, async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid grievance ID" });
