@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { getStatusColor } from "@/lib/utils";
 import DataTable from "@/components/shared/DataTable";
+import AppLayout from "@/components/layout/AppLayout";
 
 export default function GrievancesPage() {
   const [searchTerm, setSearchTerm] = useState("");

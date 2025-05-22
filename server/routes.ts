@@ -116,25 +116,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/request-page/status', requestPageController.checkRequestStatus);
   
   // Grievance routes
-  // Temporarily commenting out this route until controller is properly implemented
-  // app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, grievanceController.listGrievances);
-  // Temporarily returning mock data for grievances list until storage is properly implemented
+  app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, (req, res) => grievanceController.listGrievances(req, res));
   app.get('/api/grievances', isAuthenticated, async (req, res) => {
     // Get user's organization ID from request
     const orgId = (req as AuthRequest).user!.organizationId;
     try {
-      // Return empty array for now
-      return res.status(200).json([]);
+      const grievances = await storage.listGrievances(orgId);
+      return res.status(200).json(grievances);
     } catch (error) {
       console.error("Error fetching grievances:", error);
       return res.status(500).json({ message: "Failed to fetch grievances" });
     }
   });
   
-  // Temporarily comment out these routes until controller is properly implemented
-  // app.get('/api/grievances/:id', isAuthenticated, grievanceController.getGrievance);
-  // app.put('/api/grievances/:id', isAuthenticated, grievanceController.updateGrievance);
-  // app.get('/api/grievances/:id/history', isAuthenticated, grievanceController.getGrievanceHistory);
+  // Activate grievance controller routes
+  app.get('/api/grievances/:id', isAuthenticated, (req, res) => grievanceController.getGrievance(req, res));
+  app.put('/api/grievances/:id', isAuthenticated, (req, res) => grievanceController.updateGrievance(req, res));
+  app.get('/api/grievances/:id/history', isAuthenticated, (req, res) => grievanceController.getGrievanceHistory(req, res));
+  app.post('/api/grievances', isAuthenticated, (req, res) => grievanceController.createGrievance(req, res));
   
   // Compliance Document routes
   // Temporarily commented out until controller is properly implemented
