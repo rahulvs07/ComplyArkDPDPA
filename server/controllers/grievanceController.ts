@@ -162,15 +162,33 @@ export async function updateGrievance(req: Request, res: Response) {
       return res.status(404).json({ message: "Grievance not found" });
     }
 
+    // Parse the incoming data - ensure statusId is converted to number
+    let parsedData = {
+      ...req.body
+    };
+    
+    // Convert string statusId to number
+    if (typeof parsedData.statusId === 'string') {
+      parsedData.statusId = parseInt(parsedData.statusId);
+    }
+    
+    // Convert string assignedToUserId to number or null
+    if (parsedData.assignedToUserId === '') {
+      parsedData.assignedToUserId = null;
+    } else if (typeof parsedData.assignedToUserId === 'string') {
+      parsedData.assignedToUserId = parseInt(parsedData.assignedToUserId);
+    }
+
     // Validate the update data
     const updateSchema = z.object({
-      statusId: z.number().optional(),
+      statusId: z.number(),
       assignedToUserId: z.number().nullable().optional(),
       comments: z.string().optional(),
+      completionDate: z.string().optional().nullable(),
       closureComments: z.string().nullable().optional(),
     });
 
-    const validationResult = updateSchema.safeParse(req.body);
+    const validationResult = updateSchema.safeParse(parsedData);
     if (!validationResult.success) {
       return res.status(400).json({ 
         message: "Invalid request data", 

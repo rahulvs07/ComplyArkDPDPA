@@ -177,9 +177,9 @@ const DataTable: React.FC<DataTableProps> = ({
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-neutral-50 border-b border-neutral-200">
-              {columns.map((column) => (
+              {columns.map((column, colIndex) => (
                 <th 
-                  key={column.key || column.accessorKey || column.id} 
+                  key={column.key || column.accessorKey || column.id || `col-${colIndex}`} 
                   className={`px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider ${column.sortable ? 'cursor-pointer hover:bg-neutral-100' : ''}`}
                   onClick={() => column.sortable && requestSort(column.key || column.accessorKey || column.id || '')}
                 >
@@ -208,8 +208,8 @@ const DataTable: React.FC<DataTableProps> = ({
                   className={`border-b border-neutral-200 ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} ${onRowClick ? 'cursor-pointer hover:bg-neutral-100' : ''}`}
                   onClick={() => handleRowClick(row)}
                 >
-                  {columns.map((column) => (
-                    <td key={column.key || column.accessorKey || column.id} className="px-4 py-3 text-sm text-neutral-800">
+                  {columns.map((column, cellIndex) => (
+                    <td key={`${rowIndex}-${column.key || column.accessorKey || column.id || cellIndex}`} className="px-4 py-3 text-sm text-neutral-800">
                       {column.cell ? 
                         column.cell({ row: { getValue: (key: string) => row[key], original: row } }) : 
                         (column.render ? 
