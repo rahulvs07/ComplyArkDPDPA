@@ -211,7 +211,7 @@ const DataTable: React.FC<DataTableProps> = ({
                   {columns.map((column) => (
                     <td key={column.key || column.accessorKey || column.id} className="px-4 py-3 text-sm text-neutral-800">
                       {column.cell ? 
-                        column.cell({ row: { getValue: (key) => row[key], original: row } }) : 
+                        column.cell({ row: { getValue: (key: string) => row[key], original: row } }) : 
                         (column.render ? 
                           column.render(row[column.key || column.accessorKey || column.id || ''], row) : 
                           (row[column.key || column.accessorKey || column.id || ''] !== undefined ? 

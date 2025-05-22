@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -188,7 +188,13 @@ export default function DPRModule() {
   
   // Form submission handler
   const onSubmit = (values: RequestFormValues) => {
-    updateMutation.mutate(values);
+    // Convert values to the right format
+    const formattedValues = {
+      statusId: parseInt(values.statusId),
+      assignedToUserId: values.assignedToUserId ? parseInt(values.assignedToUserId) : null,
+      closureComments: values.closureComments || null
+    };
+    updateMutation.mutate(formattedValues);
   };
   
   // Define status cards with icons and counts
@@ -292,6 +298,17 @@ export default function DPRModule() {
       },
     },
     {
+      header: "Assigned To",
+      accessorKey: "assignedToUserId",
+      cell: ({ row }: any) => {
+        const assignedToUserId = row.original.assignedToUserId;
+        if (!assignedToUserId) return <div>-</div>;
+        
+        const assignedUser = users.find((u: any) => u.id === assignedToUserId);
+        return <div>{assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : '-'}</div>;
+      },
+    },
+    {
       header: "Created",
       accessorKey: "createdAt",
       cell: ({ row }: any) => {
@@ -331,18 +348,8 @@ export default function DPRModule() {
             className="h-8 w-8 p-0 text-[#2E77AE] border-[#2E77AE]/30 hover:bg-[#2E77AE]/10 hover:border-[#2E77AE]"
           >
             <FileEdit className="h-4 w-4" />
-            <span className="sr-only">View</span>
+            <span className="sr-only">Edit</span>
           </Button>
-          <Link to={`/dpr/${row.original.requestId}`}>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-8 w-8 p-0 text-[#0F3460] border-[#0F3460]/30 hover:bg-[#0F3460]/10 hover:border-[#0F3460]"
-            >
-              <FileArchive className="h-4 w-4" />
-              <span className="sr-only">Detail</span>
-            </Button>
-          </Link>
         </div>
       ),
     },
