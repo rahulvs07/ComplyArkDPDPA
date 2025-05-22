@@ -7,114 +7,146 @@ import { useAuth } from "@/lib/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
+// Define types for our dashboard data
+interface StatsData {
+  pending: { 
+    count: number; 
+    trend: { value: string; isPositive: boolean } 
+  };
+  inProgress: { 
+    count: number; 
+    trend: { value: string; isPositive: boolean } 
+  };
+  completed: { 
+    count: number; 
+    trend: { value: string; isPositive: boolean } 
+  };
+  overdue: { 
+    count: number; 
+    trend: { value: string; isPositive: boolean } 
+  };
+}
+
+interface ActivityItem {
+  id: number;
+  type: string;
+  message: string;
+  timeAgo: string;
+  icon: string;
+  iconClass: string;
+}
+
+interface RequestItem {
+  id: string;
+  name: string;
+  requestType: string;
+  status: string;
+  assignedTo: string;
+  dueDate: string;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   
-  // Default stats for initial render
-  const defaultStats = {
-    pending: { 
-      count: 12, 
-      trend: { value: "8% from last week", isPositive: false } 
-    },
-    inProgress: { 
-      count: 8, 
-      trend: { value: "5% from last week", isPositive: true } 
-    },
-    completed: { 
-      count: 24, 
-      trend: { value: "12% from last week", isPositive: true } 
-    },
-    overdue: { 
-      count: 3, 
-      trend: { value: "2% from last week", isPositive: false } 
-    }
-  };
-  
-  // Default activities for initial render
-  const defaultActivities = [
-    {
-      id: 1,
-      type: "new_request",
-      message: "New data request submitted by Sarah Johnson",
-      timeAgo: "10 minutes ago",
-      icon: "assignment",
-      iconClass: "bg-primary-50 text-primary-500"
-    },
-    {
-      id: 2,
-      type: "completed",
-      message: "Request #1243 marked as complete",
-      timeAgo: "1 hour ago",
-      icon: "task_alt",
-      iconClass: "bg-success-50 text-success-500"
-    },
-    {
-      id: 3,
-      type: "overdue",
-      message: "Request #1242 is overdue",
-      timeAgo: "2 hours ago",
-      icon: "report_problem",
-      iconClass: "bg-error-50 text-error-500"
-    },
-    {
-      id: 4,
-      type: "new_template",
-      message: "New notice template added by Admin",
-      timeAgo: "Yesterday",
-      icon: "description",
-      iconClass: "bg-warning-50 text-warning-500"
-    }
-  ];
-  
-  // Default requests for initial render
-  const defaultRequests = [
-    {
-      id: "#1248",
-      name: "Sarah Johnson",
-      requestType: "Access",
-      status: "In Progress",
-      assignedTo: "John Doe",
-      dueDate: "Jul 29, 2023"
-    },
-    {
-      id: "#1247",
-      name: "Michael Brown",
-      requestType: "Correction",
-      status: "Completed",
-      assignedTo: "Emma Wilson",
-      dueDate: "Jul 28, 2023"
-    },
-    {
-      id: "#1246",
-      name: "Lisa Chen",
-      requestType: "Erasure",
-      status: "Submitted",
-      assignedTo: "Unassigned",
-      dueDate: "Jul 31, 2023"
-    },
-    {
-      id: "#1245",
-      name: "Robert Davis",
-      requestType: "Nomination",
-      status: "Overdue",
-      assignedTo: "John Doe",
-      dueDate: "Jul 25, 2023"
-    }
-  ];
-  
   // Fetch dashboard stats 
-  const { data: stats = defaultStats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery<StatsData>({
     queryKey: ["/api/dashboard/stats"],
+    initialData: {
+      pending: { 
+        count: 12, 
+        trend: { value: "8% from last week", isPositive: false } 
+      },
+      inProgress: { 
+        count: 8, 
+        trend: { value: "5% from last week", isPositive: true } 
+      },
+      completed: { 
+        count: 24, 
+        trend: { value: "12% from last week", isPositive: true } 
+      },
+      overdue: { 
+        count: 3, 
+        trend: { value: "2% from last week", isPositive: false } 
+      }
+    }
   });
   
   // Fetch recent requests
-  const { data: recentRequests = defaultRequests, isLoading: requestsLoading } = useQuery({
+  const { data: recentRequests, isLoading: requestsLoading } = useQuery<RequestItem[]>({
     queryKey: ["/api/dashboard/recent-requests"],
+    initialData: [
+      {
+        id: "#1248",
+        name: "Sarah Johnson",
+        requestType: "Access",
+        status: "In Progress",
+        assignedTo: "John Doe",
+        dueDate: "Jul 29, 2023"
+      },
+      {
+        id: "#1247",
+        name: "Michael Brown",
+        requestType: "Correction",
+        status: "Completed",
+        assignedTo: "Emma Wilson",
+        dueDate: "Jul 28, 2023"
+      },
+      {
+        id: "#1246",
+        name: "Lisa Chen",
+        requestType: "Erasure",
+        status: "Submitted",
+        assignedTo: "Unassigned",
+        dueDate: "Jul 31, 2023"
+      },
+      {
+        id: "#1245",
+        name: "Robert Davis",
+        requestType: "Nomination",
+        status: "Overdue",
+        assignedTo: "John Doe",
+        dueDate: "Jul 25, 2023"
+      }
+    ]
   });
   
   // Fetch recent activities
-  const { data: activities = defaultActivities, isLoading: activitiesLoading } = useQuery({
+  const { data: activities, isLoading: activitiesLoading } = useQuery<ActivityItem[]>({
     queryKey: ["/api/dashboard/activities"],
+    initialData: [
+      {
+        id: 1,
+        type: "new_request",
+        message: "New data request submitted by Sarah Johnson",
+        timeAgo: "10 minutes ago",
+        icon: "assignment",
+        iconClass: "bg-primary-50 text-primary-500"
+      },
+      {
+        id: 2,
+        type: "completed",
+        message: "Request #1243 marked as complete",
+        timeAgo: "1 hour ago",
+        icon: "task_alt",
+        iconClass: "bg-success-50 text-success-500"
+      },
+      {
+        id: 3,
+        type: "overdue",
+        message: "Request #1242 is overdue",
+        timeAgo: "2 hours ago",
+        icon: "report_problem",
+        iconClass: "bg-error-50 text-error-500"
+      },
+      {
+        id: 4,
+        type: "new_template",
+        message: "New notice template added by Admin",
+        timeAgo: "Yesterday",
+        icon: "description",
+        iconClass: "bg-warning-50 text-warning-500"
+      }
+    ]
   });
   
   const requestColumns = [

@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -6,7 +7,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 
 interface DeleteConfirmationDialogProps {
@@ -21,8 +22,8 @@ export default function DeleteConfirmationDialog({
   isOpen,
   onClose,
   onConfirm,
-  title = "Are you sure?",
-  description = "This action cannot be undone. This will permanently delete this item and remove the data from our servers."
+  title = "Delete Confirmation",
+  description = "Are you sure you want to delete this item? This action cannot be undone."
 }: DeleteConfirmationDialogProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
@@ -36,8 +37,8 @@ export default function DeleteConfirmationDialog({
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
           <AlertDialogAction 
-            onClick={onConfirm}
-            className="bg-red-500 hover:bg-red-600"
+            onClick={onConfirm} 
+            className="bg-error-500 hover:bg-error-600"
           >
             Delete
           </AlertDialogAction>
