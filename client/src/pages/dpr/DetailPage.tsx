@@ -413,7 +413,7 @@ export default function DPRDetailPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="">Unassigned</SelectItem>
+                              <SelectItem value="0">Unassigned</SelectItem>
                               {users.map((user: any) => (
                                 <SelectItem 
                                   key={user.id} 
