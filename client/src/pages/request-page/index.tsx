@@ -25,15 +25,33 @@ export default function RequestPage() {
   const [, navigate] = useLocation();
 
   useEffect(() => {
+    // Check session storage for authentication flag from OTP process
+    const checkSessionAuth = () => {
+      const isVerified = sessionStorage.getItem('otp_verified');
+      const verifiedEmail = sessionStorage.getItem('otp_email');
+      if (isVerified === 'true' && verifiedEmail) {
+        console.log('User is already verified via OTP:', verifiedEmail);
+        setIsAuthenticated(true);
+        return true;
+      }
+      return false;
+    };
+    
     const fetchOrganization = async () => {
-      if (!token) {
+      // Try to get token from params or session storage
+      const pageToken = token || sessionStorage.getItem('request_page_token');
+      
+      if (!pageToken) {
         setError('Invalid request page URL');
         setIsLoading(false);
         return;
       }
 
+      // Check if user is already verified from OTP flow
+      const isAlreadyVerified = checkSessionAuth();
+      
       try {
-        const response = await fetch(`/api/request-page/${token}`);
+        const response = await fetch(`/api/request-page/${pageToken}`);
         if (!response.ok) {
           throw new Error('Invalid or expired URL');
         }
