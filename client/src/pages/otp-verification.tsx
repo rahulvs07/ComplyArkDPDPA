@@ -340,13 +340,25 @@ export default function OTPVerificationPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 bg-primary-600 text-white rounded-t-lg">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5" />
-            <CardTitle className="text-xl">Verify Your Email</CardTitle>
+          <div className="flex flex-col items-center mb-4">
+            <div className="bg-white rounded-full p-3 mb-2">
+              <ShieldCheck className="h-8 w-8 text-primary-600" />
+            </div>
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-white">ComplyArk</h2>
+              <p className="text-sm text-white/80">Privacy Request Portal</p>
+            </div>
           </div>
-          <CardDescription className="text-white/90">
+          
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-xl">
+              {organization?.name ? `${organization.name}` : 'Organization'} 
+            </CardTitle>
+          </div>
+          
+          <CardDescription className="text-white/90 mt-1">
             {step === 'email'
-              ? `To access the request page for ${organization?.name}, please verify your email`
+              ? 'Please verify your email to continue to the request page'
               : `Enter the verification code sent to ${email}`}
           </CardDescription>
         </CardHeader>
