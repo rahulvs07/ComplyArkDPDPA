@@ -88,11 +88,10 @@ export const grievanceController = {
         });
       }
 
-      // Update the grievance and record history
+      // Update the grievance
       const updatedGrievance = await storage.updateGrievance(
         id,
-        validationResult.data,
-        req.user.id
+        validationResult.data
       );
 
       return res.status(200).json(updatedGrievance);
