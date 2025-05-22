@@ -20,20 +20,20 @@ export const isAuthenticated = async (
   next: NextFunction
 ) => {
   // Check if user is authenticated via session
-  if (req.session && req.session.userId) {
+  if (req.session && (req.session.userId || req.session.isSuperAdmin)) {
     try {
-      // Check for superadmin user (hardcoded ID)
-      const SUPER_ADMIN_ID = 999;
+      // Check for superadmin user (hardcoded credentials)
+      const SUPER_ADMIN_USERNAME = "complyarkadmin";
       
-      if (req.session.userId === SUPER_ADMIN_ID) {
+      if (req.session.isSuperAdmin || req.session.username === SUPER_ADMIN_USERNAME) {
         // Create superadmin user object
         req.user = {
-          id: SUPER_ADMIN_ID,
-          username: "complyarkadmin",
+          id: 999, // Special ID for superadmin
+          username: SUPER_ADMIN_USERNAME,
           firstName: "System",
           lastName: "Administrator",
-          organizationId: 1, // Default organization
-          role: "admin"
+          organizationId: 32, // ComplyArk Systems organization ID
+          role: "superadmin" // Special role for superadmin
         };
         return next();
       }

@@ -12,7 +12,7 @@ export const login = async (req: Request, res: Response) => {
   // Hardcoded superadmin credentials
   const SUPER_ADMIN_USERNAME = "complyarkadmin";
   const SUPER_ADMIN_PASSWORD = "admincomplyark";
-  const SUPER_ADMIN_ORG_ID = 1; // Using org ID 1 as default for superadmin
+  const SUPER_ADMIN_ORG_ID = 32; // Assigning ComplyArk Systems org as default
 
   try {
     // Check if superadmin login
@@ -35,6 +35,8 @@ export const login = async (req: Request, res: Response) => {
       
       // Create session
       req.session.userId = superAdminUser.id;
+      req.session.username = SUPER_ADMIN_USERNAME;
+      req.session.isSuperAdmin = true;
       
       // Get organization name or use default
       let organizationName = "ComplyArk System";
