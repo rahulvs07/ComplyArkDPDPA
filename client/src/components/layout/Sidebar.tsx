@@ -146,7 +146,57 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
               )}>
                 <span className="material-icons mr-3">admin_panel_settings</span>
-                <span>Admin Panel</span>
+                <span>Admin Dashboard</span>
+            </Link>
+
+            <Link href="/admin/organizations" className={cn(
+                "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
+                isActive("/admin/organizations")
+                  ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+                  : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
+              )}>
+                <span className="material-icons mr-3">business</span>
+                <span>Organizations</span>
+            </Link>
+
+            <Link href="/admin/users" className={cn(
+                "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
+                isActive("/admin/users")
+                  ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+                  : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
+              )}>
+                <span className="material-icons mr-3">people</span>
+                <span>Users</span>
+            </Link>
+
+            <Link href="/admin/industries" className={cn(
+                "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
+                isActive("/admin/industries")
+                  ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+                  : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
+              )}>
+                <span className="material-icons mr-3">category</span>
+                <span>Industries</span>
+            </Link>
+
+            <Link href="/admin/templates" className={cn(
+                "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
+                isActive("/admin/templates")
+                  ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+                  : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
+              )}>
+                <span className="material-icons mr-3">file_copy</span>
+                <span>Templates</span>
+            </Link>
+
+            <Link href="/admin/request-statuses" className={cn(
+                "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
+                isActive("/admin/request-statuses")
+                  ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+                  : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
+              )}>
+                <span className="material-icons mr-3">list_alt</span>
+                <span>Request Statuses</span>
             </Link>
           </>
         )}
