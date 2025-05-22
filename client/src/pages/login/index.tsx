@@ -47,20 +47,16 @@ export default function LoginPage() {
         <div className="w-full max-w-md flex flex-col items-center">
           {/* Logo */}
           <div className="mb-8 flex flex-col items-center">
-            <div className="h-16 w-16 bg-blue-500 rounded-full flex items-center justify-center mb-3">
+            <div className="h-16 w-16 bg-blue-500 rounded-full flex items-center justify-center mb-4">
               <Shield className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold">
-              <span className="text-gray-900">Comply</span>
-              <span className="text-blue-600">Ark</span>
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">DPDPA Compliance Management System</p>
+            <h1 className="text-2xl font-bold mb-1">ComplyArk</h1>
+            <p className="text-sm text-gray-600">DPDPA Compliance Management System</p>
           </div>
           
           {/* Login form */}
-          <form onSubmit={handleSubmit} className="w-full space-y-5">
+          <form onSubmit={handleSubmit} className="w-full space-y-4">
             <div>
-              <label htmlFor="email" className="sr-only">Email address</label>
               <input 
                 id="email"
                 type="text"
@@ -73,7 +69,6 @@ export default function LoginPage() {
             </div>
             
             <div>
-              <label htmlFor="password" className="sr-only">Password</label>
               <input 
                 id="password"
                 type="password"
@@ -128,7 +123,7 @@ export default function LoginPage() {
             </a>
           </div>
           
-          <div className="mt-6 text-center text-sm text-gray-500">
+          <div className="mt-6 text-center text-sm text-gray-500 hidden">
             <p>Demo Credentials:</p>
             <p>Admin: complyarkadmin / complyarkadmin</p>
             <p>User: user / password</p>
