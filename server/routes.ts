@@ -117,7 +117,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/request-page/status', requestPageController.checkRequestStatus);
   
   // Grievance routes
-  app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, (req, res) => grievanceController.listGrievances(req, res));
+  app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, async (req, res) => {
+    const orgId = parseInt(req.params.orgId);
+    if (isNaN(orgId)) {
+      return res.status(400).json({ message: "Invalid organization ID" });
+    }
+    
+    try {
+      const grievances = await storage.listGrievances(orgId);
+      return res.status(200).json(grievances);
+    } catch (error) {
+      console.error(`Error fetching grievances for organization ${orgId}:`, error);
+      return res.status(500).json({ message: "Failed to fetch grievances" });
+    }
+  });
+  
   app.get('/api/grievances', isAuthenticated, async (req, res) => {
     // Get user's organization ID from request
     const orgId = (req as AuthRequest).user!.organizationId;
@@ -130,11 +144,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Activate grievance controller routes
-  app.get('/api/grievances/:id', isAuthenticated, (req, res) => grievanceController.getGrievance(req, res));
-  app.put('/api/grievances/:id', isAuthenticated, (req, res) => grievanceController.updateGrievance(req, res));
-  app.get('/api/grievances/:id/history', isAuthenticated, (req, res) => grievanceController.getGrievanceHistory(req, res));
-  app.post('/api/grievances', isAuthenticated, (req, res) => grievanceController.createGrievance(req, res));
+  // Grievance routes
+  app.get('/api/grievances/:id', isAuthenticated, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid grievance ID" });
+    }
+    
+    try {
+      const grievance = await storage.getGrievance(id);
+      if (!grievance) {
+        return res.status(404).json({ message: "Grievance not found" });
+      }
+      return res.status(200).json(grievance);
+    } catch (error) {
+      console.error(`Error fetching grievance ${id}:`, error);
+      return res.status(500).json({ message: "Failed to fetch grievance" });
+    }
+  });
+  
+  app.patch('/api/grievances/:id', isAuthenticated, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid grievance ID" });
+    }
+    
+    try {
+      const grievance = await storage.getGrievance(id);
+      if (!grievance) {
+        return res.status(404).json({ message: "Grievance not found" });
+      }
+      
+      const updatedGrievance = await storage.updateGrievance(id, req.body);
+      
+      // Create history entry
+      if (req.body.statusId !== undefined || req.body.assignedToUserId !== undefined) {
+        await storage.createGrievanceHistory({
+          grievanceId: id,
+          changedByUserId: (req as AuthRequest).user?.id || null,
+          oldStatusId: grievance.statusId,
+          newStatusId: req.body.statusId !== undefined ? req.body.statusId : grievance.statusId,
+          oldAssignedToUserId: grievance.assignedToUserId,
+          newAssignedToUserId: req.body.assignedToUserId !== undefined ? req.body.assignedToUserId : grievance.assignedToUserId,
+          comments: req.body.comments || null,
+          changeDate: new Date()
+        });
+      }
+      
+      return res.status(200).json(updatedGrievance);
+    } catch (error) {
+      console.error(`Error updating grievance ${id}:`, error);
+      return res.status(500).json({ message: "Failed to update grievance" });
+    }
+  });
+  
+  app.get('/api/grievances/:id/history', isAuthenticated, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid grievance ID" });
+    }
+    
+    try {
+      const grievance = await storage.getGrievance(id);
+      if (!grievance) {
+        return res.status(404).json({ message: "Grievance not found" });
+      }
+      
+      const history = await storage.listGrievanceHistory(id);
+      return res.status(200).json(history);
+    } catch (error) {
+      console.error(`Error fetching history for grievance ${id}:`, error);
+      return res.status(500).json({ message: "Failed to fetch grievance history" });
+    }
+  });
+  
+  app.post('/api/grievances', isAuthenticated, async (req, res) => {
+    try {
+      // Set default status ID if not provided
+      let data = { ...req.body };
+      
+      if (!data.statusId) {
+        // Get "Submitted" status or the first available status
+        const statuses = await storage.listRequestStatuses();
+        const submittedStatus = statuses.find(s => 
+          s.statusName.toLowerCase() === 'submitted'
+        );
+        data.statusId = submittedStatus?.statusId || statuses[0].statusId;
+      }
+      
+      const newGrievance = await storage.createGrievance(data);
+      
+      return res.status(201).json(newGrievance);
+    } catch (error) {
+      console.error("Error creating grievance:", error);
+      return res.status(500).json({ message: "Failed to create grievance" });
+    }
+  });
   
   // Compliance Document routes
   // Temporarily commented out until controller is properly implemented

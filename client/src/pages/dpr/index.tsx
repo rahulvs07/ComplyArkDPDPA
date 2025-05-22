@@ -115,9 +115,7 @@ export default function DPRModule() {
     if (selectedRequest) {
       const fetchHistory = async () => {
         try {
-          const historyData = await apiRequest(`/api/dpr/${selectedRequest.requestId}/history`, {
-            method: "GET",
-          });
+          const historyData = await apiRequest(`/api/dpr/${selectedRequest.requestId}/history`);
           setHistoryData(historyData);
         } catch (error) {
           console.error("Failed to fetch history:", error);
@@ -682,7 +680,7 @@ export default function DPRModule() {
                                       <SelectValue placeholder="Assign to user" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="">Unassigned</SelectItem>
+                                      <SelectItem value="0">Unassigned</SelectItem>
                                       {users.map((user: any) => (
                                         <SelectItem key={user.id} value={user.id.toString()}>
                                           {user.firstName} {user.lastName}
