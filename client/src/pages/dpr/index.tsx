@@ -200,21 +200,31 @@ export default function DPRModule() {
     { 
       key: "requestId", 
       header: "ID",
-      render: (value: number) => `#${value}`
+      render: (value: number) => `#${value}`,
+      sortable: true
     },
     { 
       key: "name", 
       header: "Name",
-      render: (_: any, row: any) => row.firstName && row.lastName ? `${row.firstName} ${row.lastName}` : 'N/A'
+      render: (_: any, row: any) => row.firstName && row.lastName ? `${row.firstName} ${row.lastName}` : 'N/A',
+      sortable: true
     },
-    { key: "requestType", header: "Request Type" },
+    { 
+      key: "requestType", 
+      header: "Request Type", 
+      sortable: true,
+      filterable: true
+    },
     { 
       key: "statusName", 
       header: "Status",
+      sortable: true,
+      filterable: true,
       render: (value: string) => {
         let statusClass = "";
-        switch (value.toLowerCase()) {
+        switch (value?.toLowerCase()) {
           case "in progress":
+          case "inprogress":
             statusClass = "bg-warning-50 text-warning-500";
             break;
           case "completed":
@@ -223,8 +233,15 @@ export default function DPRModule() {
           case "submitted":
             statusClass = "bg-primary-50 text-primary-500";
             break;
-          case "overdue":
+          case "escalated":
             statusClass = "bg-error-50 text-error-500";
+            break;
+          case "awaiting info":
+          case "awaitinginfo":
+            statusClass = "bg-info-50 text-info-500";
+            break;
+          case "reassigned":
+            statusClass = "bg-secondary-50 text-secondary-500";
             break;
           case "closed":
             statusClass = "bg-neutral-50 text-neutral-500";
@@ -239,10 +256,26 @@ export default function DPRModule() {
         );
       }
     },
-    { key: "assignedToName", header: "Assigned To" },
+    { 
+      key: "assignedToName", 
+      header: "Assigned To",
+      sortable: true,
+      filterable: true
+    },
+    { 
+      key: "createdAt", 
+      header: "Created Date",
+      sortable: true,
+      render: (value: string) => {
+        if (!value) return "N/A";
+        const date = new Date(value);
+        return date.toLocaleDateString();
+      }
+    },
     { 
       key: "completionDate", 
       header: "Due Date",
+      sortable: true,
       render: (value: string) => {
         if (!value) return "N/A";
         const date = new Date(value);
@@ -332,7 +365,26 @@ export default function DPRModule() {
       {/* Requests List */}
       <Card>
         <CardHeader className="pb-0">
-          <CardTitle>Data Principal Requests</CardTitle>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+            <CardTitle>Data Principal Requests</CardTitle>
+            <div className="flex gap-3 mt-4 md:mt-0">
+              <Select 
+                value={requestTypeFilter}
+                onValueChange={setRequestTypeFilter}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Request Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Request Types</SelectItem>
+                  <SelectItem value="Access">Access</SelectItem>
+                  <SelectItem value="Correction">Correction</SelectItem>
+                  <SelectItem value="Nomination">Nomination</SelectItem>
+                  <SelectItem value="Erasure">Erasure</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         
         <Tabs defaultValue="open" value={currentTab} onValueChange={setCurrentTab}>
@@ -353,8 +405,11 @@ export default function DPRModule() {
                 columns={columns}
                 data={requests}
                 onView={handleViewRequest}
+                onRowClick={handleViewRequest}
                 searchable={true}
                 pagination={true}
+                searchPlaceholder="Search requests..."
+                defaultRowsPerPage={10}
               />
             </CardContent>
           </TabsContent>
