@@ -6,6 +6,8 @@ import LoginTest from "@/pages/login-test";
 import Dashboard from "@/pages/dashboard";
 import NoticeModule from "@/pages/notice";
 import DPRModule from "@/pages/dpr";
+import GrievancesPage from "@/pages/GrievancesPage";
+import ComplianceDocumentsPage from "@/pages/ComplianceDocumentsPage";
 import AdminPanel from "@/pages/admin";
 import AdminOrganizations from "@/pages/admin/organizations";
 import AdminUsers from "@/pages/admin/users";
@@ -63,6 +65,18 @@ function Router() {
       <Route path="/dpr">
         <AppLayout>
           <ProtectedRoute component={DPRModule} />
+        </AppLayout>
+      </Route>
+      
+      <Route path="/grievances">
+        <AppLayout>
+          <ProtectedRoute component={GrievancesPage} />
+        </AppLayout>
+      </Route>
+      
+      <Route path="/compliance-documents">
+        <AppLayout>
+          <ProtectedRoute component={ComplianceDocumentsPage} />
         </AppLayout>
       </Route>
       
