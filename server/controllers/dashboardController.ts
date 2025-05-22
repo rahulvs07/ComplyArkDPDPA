@@ -1,14 +1,13 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
+import { AuthRequest } from '../middleware/auth';
 import { format, addDays, isAfter, isBefore, startOfDay, differenceInDays } from 'date-fns';
 
 // Get dashboard stats
-export const getDashboardStats = async (req: Request, res: Response) => {
+export const getDashboardStats = async (req: AuthRequest, res: Response) => {
   try {
-    const orgId = (req.user as any)?.organizationId;
-    if (!orgId) {
-      return res.status(401).json({ message: 'Unauthorized. Missing organization ID.' });
-    }
+    const orgId = req.user.organizationId;
+    // Organization ID is guaranteed in AuthRequest
 
     // Get DPRequests and Grievances
     const requests = await storage.listDPRequests(orgId);
@@ -53,12 +52,9 @@ export const getDashboardStats = async (req: Request, res: Response) => {
 };
 
 // Get weekly activity data
-export const getWeeklyActivity = async (req: Request, res: Response) => {
+export const getWeeklyActivity = async (req: AuthRequest, res: Response) => {
   try {
-    const orgId = (req.user as any)?.organizationId;
-    if (!orgId) {
-      return res.status(401).json({ message: 'Unauthorized. Missing organization ID.' });
-    }
+    const orgId = req.user.organizationId;
 
     // Get DPRequests and Grievances
     const requests = await storage.listDPRequests(orgId);
@@ -111,12 +107,9 @@ export const getWeeklyActivity = async (req: Request, res: Response) => {
 };
 
 // Get status distribution
-export const getStatusDistribution = async (req: Request, res: Response) => {
+export const getStatusDistribution = async (req: AuthRequest, res: Response) => {
   try {
-    const orgId = (req.user as any)?.organizationId;
-    if (!orgId) {
-      return res.status(401).json({ message: 'Unauthorized. Missing organization ID.' });
-    }
+    const orgId = req.user.organizationId;
 
     // Get DPRequests
     const requests = await storage.listDPRequests(orgId);
@@ -142,12 +135,9 @@ export const getStatusDistribution = async (req: Request, res: Response) => {
 };
 
 // Get escalated requests
-export const getEscalatedRequests = async (req: Request, res: Response) => {
+export const getEscalatedRequests = async (req: AuthRequest, res: Response) => {
   try {
-    const orgId = (req.user as any)?.organizationId;
-    if (!orgId) {
-      return res.status(401).json({ message: 'Unauthorized. Missing organization ID.' });
-    }
+    const orgId = req.user.organizationId;
 
     // Get DPRequests and Grievances
     const requests = await storage.listDPRequests(orgId);
@@ -189,12 +179,9 @@ export const getEscalatedRequests = async (req: Request, res: Response) => {
 };
 
 // Get upcoming due requests
-export const getUpcomingDueRequests = async (req: Request, res: Response) => {
+export const getUpcomingDueRequests = async (req: AuthRequest, res: Response) => {
   try {
-    const orgId = (req.user as any)?.organizationId;
-    if (!orgId) {
-      return res.status(401).json({ message: 'Unauthorized. Missing organization ID.' });
-    }
+    const orgId = req.user.organizationId;
 
     // Get DPRequests and Grievances
     const requests = await storage.listDPRequests(orgId);
