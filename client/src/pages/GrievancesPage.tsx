@@ -103,21 +103,21 @@ export default function GrievancesPage() {
     
     switch (statusName) {
       case "submitted":
-        badgeClass = "bg-primary/10 text-primary hover:bg-primary/20";
+        badgeClass = "bg-[#2E77AE]/10 text-[#2E77AE] hover:bg-[#2E77AE]/20";
         break;
       case "in progress":
       case "inprogress":
-        badgeClass = "bg-warning/10 text-warning hover:bg-warning/20";
+        badgeClass = "bg-[#FF9800]/10 text-[#FF9800] hover:bg-[#FF9800]/20";
         break;
       case "awaiting info":
       case "awaitinginfo":
-        badgeClass = "bg-info/10 text-info hover:bg-info/20";
+        badgeClass = "bg-[#2E77AE]/10 text-[#2E77AE] hover:bg-[#2E77AE]/20";
         break;
       case "escalated":
-        badgeClass = "bg-destructive/10 text-destructive hover:bg-destructive/20";
+        badgeClass = "bg-[#F44336]/10 text-[#F44336] hover:bg-[#F44336]/20";
         break;
       case "closed":
-        badgeClass = "bg-success/10 text-success hover:bg-success/20";
+        badgeClass = "bg-[#4CAF50]/10 text-[#4CAF50] hover:bg-[#4CAF50]/20";
         break;
       default:
         badgeClass = "bg-muted text-muted-foreground";
@@ -181,6 +181,7 @@ export default function GrievancesPage() {
         {user?.role === "admin" && (
           <Button 
             onClick={() => navigate('/create-grievance')}
+            className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
           >
             <span className="material-icons mr-2 text-sm">add</span>
             Create Grievance
@@ -193,11 +194,11 @@ export default function GrievancesPage() {
         {statusCards.map((card) => (
           <Card 
             key={card.key} 
-            className={`cursor-pointer hover:border-primary hover:shadow-sm transition-all ${activeTab === card.key ? 'border-primary shadow-sm' : ''}`}
+            className={`cursor-pointer hover:border-[#2E77AE] hover:shadow-sm transition-all ${activeTab === card.key ? 'border-[#2E77AE] shadow-sm' : ''}`}
             onClick={() => setActiveTab(card.key)}
           >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
-              <div className={`p-2 rounded-full mb-2 ${activeTab === card.key ? 'bg-primary/10' : 'bg-muted'}`}>
+              <div className={`p-2 rounded-full mb-2 ${activeTab === card.key ? 'bg-[#2E77AE]/10' : 'bg-muted'}`}>
                 {card.icon}
               </div>
               <div className="font-medium">{card.label}</div>
@@ -226,7 +227,7 @@ export default function GrievancesPage() {
           
           {grievancesLoading || statusesLoading || usersLoading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2E77AE]"></div>
             </div>
           ) : filteredGrievances.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -267,10 +268,15 @@ export default function GrievancesPage() {
                       <TableCell>{getStatusBadge(grievance.statusId)}</TableCell>
                       <TableCell>{grievance.lastUpdatedAt ? format(new Date(grievance.lastUpdatedAt), 'MMM dd, yyyy') : 'N/A'}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" onClick={(e) => {
-                          e.stopPropagation();
-                          handleRowClick(grievance.grievanceId);
-                        }}>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRowClick(grievance.grievanceId);
+                          }}
+                          className="text-[#2E77AE] border-[#2E77AE]/30 hover:bg-[#2E77AE]/10 hover:border-[#2E77AE]"
+                        >
                           View
                         </Button>
                       </TableCell>
