@@ -18,9 +18,19 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
       totalRequests: requests.length,
       totalGrievances: grievances.length,
       pendingRequests: requests.filter(r => ['Submitted', 'InProgress', 'AwaitingInfo'].includes(storage.getStatusNameById(r.statusId))).length,
-      pendingGrievances: grievances.filter(g => ['Submitted', 'InProgress', 'AwaitingInfo'].includes(g.status_name)).length,
+      pendingGrievances: grievances.filter(g => ['Submitted', 'InProgress', 'AwaitingInfo'].includes(g.status_name?.toLowerCase())).length,
       escalatedRequests: requests.filter(r => storage.getStatusNameById(r.statusId) === 'Escalated').length,
-      escalatedGrievances: grievances.filter(g => g.status_name === 'Escalated').length
+      escalatedGrievances: grievances.filter(g => g.status_name?.toLowerCase() === 'escalated').length
+    };
+
+    // Detailed grievance status counts for GrievancesPage
+    const grievanceStatusCounts = {
+      total: { count: grievances.length, change: +5 },
+      submitted: { count: grievances.filter(g => g.status_name?.toLowerCase() === 'submitted').length, change: 0 },
+      inProgress: { count: grievances.filter(g => g.status_name?.toLowerCase() === 'inprogress').length, change: 0 },
+      awaiting: { count: grievances.filter(g => g.status_name?.toLowerCase() === 'awaitinginfo').length, change: 0 },
+      escalated: { count: grievances.filter(g => g.status_name?.toLowerCase() === 'escalated').length, change: 0 },
+      closed: { count: grievances.filter(g => g.status_name?.toLowerCase() === 'closed').length, change: 0 }
     };
 
     return res.json({
@@ -32,7 +42,9 @@ export const getDashboardStats = async (req: AuthRequest, res: Response) => {
       grievances: {
         count: stats.totalGrievances,
         change: +5, // Placeholder for growth calculation
-        label: 'Grievances'
+        label: 'Grievances',
+        // Detailed status counts
+        ...grievanceStatusCounts
       },
       pending: {
         count: stats.pendingRequests + stats.pendingGrievances,
