@@ -319,12 +319,18 @@ export function DashboardNew() {
       <div>
         <h3 className="text-xl font-semibold mb-4">Request Monitoring</h3>
         <Tabs defaultValue="escalated" className="w-full" value={tab} onValueChange={setTab}>
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="escalated" className="flex items-center">
+          <TabsList className="grid w-full grid-cols-2 mb-4 bg-gray-100/80">
+            <TabsTrigger 
+              value="escalated" 
+              className="flex items-center data-[state=active]:bg-[#2E77AE] data-[state=active]:text-white"
+            >
               <AlertCircleIcon className="h-4 w-4 mr-2 text-danger" />
               Escalated Requests
             </TabsTrigger>
-            <TabsTrigger value="upcoming" className="flex items-center">
+            <TabsTrigger 
+              value="upcoming" 
+              className="flex items-center data-[state=active]:bg-[#2E77AE] data-[state=active]:text-white"
+            >
               <CalendarIcon className="h-4 w-4 mr-2 text-warning" />
               Upcoming Due
             </TabsTrigger>

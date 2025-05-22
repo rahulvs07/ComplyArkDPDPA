@@ -354,7 +354,10 @@ export default function DPRModule() {
         </div>
         
         {user?.role === "admin" && (
-          <Button onClick={() => setCreateModalOpen(true)}>
+          <Button 
+            onClick={() => setCreateModalOpen(true)}
+            className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Create Request
           </Button>
@@ -366,7 +369,7 @@ export default function DPRModule() {
         {statusCards.map((card) => (
           <Card 
             key={card.key} 
-            className={`cursor-pointer hover:border-primary hover:shadow-sm transition-all ${currentTab === card.key ? 'border-primary shadow-sm' : ''}`}
+            className={`cursor-pointer hover:border-[#2E77AE] hover:shadow-sm transition-all ${currentTab === card.key ? 'border-[#2E77AE] shadow-sm' : ''}`}
             onClick={() => setCurrentTab(card.key)}
           >
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
@@ -402,15 +405,15 @@ export default function DPRModule() {
                 value={requestTypeFilter}
                 onValueChange={setRequestTypeFilter}
               >
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px] border-[#2E77AE]/30 focus:ring-[#2E77AE]/20 focus:border-[#2E77AE]">
                   <SelectValue placeholder="Request Type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="all">All Request Types</SelectItem>
-                  <SelectItem value="Access">Access</SelectItem>
-                  <SelectItem value="Correction">Correction</SelectItem>
-                  <SelectItem value="Nomination">Nomination</SelectItem>
-                  <SelectItem value="Erasure">Erasure</SelectItem>
+                  <SelectItem value="Access" className="text-blue-600 font-medium">Access</SelectItem>
+                  <SelectItem value="Correction" className="text-purple-600 font-medium">Correction</SelectItem>
+                  <SelectItem value="Nomination" className="text-amber-600 font-medium">Nomination</SelectItem>
+                  <SelectItem value="Erasure" className="text-red-600 font-medium">Erasure</SelectItem>
                 </SelectContent>
               </Select>
             </div>

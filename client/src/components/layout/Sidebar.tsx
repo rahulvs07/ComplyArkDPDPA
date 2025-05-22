@@ -148,8 +148,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 "sidebar-item flex items-center px-4 py-3 rounded-md",
                 (isActive("/admin") && !isActive("/admin/users") && !isActive("/admin/organizations") 
                  && !isActive("/admin/industries") && !isActive("/admin/templates"))
-                  ? "active text-primary-500" 
-                  : "text-neutral-600 hover:text-primary-500"
+                  ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+                  : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
               )}>
                 <span className="material-icons mr-3">admin_panel_settings</span>
                 <span>Admin Panel</span>
@@ -164,8 +164,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <a className={cn(
             "sidebar-item flex items-center px-4 py-3 rounded-md",
             isActive("/settings") 
-              ? "active text-primary-500" 
-              : "text-neutral-600 hover:text-primary-500"
+              ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+              : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
           )}>
             <span className="material-icons mr-3">settings</span>
             <span>Settings</span>
