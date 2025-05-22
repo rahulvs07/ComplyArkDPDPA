@@ -189,7 +189,13 @@ export function DashboardNew() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+        <div>
+          <h2 className="text-3xl font-bold mb-1">
+            <span className="text-gray-900">Comply</span>
+            <span className="text-blue-600">Ark</span>
+          </h2>
+          <p className="text-sm text-gray-500">DPDPA Compliance Management Dashboard</p>
+        </div>
         <div className="flex items-center gap-4">
           <Badge variant="outline" className="text-xs py-1">
             <CalendarIcon className="h-3 w-3 mr-1" />

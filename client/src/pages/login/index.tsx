@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { Shield, LockIcon, BadgeCheckIcon, LayoutDashboardIcon } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -9,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,61 +41,137 @@ export default function LoginPage() {
   };
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-100">
-      <div className="w-full max-w-md px-4">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="text-center mb-6">
-            <div className="h-12 w-12 rounded-lg bg-primary-500 flex items-center justify-center mx-auto">
-              <span className="text-white font-display font-bold text-2xl">C</span>
+    <div className="flex min-h-screen">
+      {/* Left side - Login form */}
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center px-6 lg:px-16 xl:px-28">
+        <div className="w-full max-w-md flex flex-col items-center">
+          {/* Logo */}
+          <div className="mb-8 flex flex-col items-center">
+            <div className="h-16 w-16 bg-blue-500 rounded-full flex items-center justify-center mb-3">
+              <Shield className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-2xl font-semibold mt-4">ComplyArk</h1>
-            <p className="text-neutral-500 mt-1">Enter your credentials to access your account</p>
+            <h1 className="text-2xl font-bold">
+              <span className="text-gray-900">Comply</span>
+              <span className="text-blue-600">Ark</span>
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">DPDPA Compliance Management System</p>
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Login form */}
+          <form onSubmit={handleSubmit} className="w-full space-y-5">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-neutral-700 mb-1">Username</label>
+              <label htmlFor="email" className="sr-only">Email address</label>
               <input 
-                id="username"
+                id="email"
                 type="text"
+                placeholder="Email address"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
             </div>
             
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-neutral-700 mb-1">Password</label>
+              <label htmlFor="password" className="sr-only">Password</label>
               <input 
                 id="password"
                 type="password"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
             </div>
             
-            <button 
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-            >
-              {isLoading ? "Signing in..." : "Sign In"}
-            </button>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Checkbox 
+                  id="remember-me" 
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  className="h-4 w-4 text-blue-500 focus:ring-blue-500"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  Remember me
+                </label>
+              </div>
+              
+              <div className="text-sm">
+                <a href="#" className="text-blue-500 hover:text-blue-600" onClick={(e) => e.preventDefault()}>
+                  Forgot your password?
+                </a>
+              </div>
+            </div>
+            
+            <div>
+              <button 
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                {isLoading ? "Signing in..." : "Sign in"}
+              </button>
+            </div>
           </form>
           
           {success && (
-            <div className="mt-4 p-2 bg-green-50 border border-green-200 rounded text-green-700 text-center">
+            <div className="mt-4 p-2 bg-green-50 border border-green-200 rounded text-green-700 text-center w-full">
               {success}
             </div>
           )}
           
-          <div className="mt-6 text-center text-sm text-neutral-500">
+          <div className="mt-4 text-center text-sm text-gray-600">
+            <a href="#" className="text-blue-500 hover:text-blue-600" onClick={(e) => e.preventDefault()}>
+              Administrator Login
+            </a>
+          </div>
+          
+          <div className="mt-6 text-center text-sm text-gray-500">
             <p>Demo Credentials:</p>
             <p>Admin: complyarkadmin / complyarkadmin</p>
-            <p>User: hospital_user / password</p>
+            <p>User: user / password</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Right side - Banner image */}
+      <div className="hidden lg:block lg:w-1/2 bg-blue-600 relative">
+        <div className="absolute inset-0 p-12 flex flex-col justify-center text-white">
+          <h2 className="text-3xl font-bold mb-4">Streamline Your DPDPA Compliance</h2>
+          <p className="mb-8">Comprehensive tools to manage data protection and privacy policies efficiently.</p>
+          
+          <div className="space-y-6">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-white/20 p-2 rounded-full">
+                <LockIcon className="h-5 w-5" />
+              </div>
+              <div className="ml-4">
+                <h3 className="font-semibold">Enhanced Security</h3>
+                <p className="text-sm text-white/80">Protect sensitive data with robust compliance tools</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-white/20 p-2 rounded-full">
+                <BadgeCheckIcon className="h-5 w-5" />
+              </div>
+              <div className="ml-4">
+                <h3 className="font-semibold">Automated Compliance</h3>
+                <p className="text-sm text-white/80">Simplify compliance processes with automated workflows</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-white/20 p-2 rounded-full">
+                <LayoutDashboardIcon className="h-5 w-5" />
+              </div>
+              <div className="ml-4">
+                <h3 className="font-semibold">Comprehensive Tools</h3>
+                <p className="text-sm text-white/80">All-in-one platform for notice generation and management</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
