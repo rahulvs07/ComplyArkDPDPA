@@ -23,9 +23,10 @@ import AppLayout from "./components/layout/AppLayout";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 
 // Protected route component that redirects to login if not authenticated
-function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: { 
+function ProtectedRoute({ component: Component, adminOnly = false, superAdminOnly = false, ...rest }: { 
   component: React.ComponentType<any>;
   adminOnly?: boolean;
+  superAdminOnly?: boolean;
   [key: string]: any;
 }) {
   const { user, isAuthenticated } = useAuth();
@@ -35,7 +36,15 @@ function ProtectedRoute({ component: Component, adminOnly = false, ...rest }: {
     return null;
   }
   
-  if (adminOnly && user?.role !== 'admin') {
+  // Check for superadmin access - only complyarkadmin can access these routes
+  if (superAdminOnly && user?.username !== 'complyarkadmin') {
+    console.log('Access denied: SuperAdmin access required');
+    return <NotFound />;
+  }
+  
+  // Check for admin access - organization admins can access these routes
+  if (adminOnly && user?.role !== 'admin' && user?.role !== 'superadmin') {
+    console.log('Access denied: Admin access required');
     return <NotFound />;
   }
   
@@ -95,37 +104,37 @@ function Router() {
       
       <Route path="/admin">
         <AppLayout>
-          <ProtectedRoute component={AdminPanel} adminOnly={true} />
+          <ProtectedRoute component={AdminPanel} superAdminOnly={true} />
         </AppLayout>
       </Route>
       
       <Route path="/admin/organizations">
         <AppLayout>
-          <ProtectedRoute component={AdminOrganizations} adminOnly={true} />
+          <ProtectedRoute component={AdminOrganizations} superAdminOnly={true} />
         </AppLayout>
       </Route>
       
       <Route path="/admin/users">
         <AppLayout>
-          <ProtectedRoute component={AdminUsers} adminOnly={true} />
+          <ProtectedRoute component={AdminUsers} superAdminOnly={true} />
         </AppLayout>
       </Route>
       
       <Route path="/admin/industries">
         <AppLayout>
-          <ProtectedRoute component={AdminIndustries} adminOnly={true} />
+          <ProtectedRoute component={AdminIndustries} superAdminOnly={true} />
         </AppLayout>
       </Route>
       
       <Route path="/admin/templates">
         <AppLayout>
-          <ProtectedRoute component={AdminTemplates} adminOnly={true} />
+          <ProtectedRoute component={AdminTemplates} superAdminOnly={true} />
         </AppLayout>
       </Route>
       
       <Route path="/admin/request-statuses">
         <AppLayout>
-          <ProtectedRoute component={RequestStatusPage} adminOnly={true} />
+          <ProtectedRoute component={RequestStatusPage} superAdminOnly={true} />
         </AppLayout>
       </Route>
       

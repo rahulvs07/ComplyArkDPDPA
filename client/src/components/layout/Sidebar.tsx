@@ -116,10 +116,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <span>Compliance Docs</span>
         </Link>
         
-        {/* Admin section only visible to admins */}
+        {/* Organization Admin section - only visible to organization admins */}
         {user?.role === 'admin' && (
           <>
-            <p className="px-4 py-2 mt-6 text-xs font-semibold text-neutral-500 uppercase">Admin</p>
+            <p className="px-4 py-2 mt-6 text-xs font-semibold text-neutral-500 uppercase">Organization Admin</p>
             
             <Link href="/admin/users" className={cn(
                 "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
@@ -130,6 +130,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <span className="material-icons mr-3">people</span>
                 <span>Users</span>
             </Link>
+          </>
+        )}
+        
+        {/* SuperAdmin section - only visible to complyarkadmin */}
+        {user?.username === 'complyarkadmin' && (
+          <>
+            <p className="px-4 py-2 mt-6 text-xs font-semibold text-neutral-500 uppercase">SuperAdmin</p>
             
             <Link href="/admin" className={cn(
                 "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
