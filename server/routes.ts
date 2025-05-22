@@ -155,7 +155,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/organizations/:orgId/compliance-folders', isAuthenticated, isSameOrganization, complianceDocumentController.createFolder);
   
   // Dashboard routes
-  import * as dashboardController from './controllers/dashboardController';
   app.get('/api/dashboard/stats', isAuthenticated, dashboardController.getDashboardStats);
   app.get('/api/dashboard/weekly-activity', isAuthenticated, dashboardController.getWeeklyActivity);
   app.get('/api/dashboard/status-distribution', isAuthenticated, dashboardController.getStatusDistribution);

@@ -610,41 +610,92 @@ class MemStorage {
   }
 
   async getRecentRequests(organizationId: number): Promise<any[]> {
-    // Return default requests
-    return [
-      {
-        id: "#1248",
-        name: "Sarah Johnson",
-        requestType: "Access",
-        status: "In Progress",
-        assignedTo: "John Doe",
-        dueDate: "Jul 29, 2023"
-      },
-      {
-        id: "#1247",
-        name: "Michael Brown",
-        requestType: "Correction",
-        status: "Completed",
-        assignedTo: "Emma Wilson",
-        dueDate: "Jul 28, 2023"
-      },
-      {
-        id: "#1246",
-        name: "Lisa Chen",
-        requestType: "Erasure",
-        status: "Submitted",
-        assignedTo: "Unassigned",
-        dueDate: "Jul 31, 2023"
-      },
-      {
-        id: "#1245",
-        name: "Robert Davis",
-        requestType: "Nomination",
-        status: "Overdue",
-        assignedTo: "John Doe",
-        dueDate: "Jul 25, 2023"
-      }
-    ];
+    try {
+      const requests = await this.listDPRequests(organizationId);
+      const recentRequests = requests
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
+        .map(request => ({
+          id: `#${request.requestId}`,
+          name: `${request.firstName} ${request.lastName}`,
+          requestType: request.requestType,
+          status: this.getStatusNameById(request.statusId),
+          assignedTo: request.assignedToUserId ? "Assigned" : "Unassigned",
+          dueDate: request.completionDate ? new Date(request.completionDate).toLocaleDateString() : "N/A"
+        }));
+      
+      return recentRequests;
+    } catch (error) {
+      console.error('Error retrieving recent requests:', error);
+      return [];
+    }
+  }
+  
+  // Dashboard helper methods
+  
+  // Get status name from status ID
+  getStatusNameById(statusId: number): string {
+    try {
+      const status = this.statusCache.find((s: any) => s.statusId === statusId);
+      return status ? status.statusName : "Unknown";
+    } catch (error) {
+      console.error('Error getting status name:', error);
+      return "Unknown";
+    }
+  }
+  
+  // Alias method to support dashboard controller
+  async listRequests(organizationId: number): Promise<DPRequest[]> {
+    return this.listDPRequests(organizationId);
+  }
+  
+  // Retrieve all grievances for an organization
+  async listGrievances(organizationId: number): Promise<any[]> {
+    try {
+      // Return existing grievances or query from database when implemented
+      const grievances = await db.query(`
+        SELECT g.*, 
+          s.status_name as status_name,
+          u.first_name || ' ' || u.last_name as assigned_to_name
+        FROM grievances g
+        LEFT JOIN dpr_request_statuses s ON g.status_id = s.status_id
+        LEFT JOIN users u ON g.assigned_to_user_id = u.id
+        WHERE g.organization_id = $1
+        ORDER BY g.created_at DESC
+      `, [organizationId]);
+      
+      return grievances.rows || [];
+    } catch (error) {
+      console.error('Error retrieving grievances:', error);
+      return [];
+    }
+  }
+  
+  // Retrieve grievance history for a specific grievance
+  async listGrievanceHistory(grievanceId: number): Promise<any[]> {
+    try {
+      const history = await db.query(`
+        SELECT h.*, 
+          os.status_name as old_status_name, 
+          ns.status_name as new_status_name,
+          ou.first_name || ' ' || ou.last_name as old_assigned_to_name,
+          nu.first_name || ' ' || nu.last_name as new_assigned_to_name,
+          u.first_name || ' ' || u.last_name as changed_by_name
+        FROM grievance_history h
+        LEFT JOIN dpr_request_statuses os ON h.old_status_id = os.status_id
+        LEFT JOIN dpr_request_statuses ns ON h.new_status_id = ns.status_id
+        LEFT JOIN users ou ON h.old_assigned_to_user_id = ou.id
+        LEFT JOIN users nu ON h.new_assigned_to_user_id = nu.id
+        LEFT JOIN users u ON h.changed_by_user_id = u.id
+        WHERE h.grievance_id = $1
+        ORDER BY h.change_date DESC
+      `, [grievanceId]);
+      
+      return history.rows || [];
+    } catch (error) {
+      console.error('Error retrieving grievance history:', error);
+      return [];
+    }
   }
 }
 

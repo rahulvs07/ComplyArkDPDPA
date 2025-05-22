@@ -1,308 +1,255 @@
-import { Request, Response } from "express";
-import { storage } from "../storage";
+import { Request, Response } from 'express';
+import { storage } from '../storage';
+import { format, addDays, isAfter, isBefore, startOfDay, differenceInDays } from 'date-fns';
 
 // Get dashboard stats
-export async function getDashboardStats(req: Request, res: Response) {
+export const getDashboardStats = async (req: Request, res: Response) => {
   try {
-    const { organizationId } = req.user || {};
-    
-    if (!organizationId) {
-      return res.status(400).json({ message: "Organization ID is required" });
+    const orgId = (req.user as any)?.organizationId;
+    if (!orgId) {
+      return res.status(401).json({ message: 'Unauthorized. Missing organization ID.' });
     }
-    
-    // Get DP requests statistics
-    const requests = await storage.listRequests(organizationId);
-    const grievances = await storage.listGrievances(organizationId);
-    
-    // Calculate trends (for a real app, these would be calculated from historical data)
-    // For now we'll use fixed percentages for demonstration
-    const totalRequestsCount = requests.length;
-    const grievancesCount = grievances.length;
-    
-    // Count requests by status
-    const pendingRequests = requests.filter(req => 
-      ["Submitted", "InProgress", "AwaitingInfo"].includes(
-        req.statusId ? storage.getStatusNameById(req.statusId) : ""
-      )
-    );
-    
-    const escalatedRequests = requests.filter(req => 
-      storage.getStatusNameById(req.statusId) === "Escalated"
-    );
-    
-    const pendingGrievances = grievances.filter(g => 
-      ["Submitted", "InProgress", "AwaitingInfo"].includes(
-        g.statusId ? storage.getStatusNameById(g.statusId) : ""
-      )
-    );
-    
-    const escalatedGrievances = grievances.filter(g => 
-      storage.getStatusNameById(g.statusId) === "Escalated"
-    );
-    
-    // Calculate total counts
-    const pendingCount = pendingRequests.length + pendingGrievances.length;
-    const escalatedCount = escalatedRequests.length + escalatedGrievances.length;
-    
+
+    // Get DPRequests and Grievances
+    const requests = await storage.listDPRequests(orgId);
+    const grievances = await storage.listGrievances(orgId);
+
+    // Calculate counts
     const stats = {
+      totalRequests: requests.length,
+      totalGrievances: grievances.length,
+      pendingRequests: requests.filter(r => ['Submitted', 'InProgress', 'AwaitingInfo'].includes(storage.getStatusNameById(r.statusId))).length,
+      pendingGrievances: grievances.filter(g => ['Submitted', 'InProgress', 'AwaitingInfo'].includes(g.status_name)).length,
+      escalatedRequests: requests.filter(r => storage.getStatusNameById(r.statusId) === 'Escalated').length,
+      escalatedGrievances: grievances.filter(g => g.status_name === 'Escalated').length
+    };
+
+    return res.json({
       totalRequests: {
-        count: totalRequestsCount,
-        trend: "+0.1% from last month",
-        trendUp: true
+        count: stats.totalRequests,
+        change: +10, // Placeholder for growth calculation
+        label: 'Data Requests'
       },
       grievances: {
-        count: grievancesCount,
-        trend: "+0.5% from last month", 
-        trendUp: true
+        count: stats.totalGrievances,
+        change: +5, // Placeholder for growth calculation
+        label: 'Grievances'
       },
       pending: {
-        count: pendingCount,
-        trend: "+15% from last month",
-        trendUp: false // A growing backlog is considered negative
+        count: stats.pendingRequests + stats.pendingGrievances,
+        change: -2, // Placeholder for growth calculation
+        label: 'Pending'
       },
       escalated: {
-        count: escalatedCount,
-        trend: "+7% from last month",
-        trendUp: false // Growing escalations is considered negative
+        count: stats.escalatedRequests + stats.escalatedGrievances,
+        change: +2, // Placeholder for growth calculation
+        label: 'Escalated'
       }
-    };
-    
-    res.json(stats);
+    });
   } catch (error) {
-    console.error("Error fetching dashboard stats:", error);
-    res.status(500).json({ message: "Failed to fetch dashboard statistics" });
+    console.error('Error fetching dashboard stats:', error);
+    return res.status(500).json({ message: 'Failed to fetch dashboard stats' });
   }
-}
+};
 
 // Get weekly activity data
-export async function getWeeklyActivity(req: Request, res: Response) {
+export const getWeeklyActivity = async (req: Request, res: Response) => {
   try {
-    const { organizationId } = req.user || {};
-    
-    if (!organizationId) {
-      return res.status(400).json({ message: "Organization ID is required" });
+    const orgId = (req.user as any)?.organizationId;
+    if (!orgId) {
+      return res.status(401).json({ message: 'Unauthorized. Missing organization ID.' });
     }
-    
-    // Get all requests and grievances
-    const requests = await storage.listRequests(organizationId);
-    const grievances = await storage.listGrievances(organizationId);
-    
-    // Group by day of week
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const weeklyData = dayNames.map(day => ({ 
-      name: day, 
-      'Data Requests': 0, 
-      'Grievances': 0 
-    }));
-    
-    // Count requests by day of week (for last 7 days)
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    requests.forEach(request => {
-      const createdAt = new Date(request.createdAt);
-      if (createdAt >= oneWeekAgo) {
-        const dayIndex = createdAt.getDay();
-        weeklyData[dayIndex]['Data Requests']++;
-      }
-    });
-    
-    grievances.forEach(grievance => {
-      const createdAt = new Date(grievance.createdAt);
-      if (createdAt >= oneWeekAgo) {
-        const dayIndex = createdAt.getDay();
-        weeklyData[dayIndex]['Grievances']++;
-      }
-    });
-    
-    // Reorder to start from Monday
-    const reorderedData = [
-      weeklyData[1], // Mon
-      weeklyData[2], // Tue
-      weeklyData[3], // Wed
-      weeklyData[4], // Thu
-      weeklyData[5], // Fri
-      weeklyData[6], // Sat
-      weeklyData[0]  // Sun
-    ];
-    
-    res.json(reorderedData);
-  } catch (error) {
-    console.error("Error fetching weekly activity:", error);
-    res.status(500).json({ message: "Failed to fetch weekly activity data" });
-  }
-}
 
-// Get status distribution data
-export async function getStatusDistribution(req: Request, res: Response) {
-  try {
-    const { organizationId } = req.user || {};
-    
-    if (!organizationId) {
-      return res.status(400).json({ message: "Organization ID is required" });
+    // Get DPRequests and Grievances
+    const requests = await storage.listDPRequests(orgId);
+    const grievances = await storage.listGrievances(orgId);
+
+    // Get last 7 days
+    const today = new Date();
+    const labels = [];
+    const requestCounts = [];
+    const grievanceCounts = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const date = addDays(today, -i);
+      const dateStr = format(date, 'MMM dd');
+      labels.push(dateStr);
+
+      // Count requests created on this date
+      const requestsOnDay = requests.filter(request => {
+        const createdDate = new Date(request.createdAt);
+        return format(createdDate, 'MMM dd') === dateStr;
+      }).length;
+
+      // Count grievances created on this date
+      const grievancesOnDay = grievances.filter(grievance => {
+        const createdDate = new Date(grievance.created_at);
+        return format(createdDate, 'MMM dd') === dateStr;
+      }).length;
+
+      requestCounts.push(requestsOnDay);
+      grievanceCounts.push(grievancesOnDay);
     }
-    
-    // Get all requests and grievances
-    const requests = await storage.listRequests(organizationId);
-    const grievances = await storage.listGrievances(organizationId);
-    
-    // Combine all requests for overall status distribution
-    const allItems = [...requests, ...grievances];
-    
-    // Count status frequencies
-    const statusCounts: Record<string, number> = {};
-    let total = 0;
-    
-    allItems.forEach(item => {
-      const statusName = storage.getStatusNameById(item.statusId);
-      statusCounts[statusName] = (statusCounts[statusName] || 0) + 1;
-      total++;
+
+    return res.json({
+      labels,
+      datasets: [
+        {
+          name: 'Data Requests',
+          data: requestCounts
+        },
+        {
+          name: 'Grievances',
+          data: grievanceCounts
+        }
+      ]
     });
-    
-    // Format as array with percentages
-    const distribution = Object.entries(statusCounts).map(([name, value]) => {
-      const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-      return {
-        name,
-        value,
-        percentage: `${percentage}%`
-      };
-    });
-    
-    // Sort by most common statuses first
-    distribution.sort((a, b) => b.value - a.value);
-    
-    res.json(distribution);
   } catch (error) {
-    console.error("Error fetching status distribution:", error);
-    res.status(500).json({ message: "Failed to fetch status distribution data" });
+    console.error('Error fetching weekly activity:', error);
+    return res.status(500).json({ message: 'Failed to fetch weekly activity data' });
   }
-}
+};
+
+// Get status distribution
+export const getStatusDistribution = async (req: Request, res: Response) => {
+  try {
+    const orgId = (req.user as any)?.organizationId;
+    if (!orgId) {
+      return res.status(401).json({ message: 'Unauthorized. Missing organization ID.' });
+    }
+
+    // Get DPRequests
+    const requests = await storage.listDPRequests(orgId);
+    
+    // Get status counts
+    const statusCounts = requests.reduce((counts: Record<string, number>, request) => {
+      const statusName = storage.getStatusNameById(request.statusId);
+      counts[statusName] = (counts[statusName] || 0) + 1;
+      return counts;
+    }, {});
+
+    // Format for pie chart
+    const data = Object.entries(statusCounts).map(([name, value]) => ({
+      name,
+      value
+    }));
+
+    return res.json(data);
+  } catch (error) {
+    console.error('Error fetching status distribution:', error);
+    return res.status(500).json({ message: 'Failed to fetch status distribution data' });
+  }
+};
 
 // Get escalated requests
-export async function getEscalatedRequests(req: Request, res: Response) {
+export const getEscalatedRequests = async (req: Request, res: Response) => {
   try {
-    const { organizationId } = req.user || {};
-    
-    if (!organizationId) {
-      return res.status(400).json({ message: "Organization ID is required" });
+    const orgId = (req.user as any)?.organizationId;
+    if (!orgId) {
+      return res.status(401).json({ message: 'Unauthorized. Missing organization ID.' });
     }
-    
-    // Get the escalated status ID
-    const statuses = await storage.listRequestStatuses();
-    const escalatedStatusId = statuses.find(s => s.statusName === "Escalated")?.statusId;
-    
-    if (!escalatedStatusId) {
-      return res.status(404).json({ message: "Escalated status not found" });
-    }
-    
-    // Get all escalated requests and grievances
-    const requests = await storage.listRequests(organizationId);
-    const grievances = await storage.listGrievances(organizationId);
-    
+
+    // Get DPRequests and Grievances
+    const requests = await storage.listDPRequests(orgId);
+    const grievances = await storage.listGrievances(orgId);
+
+    // Filter for escalated requests
     const escalatedRequests = requests
-      .filter(r => r.statusId === escalatedStatusId)
+      .filter(r => storage.getStatusNameById(r.statusId) === 'Escalated')
       .map(r => ({
-        id: r.requestId,
-        type: 'dpr',
-        requesterName: `${r.firstName} ${r.lastName}`,
+        id: `REQ-${r.requestId}`,
+        type: 'Data Request',
+        subject: `${r.firstName} ${r.lastName}`,
         requestType: r.requestType,
-        createdAt: new Date(r.createdAt).toLocaleDateString(),
-        dueDate: r.completionDate ? new Date(r.completionDate).toLocaleDateString() : 'N/A',
-        status: "Escalated"
+        createdAt: format(new Date(r.createdAt), 'MMM dd, yyyy'),
+        assignedTo: r.assignedToUserId ? 'Assigned' : 'Unassigned'
       }));
-    
+
+    // Filter for escalated grievances
     const escalatedGrievances = grievances
-      .filter(g => g.statusId === escalatedStatusId)
+      .filter(g => g.status_name === 'Escalated')
       .map(g => ({
-        id: g.grievanceId,
-        type: 'grievance',
-        requesterName: `${g.firstName} ${g.lastName}`,
-        requestType: "Grievance",
-        createdAt: new Date(g.createdAt).toLocaleDateString(),
-        dueDate: g.completionDate ? new Date(g.completionDate).toLocaleDateString() : 'N/A',
-        status: "Escalated"
+        id: `GRV-${g.grievance_id}`,
+        type: 'Grievance',
+        subject: g.subject || 'No Subject',
+        requestType: g.grievance_type || 'General',
+        createdAt: format(new Date(g.created_at), 'MMM dd, yyyy'),
+        assignedTo: g.assigned_to_name || 'Unassigned'
       }));
-    
-    // Combine and sort by due date (most urgent first)
+
+    // Combine and sort by created date (newest first)
     const combined = [...escalatedRequests, ...escalatedGrievances]
-      .sort((a, b) => {
-        // Handle 'N/A' cases
-        if (a.dueDate === 'N/A' && b.dueDate === 'N/A') return 0;
-        if (a.dueDate === 'N/A') return 1; // Put items without due dates at the end
-        if (b.dueDate === 'N/A') return -1;
-        
-        // Sort by date
-        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-      });
-    
-    res.json(combined);
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return res.json(combined);
   } catch (error) {
-    console.error("Error fetching escalated requests:", error);
-    res.status(500).json({ message: "Failed to fetch escalated requests" });
+    console.error('Error fetching escalated requests:', error);
+    return res.status(500).json({ message: 'Failed to fetch escalated requests data' });
   }
-}
+};
 
 // Get upcoming due requests
-export async function getUpcomingDueRequests(req: Request, res: Response) {
+export const getUpcomingDueRequests = async (req: Request, res: Response) => {
   try {
-    const { organizationId } = req.user || {};
-    
-    if (!organizationId) {
-      return res.status(400).json({ message: "Organization ID is required" });
+    const orgId = (req.user as any)?.organizationId;
+    if (!orgId) {
+      return res.status(401).json({ message: 'Unauthorized. Missing organization ID.' });
     }
-    
-    // Get requests that are not closed and have a completion date
-    const requests = await storage.listRequests(organizationId);
-    const grievances = await storage.listGrievances(organizationId);
-    
-    const statuses = await storage.listRequestStatuses();
-    const closedStatusId = statuses.find(s => s.statusName === "Closed")?.statusId;
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
-    
+
+    // Get DPRequests and Grievances
+    const requests = await storage.listDPRequests(orgId);
+    const grievances = await storage.listGrievances(orgId);
+
+    const today = startOfDay(new Date());
+    const in7Days = addDays(today, 7);
+
+    // Filter for upcoming due requests (due in the next 7 days)
     const upcomingRequests = requests
-      .filter(r => r.statusId !== closedStatusId && r.completionDate)
+      .filter(r => {
+        if (!r.completionDate) return false;
+        const dueDate = startOfDay(new Date(r.completionDate));
+        return isAfter(dueDate, today) && isBefore(dueDate, in7Days);
+      })
       .map(r => {
         const dueDate = new Date(r.completionDate!);
-        const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        
         return {
-          id: r.requestId,
-          type: 'dpr',
-          requesterName: `${r.firstName} ${r.lastName}`,
+          id: `REQ-${r.requestId}`,
+          type: 'Data Request',
+          subject: `${r.firstName} ${r.lastName}`,
           requestType: r.requestType,
-          dueDate: dueDate.toLocaleDateString(),
-          daysRemaining: daysRemaining
+          status: storage.getStatusNameById(r.statusId),
+          dueDate: format(dueDate, 'MMM dd, yyyy'),
+          daysRemaining: differenceInDays(dueDate, today)
         };
-      })
-      .filter(r => r.daysRemaining > 0 && r.daysRemaining <= 7); // Only include items due within the next 7 days
-    
+      });
+
+    // Filter for upcoming due grievances (due in the next 7 days)
     const upcomingGrievances = grievances
-      .filter(g => g.statusId !== closedStatusId && g.completionDate)
-      .map(g => {
-        const dueDate = new Date(g.completionDate!);
-        const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        
-        return {
-          id: g.grievanceId,
-          type: 'grievance',
-          requesterName: `${g.firstName} ${g.lastName}`,
-          requestType: "Grievance",
-          dueDate: dueDate.toLocaleDateString(),
-          daysRemaining: daysRemaining
-        };
+      .filter(g => {
+        if (!g.completion_date) return false;
+        const dueDate = startOfDay(new Date(g.completion_date));
+        return isAfter(dueDate, today) && isBefore(dueDate, in7Days);
       })
-      .filter(g => g.daysRemaining > 0 && g.daysRemaining <= 7); // Only include items due within the next 7 days
-    
+      .map(g => {
+        const dueDate = new Date(g.completion_date!);
+        return {
+          id: `GRV-${g.grievance_id}`,
+          type: 'Grievance',
+          subject: g.subject || 'No Subject',
+          requestType: g.grievance_type || 'General',
+          status: g.status_name,
+          dueDate: format(dueDate, 'MMM dd, yyyy'),
+          daysRemaining: differenceInDays(dueDate, today)
+        };
+      });
+
     // Combine and sort by days remaining (most urgent first)
     const combined = [...upcomingRequests, ...upcomingGrievances]
       .sort((a, b) => a.daysRemaining - b.daysRemaining);
-    
-    res.json(combined);
+
+    return res.json(combined);
   } catch (error) {
-    console.error("Error fetching upcoming due requests:", error);
-    res.status(500).json({ message: "Failed to fetch upcoming due requests" });
+    console.error('Error fetching upcoming due requests:', error);
+    return res.status(500).json({ message: 'Failed to fetch upcoming due requests data' });
   }
-}
+};
