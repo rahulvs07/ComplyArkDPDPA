@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useParams, useSearch, useRoute } from 'wouter';
+import { useLocation, useRoute } from 'wouter';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { z } from 'zod';
@@ -24,15 +23,15 @@ type OTPFormValues = z.infer<typeof otpSchema>;
 
 export default function OTPAuthPage() {
   const { push } = useLocation();
-  const [, params] = useRoute('/auth/otp/:orgId');
-  const search = useSearch();
+  const [, params] = useRoute('/auth/otp/:orgId/:token?');
   const { toast } = useToast();
   
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
-  const [organizationId, setOrganizationId] = useState<number | null>(null);
-  const [orgName, setOrgName] = useState('');
+  const [organizationId, setOrganizationId] = useState<number>(1);
+  const [orgName, setOrgName] = useState('Organization');
+  const [requestToken, setRequestToken] = useState<string | null>(null);
 
   // Email form
   const emailForm = useForm<EmailFormValues>({
@@ -49,73 +48,50 @@ export default function OTPAuthPage() {
       otp: '',
     },
   });
-
-  // State to track the request page token
-  const [requestPageToken, setRequestPageToken] = useState<string | null>(null);
   
   // Get organization info on load
   useEffect(() => {
-    // Log the current URL for debugging
     console.log("Current path:", window.location.pathname);
     
-    const fetchOrgInfo = async () => {
-      // Get token from URL if it exists (format: /auth/otp/:orgId/:token)
-      const tokenParam = window.location.pathname.split('/').pop();
-      if (tokenParam && tokenParam.length > 10) {
-        console.log("Found token in URL:", tokenParam);
-        setRequestPageToken(tokenParam);
-      }
-
-      if (!params) return;
-      
-      try {
-        const orgIdNum = parseInt(params.orgId);
-        if (isNaN(orgIdNum)) {
-          toast({
-            title: "Invalid organization",
-            description: "The organization ID is not valid.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
+    // Check URL for token
+    const pathParts = window.location.pathname.split('/');
+    const possibleToken = pathParts[pathParts.length - 1];
+    
+    if (possibleToken && possibleToken.length > 8) {
+      console.log("Found token in URL:", possibleToken);
+      setRequestToken(possibleToken);
+    }
+    
+    if (!params) return;
+    
+    const orgIdParam = params.orgId;
+    if (orgIdParam) {
+      const orgIdNum = parseInt(orgIdParam);
+      if (!isNaN(orgIdNum)) {
         setOrganizationId(orgIdNum);
         
-        // Fetch organization name from public endpoint
-        const response = await fetch(`/api/organizations/${orgIdNum}/public`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch organization information');
-        }
-        
-        const data = await response.json();
-        setOrgName(data.name || 'Organization');
-      } catch (error) {
-        console.error('Error fetching organization:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load organization information. Please try again.",
-          variant: "destructive",
-        });
+        // Fetch organization name
+        fetch(`/api/organizations/${orgIdNum}/public`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.name) {
+              setOrgName(data.name);
+            }
+          })
+          .catch(err => {
+            console.error("Error fetching organization:", err);
+          });
       }
-    };
-    
-    fetchOrgInfo();
-  }, [params, toast]);
+    }
+  }, [params]);
 
   // Submit email to generate OTP
   const onEmailSubmit = async (values: EmailFormValues) => {
-    if (!organizationId) {
-      // For testing, always use organizationId 1 if none is provided
-      console.log('No organization ID provided, using default value of 1');
-      setOrganizationId(1);
-    }
-    
     setLoading(true);
     
     try {
-      const orgId = organizationId || 1; // Ensure we always have a valid ID
-      console.log('Sending OTP request with:', { email: values.email, organizationId: orgId });
+      console.log('Sending OTP request with:', { email: values.email, organizationId });
+      
       const response = await fetch('/api/otp/generate', {
         method: 'POST',
         headers: {
@@ -123,7 +99,7 @@ export default function OTPAuthPage() {
         },
         body: JSON.stringify({
           email: values.email,
-          organizationId: orgId,
+          organizationId,
         }),
       });
       
@@ -146,7 +122,7 @@ export default function OTPAuthPage() {
       console.error('Error generating OTP:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send verification code. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to send verification code",
         variant: "destructive",
       });
     } finally {
@@ -156,43 +132,30 @@ export default function OTPAuthPage() {
 
   // Submit OTP for verification
   const onOTPSubmit = async (values: OTPFormValues) => {
-    if (!organizationId) {
-      // For testing, always use organizationId 1 if none is provided
-      console.log('No organization ID provided for verification, using default value of 1');
-      setOrganizationId(1);
-    }
-    
     setLoading(true);
     
-    try {
-      const orgId = organizationId || 1; // Ensure we always have a valid ID
-      console.log('Verifying OTP with:', { email, otp: values.otp, organizationId: orgId });
+    // Test mode - if OTP is "1234", bypass actual verification
+    if (values.otp === "1234") {
+      console.log('Using test verification code "1234"');
       
-      // Temporary test mode - always succeed with code "1234"
-      if (values.otp === "1234") {
-        console.log('Test code "1234" detected, skipping server verification');
-        
-        // Delay to simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+      setTimeout(() => {
         toast({
           title: "Verification successful",
-          description: "You are now verified to submit requests using test mode.",
+          description: "Test mode verification complete",
         });
         
-        // Redirect to the appropriate page
-        if (requestPageToken) {
-          push(`/request-page/${requestPageToken}`);
-        } else {
-          // Redirect to request page
-          push(`/request/${orgId}${search || ''}`);
-        }
+        // Store verification in session
+        sessionStorage.setItem('otp_verified', 'true');
+        sessionStorage.setItem('otp_email', email);
         
-        setLoading(false);
-        return;
-      }
+        // Navigate to homepage for testing
+        window.location.href = '/';
+      }, 1000);
       
-      // Normal verification flow
+      return;
+    }
+    
+    try {
       const response = await fetch('/api/otp/verify', {
         method: 'POST',
         headers: {
@@ -205,29 +168,27 @@ export default function OTPAuthPage() {
         }),
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.message || 'Invalid verification code');
       }
       
       toast({
         title: "Verification successful",
-        description: "You are now verified to submit requests.",
+        description: "You are now verified to submit requests",
       });
       
-      // Check if we need to redirect to a request-page with token
-      if (requestPageToken) {
-        push(`/request-page/${requestPageToken}`);
+      // Navigate based on token presence
+      if (requestToken) {
+        push(`/request-page/${requestToken}`);
       } else {
-        // Redirect back to regular request page
-        push(`/request/${orgId}${search || ''}`);
+        push(`/request/${organizationId}`);
       }
     } catch (error) {
       console.error('Error verifying OTP:', error);
       toast({
         title: "Verification failed",
-        description: error instanceof Error ? error.message : "Failed to verify code. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to verify code",
         variant: "destructive",
       });
     } finally {
