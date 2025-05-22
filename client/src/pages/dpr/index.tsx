@@ -198,10 +198,23 @@ export default function DPRModule() {
   
   // Define status cards with icons and counts - use a Set to track unique status names
   const statusCards = useMemo(() => {
-    // Make sure statuses are loaded
-    if (!statuses || statuses.length === 0) {
+    // Make sure statuses are loaded and requests are available
+    if (!statuses || statuses.length === 0 || !requests) {
       return [];
     }
+    
+    // Calculate counts directly from request data, not stats
+    const submittedStatus = getStatusIdByName("Submitted");
+    const inProgressStatus = getStatusIdByName("InProgress");
+    const awaitingInfoStatus = getStatusIdByName("AwaitingInfo");
+    const escalatedStatus = getStatusIdByName("Escalated");
+    
+    // Count requests by status
+    const statusCounts: Record<string, number> = {};
+    requests.forEach((request: any) => {
+      const statusId = request.statusId.toString();
+      statusCounts[statusId] = (statusCounts[statusId] || 0) + 1;
+    });
     
     // Define a mapping of status names to ensure we don't have duplicates
     const uniqueStatusMap = new Map();
@@ -210,47 +223,47 @@ export default function DPRModule() {
     uniqueStatusMap.set("all", {
       key: "all",
       label: "All Requests",
-      count: stats?.total?.count || 0,
+      count: requests.length || 0,
       icon: <ClipboardList className="h-5 w-5" />,
       description: "All time"
     });
     
-    // Only add each status once
-    if (getStatusIdByName("Submitted")) {
+    // Only add each status once, with counts from our requests array
+    if (submittedStatus) {
       uniqueStatusMap.set("Submitted", {
-        key: getStatusIdByName("Submitted"),
+        key: submittedStatus,
         label: "Submitted",
-        count: stats?.submitted?.count || 0,
+        count: statusCounts[submittedStatus] || 0,
         icon: <Clock className="h-5 w-5 text-blue-500" />,
         description: "Newly submitted"
       });
     }
     
-    if (getStatusIdByName("InProgress")) {
+    if (inProgressStatus) {
       uniqueStatusMap.set("InProgress", {
-        key: getStatusIdByName("InProgress"),
+        key: inProgressStatus,
         label: "In Progress",
-        count: stats?.inProgress?.count || 0,
+        count: statusCounts[inProgressStatus] || 0,
         icon: <HourglassIcon className="h-5 w-5 text-amber-500" />,
         description: "Being processed"
       });
     }
     
-    if (getStatusIdByName("AwaitingInfo")) {
+    if (awaitingInfoStatus) {
       uniqueStatusMap.set("AwaitingInfo", {
-        key: getStatusIdByName("AwaitingInfo"),
+        key: awaitingInfoStatus,
         label: "Awaiting Info",
-        count: stats?.awaiting?.count || 0,
+        count: statusCounts[awaitingInfoStatus] || 0,
         icon: <Clock className="h-5 w-5 text-purple-500" />,
         description: "Waiting on requester"
       });
     }
     
-    if (getStatusIdByName("Escalated")) {
+    if (escalatedStatus) {
       uniqueStatusMap.set("Escalated", {
-        key: getStatusIdByName("Escalated"),
+        key: escalatedStatus,
         label: "Escalated",
-        count: stats?.escalated?.count || 0,
+        count: statusCounts[escalatedStatus] || 0,
         icon: <AlertTriangle className="h-5 w-5 text-red-500" />,
         description: "Requires attention"
       });
@@ -260,7 +273,7 @@ export default function DPRModule() {
       uniqueStatusMap.set("Closed", {
         key: closedStatusId,
         label: "Closed",
-        count: stats?.completed?.count || 0,
+        count: statusCounts[closedStatusId] || 0,
         icon: <CheckCircle className="h-5 w-5 text-green-500" />,
         description: "Successfully completed"
       });
