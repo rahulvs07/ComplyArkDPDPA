@@ -1,6 +1,9 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
+import { grievances, grievanceHistory } from "@shared/schema";
 import multer from 'multer';
 import session from 'express-session';
 import { isAuthenticated, isSameOrganization, isAdmin, isSuperAdmin, canManageRequests, AuthRequest } from './middleware/auth';
@@ -124,8 +127,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      const grievances = await storage.listGrievances(orgId);
-      return res.status(200).json(grievances);
+      // Using direct database query with db import
+      const grievancesList = await db
+        .select()
+        .from(grievances)
+        .where(eq(grievances.organizationId, orgId))
+        .orderBy(desc(grievances.createdAt));
+      
+      return res.status(200).json(grievancesList);
     } catch (error) {
       console.error(`Error fetching grievances for organization ${orgId}:`, error);
       return res.status(500).json({ message: "Failed to fetch grievances" });
@@ -136,8 +145,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Get user's organization ID from request
     const orgId = (req as AuthRequest).user!.organizationId;
     try {
-      const grievances = await storage.listGrievances(orgId);
-      return res.status(200).json(grievances);
+      // Using direct database query with db import
+      const grievancesList = await db
+        .select()
+        .from(grievances)
+        .where(eq(grievances.organizationId, orgId))
+        .orderBy(desc(grievances.createdAt));
+      
+      return res.status(200).json(grievancesList);
     } catch (error) {
       console.error("Error fetching grievances:", error);
       return res.status(500).json({ message: "Failed to fetch grievances" });
