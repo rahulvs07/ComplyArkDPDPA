@@ -1,6 +1,6 @@
 import { 
   users, industries, organizations, templates, notices, translatedNotices,
-  requestStatuses, dpRequests, dpRequestHistory,
+  requestStatuses, dpRequests, dpRequestHistory, grievances, grievanceHistory, complianceDocuments,
   type User, type InsertUser, 
   type Industry, type InsertIndustry,
   type Organization, type InsertOrganization,
@@ -9,7 +9,10 @@ import {
   type TranslatedNotice, type InsertTranslatedNotice,
   type RequestStatus, type InsertRequestStatus,
   type DPRequest, type InsertDPRequest,
-  type DPRequestHistory, type InsertDPRequestHistory
+  type DPRequestHistory, type InsertDPRequestHistory,
+  type Grievance, type InsertGrievance,
+  type GrievanceHistory, type InsertGrievanceHistory,
+  type ComplianceDocument, type InsertComplianceDocument
 } from "@shared/schema";
 import crypto from 'crypto';
 
@@ -22,9 +25,11 @@ export interface IStorage {
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
   listUsers(organizationId?: number): Promise<User[]>;
+  getOrgAdmin(organizationId: number): Promise<User | undefined>;
   
   // Organization operations
   getOrganization(id: number): Promise<Organization | undefined>;
+  getOrganizationByToken(token: string): Promise<Organization | undefined>;
   createOrganization(organization: InsertOrganization): Promise<Organization>;
   updateOrganization(id: number, organization: Partial<InsertOrganization>): Promise<Organization | undefined>;
   deleteOrganization(id: number): Promise<boolean>;
@@ -60,6 +65,8 @@ export interface IStorage {
   // Request Status operations
   getRequestStatus(id: number): Promise<RequestStatus | undefined>;
   createRequestStatus(status: InsertRequestStatus): Promise<RequestStatus>;
+  updateRequestStatus(id: number, status: Partial<InsertRequestStatus>): Promise<RequestStatus | undefined>;
+  deleteRequestStatus(id: number): Promise<boolean>;
   listRequestStatuses(): Promise<RequestStatus[]>;
   
   // DP Request operations
@@ -72,6 +79,24 @@ export interface IStorage {
   // DP Request History operations
   createDPRequestHistory(history: InsertDPRequestHistory): Promise<DPRequestHistory>;
   listDPRequestHistory(requestId: number): Promise<DPRequestHistory[]>;
+  
+  // Grievance operations
+  getGrievance(id: number): Promise<Grievance | undefined>;
+  createGrievance(grievance: InsertGrievance): Promise<Grievance>;
+  updateGrievance(id: number, grievance: Partial<InsertGrievance>): Promise<Grievance | undefined>;
+  deleteGrievance(id: number): Promise<boolean>;
+  listGrievances(organizationId: number, statusId?: number): Promise<Grievance[]>;
+  
+  // Grievance History operations
+  createGrievanceHistory(history: InsertGrievanceHistory): Promise<GrievanceHistory>;
+  listGrievanceHistory(grievanceId: number): Promise<GrievanceHistory[]>;
+  
+  // Compliance Document operations
+  getComplianceDocument(id: number): Promise<ComplianceDocument | undefined>;
+  createComplianceDocument(document: InsertComplianceDocument): Promise<ComplianceDocument>;
+  updateComplianceDocument(id: number, document: Partial<InsertComplianceDocument>): Promise<ComplianceDocument | undefined>;
+  deleteComplianceDocument(id: number): Promise<boolean>;
+  listComplianceDocuments(organizationId: number, folderPath?: string): Promise<ComplianceDocument[]>;
   
   // Dashboard operations
   getDashboardStats(organizationId: number): Promise<any>;
