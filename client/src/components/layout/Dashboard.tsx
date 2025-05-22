@@ -3,7 +3,7 @@ import StatCard from "../shared/StatCard";
 import DataTable from "../shared/DataTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
