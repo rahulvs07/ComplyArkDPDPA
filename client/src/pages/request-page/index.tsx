@@ -233,10 +233,54 @@ export default function RequestPage() {
                       Use this form to exercise your rights under data protection regulations.
                     </p>
                     
-                    {/* This will be replaced with the actual DPR form */}
-                    <div className="bg-muted/40 rounded-md p-4 text-center">
-                      <p className="text-muted-foreground">Data Protection Request Form will appear here</p>
-                      <Button className="mt-4">Continue to Form</Button>
+                    {/* Data Protection Request Form */}
+                    <div className="p-4 border rounded-md">
+                      <h4 className="text-base font-medium mb-4">Submit Data Protection Request</h4>
+                      <form className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label htmlFor="fullName" className="text-sm font-medium">Full Name</label>
+                            <input 
+                              type="text" 
+                              id="fullName" 
+                              className="w-full p-2 border rounded-md" 
+                              placeholder="Enter your full name"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor="dprType" className="text-sm font-medium">Request Type</label>
+                            <select 
+                              id="dprType" 
+                              className="w-full p-2 border rounded-md"
+                            >
+                              <option value="">Select request type</option>
+                              <option value="access">Access Request</option>
+                              <option value="correction">Correction Request</option>
+                              <option value="deletion">Deletion Request</option>
+                              <option value="objection">Objection</option>
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label htmlFor="description" className="text-sm font-medium">Request Details</label>
+                          <textarea 
+                            id="description" 
+                            rows={4} 
+                            className="w-full p-2 border rounded-md" 
+                            placeholder="Please describe your request in detail"
+                          ></textarea>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="flex items-center space-x-2">
+                            <input type="checkbox" className="rounded border-gray-300" />
+                            <span className="text-sm">I confirm that I am the data subject or authorized to make this request</span>
+                          </label>
+                        </div>
+                        
+                        <Button type="submit" className="w-full">Submit Request</Button>
+                      </form>
                     </div>
                   </div>
                 </TabsContent>
@@ -248,10 +292,73 @@ export default function RequestPage() {
                       If you have a complaint regarding your data or privacy, use this form to submit a grievance.
                     </p>
                     
-                    {/* This will be replaced with the actual grievance form */}
-                    <div className="bg-muted/40 rounded-md p-4 text-center">
-                      <p className="text-muted-foreground">Grievance Form will appear here</p>
-                      <Button className="mt-4">Continue to Form</Button>
+                    {/* Grievance Form */}
+                    <div className="p-4 border rounded-md">
+                      <h4 className="text-base font-medium mb-4">Submit Grievance</h4>
+                      <form className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label htmlFor="complainantName" className="text-sm font-medium">Full Name</label>
+                            <input 
+                              type="text" 
+                              id="complainantName" 
+                              className="w-full p-2 border rounded-md" 
+                              placeholder="Enter your full name"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor="grievanceType" className="text-sm font-medium">Grievance Type</label>
+                            <select 
+                              id="grievanceType" 
+                              className="w-full p-2 border rounded-md"
+                            >
+                              <option value="">Select grievance type</option>
+                              <option value="privacy">Privacy Violation</option>
+                              <option value="consent">Consent Issue</option>
+                              <option value="breach">Data Breach</option>
+                              <option value="other">Other</option>
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label htmlFor="incidentDate" className="text-sm font-medium">Incident Date</label>
+                          <input 
+                            type="date" 
+                            id="incidentDate" 
+                            className="w-full p-2 border rounded-md"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label htmlFor="grievanceDescription" className="text-sm font-medium">Grievance Details</label>
+                          <textarea 
+                            id="grievanceDescription" 
+                            rows={4} 
+                            className="w-full p-2 border rounded-md" 
+                            placeholder="Please describe your grievance in detail"
+                          ></textarea>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label htmlFor="expectedResolution" className="text-sm font-medium">Expected Resolution</label>
+                          <textarea 
+                            id="expectedResolution" 
+                            rows={2} 
+                            className="w-full p-2 border rounded-md" 
+                            placeholder="What outcome are you seeking?"
+                          ></textarea>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="flex items-center space-x-2">
+                            <input type="checkbox" className="rounded border-gray-300" />
+                            <span className="text-sm">I confirm all information provided is accurate to the best of my knowledge</span>
+                          </label>
+                        </div>
+                        
+                        <Button type="submit" className="w-full">Submit Grievance</Button>
+                      </form>
                     </div>
                   </div>
                 </TabsContent>
