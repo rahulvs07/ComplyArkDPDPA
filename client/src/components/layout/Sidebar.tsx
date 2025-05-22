@@ -25,12 +25,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Logo Area */}
       <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <div className="h-9 w-9 rounded bg-blue-500 flex items-center justify-center">
+          <div className="h-9 w-9 rounded bg-[#2E77AE] flex items-center justify-center">
             <span className="text-white font-display font-bold text-xl">C</span>
           </div>
           <h1 className="text-xl font-display font-semibold">
-            <span className="text-gray-900">Comply</span>
-            <span className="text-blue-600">Ark</span>
+            <span className="text-[#0F3460]">Comply</span>
+            <span className="text-[#2E77AE]">Ark</span>
           </h1>
         </div>
         <button 
@@ -45,8 +45,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {user && (
         <div className="p-4 border-b border-neutral-200">
           <div className="flex items-center space-x-3">
-            <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-              <span className="text-primary-500 font-semibold">
+            <div className="flex-shrink-0 h-10 w-10 rounded-full bg-[#2E77AE]/20 flex items-center justify-center">
+              <span className="text-[#2E77AE] font-semibold">
                 {user.firstName.charAt(0)}{user.lastName.charAt(0)}
               </span>
             </div>
@@ -70,8 +70,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <a className={cn(
             "sidebar-item flex items-center px-4 py-3 rounded-md",
             isActive("/dashboard") || isActive("/") 
-              ? "active text-primary-500" 
-              : "text-neutral-600 hover:text-primary-500"
+              ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+              : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
           )}>
             <span className="material-icons mr-3">dashboard</span>
             <span>Dashboard</span>
@@ -82,8 +82,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <a className={cn(
             "sidebar-item flex items-center px-4 py-3 rounded-md",
             isActive("/notice") 
-              ? "active text-primary-500" 
-              : "text-neutral-600 hover:text-primary-500"
+              ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+              : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
           )}>
             <span className="material-icons mr-3">description</span>
             <span>Notice Module</span>
@@ -94,8 +94,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <a className={cn(
             "sidebar-item flex items-center px-4 py-3 rounded-md",
             isActive("/dpr") 
-              ? "active text-primary-500" 
-              : "text-neutral-600 hover:text-primary-500"
+              ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+              : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
           )}>
             <span className="material-icons mr-3">assignment</span>
             <span>DPR Requests</span>
@@ -106,8 +106,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <a className={cn(
             "sidebar-item flex items-center px-4 py-3 rounded-md",
             isActive("/grievances") 
-              ? "active text-primary-500" 
-              : "text-neutral-600 hover:text-primary-500"
+              ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+              : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
           )}>
             <span className="material-icons mr-3">report_problem</span>
             <span>Grievances</span>
@@ -118,8 +118,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <a className={cn(
             "sidebar-item flex items-center px-4 py-3 rounded-md",
             isActive("/compliance-documents") 
-              ? "active text-primary-500" 
-              : "text-neutral-600 hover:text-primary-500"
+              ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+              : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
           )}>
             <span className="material-icons mr-3">folder</span>
             <span>Compliance Docs</span>
@@ -135,8 +135,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <a className={cn(
                 "sidebar-item flex items-center px-4 py-3 rounded-md",
                 isActive("/admin/users") 
-                  ? "active text-primary-500" 
-                  : "text-neutral-600 hover:text-primary-500"
+                  ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+                  : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
               )}>
                 <span className="material-icons mr-3">people</span>
                 <span>Users</span>
