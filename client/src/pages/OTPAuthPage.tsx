@@ -51,19 +51,20 @@ export default function OTPAuthPage() {
     },
   });
 
-  // State to track if we came from a request page token
+  // State to track the request page token
   const [requestPageToken, setRequestPageToken] = useState<string | null>(null);
   
   // Get organization info on load
   useEffect(() => {
+    // Log the current URL for debugging
+    console.log("Current path:", window.location.pathname);
+    
     const fetchOrgInfo = async () => {
-      // First check the URL path to see if we came from a request page with a token
-      const pathSegments = window.location.pathname.split('/');
-      const otpIndex = pathSegments.findIndex(segment => segment === 'otp');
-      
-      if (otpIndex > 0 && pathSegments[otpIndex - 1] === 'auth' && pathSegments[otpIndex + 2]) {
-        // Format is /auth/otp/:orgId/:token
-        setRequestPageToken(pathSegments[otpIndex + 2]);
+      // Get token from URL if it exists (format: /auth/otp/:orgId/:token)
+      const tokenParam = window.location.pathname.split('/').pop();
+      if (tokenParam && tokenParam.length > 10) {
+        console.log("Found token in URL:", tokenParam);
+        setRequestPageToken(tokenParam);
       }
 
       if (!params) return;
