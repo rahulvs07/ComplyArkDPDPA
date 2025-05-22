@@ -1,0 +1,94 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import multer from 'multer';
+import session from 'express-session';
+import * as authController from './controllers/authController';
+import * as organizationController from './controllers/organizationController';
+import * as userController from './controllers/userController';
+import * as industryController from './controllers/industryController';
+import * as templateController from './controllers/templateController';
+import * as noticeController from './controllers/noticeController';
+import * as dprController from './controllers/dprController';
+import { isAuthenticated, isAdmin, isSameOrganization } from './middleware/auth';
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure session
+  app.use(
+    session({
+      secret: 'complyark-secret-key',
+      resave: false,
+      saveUninitialized: false,
+      cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+    })
+  );
+  
+  // Configure multer for file uploads
+  const storage = multer.memoryStorage();
+  const upload = multer({ storage });
+  
+  // Authentication routes
+  app.post('/api/auth/login', authController.login);
+  app.post('/api/auth/logout', authController.logout);
+  app.get('/api/auth/me', isAuthenticated, authController.getCurrentUser);
+  
+  // Organization routes
+  app.get('/api/organizations', isAuthenticated, organizationController.listOrganizations);
+  app.get('/api/organizations/:id', isAuthenticated, organizationController.getOrganization);
+  app.post('/api/organizations', isAuthenticated, isAdmin, organizationController.createOrganization);
+  app.put('/api/organizations/:id', isAuthenticated, isAdmin, organizationController.updateOrganization);
+  app.delete('/api/organizations/:id', isAuthenticated, isAdmin, organizationController.deleteOrganization);
+  app.get('/api/organizations/:orgId/users', isAuthenticated, isSameOrganization, organizationController.getOrganizationUsers);
+  
+  // User routes
+  app.get('/api/users', isAuthenticated, isAdmin, userController.listUsers);
+  app.get('/api/users/:id', isAuthenticated, userController.getUser);
+  app.post('/api/users', isAuthenticated, isAdmin, userController.createUser);
+  app.put('/api/users/:id', isAuthenticated, userController.updateUser);
+  app.delete('/api/users/:id', isAuthenticated, isAdmin, userController.deleteUser);
+  
+  // Industry routes
+  app.get('/api/industries', isAuthenticated, industryController.listIndustries);
+  app.get('/api/industries/:id', isAuthenticated, industryController.getIndustry);
+  app.post('/api/industries', isAuthenticated, isAdmin, industryController.createIndustry);
+  app.put('/api/industries/:id', isAuthenticated, isAdmin, industryController.updateIndustry);
+  app.delete('/api/industries/:id', isAuthenticated, isAdmin, industryController.deleteIndustry);
+  
+  // Template routes
+  app.get('/api/templates', isAuthenticated, templateController.listTemplates);
+  app.get('/api/templates/industry/:industryId', isAuthenticated, templateController.getTemplatesByIndustry);
+  app.get('/api/templates/:id', isAuthenticated, templateController.getTemplate);
+  app.post('/api/templates', isAuthenticated, isAdmin, upload.single('templateFile'), templateController.createTemplate);
+  app.put('/api/templates/:id', isAuthenticated, isAdmin, upload.single('templateFile'), templateController.updateTemplate);
+  app.delete('/api/templates/:id', isAuthenticated, isAdmin, templateController.deleteTemplate);
+  app.get('/api/templates/:id/download', isAuthenticated, templateController.downloadTemplate);
+  
+  // Notice routes
+  app.get('/api/organizations/:orgId/notices', isAuthenticated, isSameOrganization, noticeController.listNotices);
+  app.get('/api/organizations/:orgId/notices/:noticeId', isAuthenticated, isSameOrganization, noticeController.getNotice);
+  app.post('/api/organizations/:orgId/notices', isAuthenticated, isSameOrganization, noticeController.createNotice);
+  app.get('/api/organizations/:orgId/notices/:noticeId/download', isAuthenticated, isSameOrganization, noticeController.downloadNotice);
+  app.post('/api/organizations/:orgId/notices/:noticeId/translate', isAuthenticated, isSameOrganization, noticeController.translateNotice);
+  app.get('/api/organizations/:orgId/notices/:noticeId/translations', isAuthenticated, isSameOrganization, noticeController.getTranslatedNotices);
+  app.get('/api/organizations/:orgId/notices/:noticeId/translations/:translationId/download', isAuthenticated, isSameOrganization, noticeController.downloadTranslatedNotice);
+  
+  // DPR routes
+  app.get('/api/organizations/:orgId/dpr', isAuthenticated, isSameOrganization, dprController.listDPRequests);
+  app.get('/api/dpr/:id', isAuthenticated, dprController.getDPRequest);
+  app.get('/api/dpr/:id/history', isAuthenticated, dprController.getDPRequestHistory);
+  app.put('/api/dpr/:id', isAuthenticated, dprController.updateDPRequest);
+  
+  // Public DPR routes (no authentication)
+  app.post('/api/public/request-otp', dprController.requestOTP);
+  app.post('/api/public/verify-otp', dprController.verifyOTP);
+  app.post('/api/public/dpr', dprController.createPublicDPRequest);
+  
+  // Dashboard routes
+  app.get('/api/dashboard/stats', isAuthenticated, dprController.getDashboardStats);
+  app.get('/api/dashboard/activities', isAuthenticated, dprController.getRecentActivities);
+  app.get('/api/dashboard/recent-requests', isAuthenticated, dprController.getRecentRequests);
+  
+  const httpServer = createServer(app);
+
+  return httpServer;
+}
