@@ -12,8 +12,9 @@ import AdminUsers from "@/pages/admin/users";
 import AdminIndustries from "@/pages/admin/industries";
 import AdminTemplates from "@/pages/admin/templates";
 import UserSettings from "@/pages/user/settings";
+import WelcomePage from "@/pages/welcome";
 import React from "react";
-import { AuthProvider, useAuth } from "@/lib/auth-provider";
+import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "./components/layout/AppLayout";
 
 // Protected route component that redirects to login if not authenticated
@@ -43,17 +44,13 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/login-test" component={LoginTest} />
       
-      <Route path="/">
-        <AppLayout>
-          <ProtectedRoute component={Dashboard} />
-        </AppLayout>
-      </Route>
-      
       <Route path="/dashboard">
         <AppLayout>
           <ProtectedRoute component={Dashboard} />
         </AppLayout>
       </Route>
+      
+      <Route path="/" component={WelcomePage} />
       
       <Route path="/notice">
         <AppLayout>
