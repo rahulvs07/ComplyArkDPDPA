@@ -203,7 +203,7 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
               <SelectValue placeholder="Select a template" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="none">None</SelectItem>
               {templates.map((template: any) => (
                 <SelectItem 
                   key={template.templateId} 
