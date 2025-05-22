@@ -138,19 +138,27 @@ export default function OTPAuthPage() {
     if (values.otp === "1234") {
       console.log('Using test verification code "1234"');
       
-      setTimeout(() => {
-        toast({
-          title: "Verification successful",
-          description: "Test mode verification complete",
-        });
-        
-        // Store verification in session
-        sessionStorage.setItem('otp_verified', 'true');
-        sessionStorage.setItem('otp_email', email);
-        
-        // Navigate to homepage for testing
-        window.location.href = '/';
-      }, 1000);
+      toast({
+        title: "Verification successful",
+        description: "Test mode verification complete",
+      });
+      
+      // Store verification in session
+      sessionStorage.setItem('otp_verified', 'true');
+      sessionStorage.setItem('otp_email', email);
+      
+      // Navigate to the request page with the token
+      if (requestToken) {
+        console.log('Redirecting to request page with token:', requestToken);
+        setTimeout(() => {
+          window.location.href = `/request-page/${requestToken}`;
+        }, 1000);
+      } else {
+        console.log('No token found, redirecting to organization request page');
+        setTimeout(() => {
+          window.location.href = `/request/${organizationId}`;
+        }, 1000);
+      }
       
       return;
     }
