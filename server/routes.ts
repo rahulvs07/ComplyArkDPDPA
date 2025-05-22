@@ -87,12 +87,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/dpr/:id', canManageRequests, dprController.updateDPRequest);
   app.patch('/api/dpr/:id', canManageRequests, dprController.updateDPRequest);
   
-  // Grievances routes - temporarily disabled until controller is fully implemented
-  // app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, grievanceController.listGrievances);
-  // app.get('/api/grievances/:id', isAuthenticated, grievanceController.getGrievance);
-  // app.get('/api/grievances/:id/history', isAuthenticated, grievanceController.getGrievanceHistory);
-  // app.put('/api/grievances/:id', isAuthenticated, grievanceController.updateGrievance);
-  // app.patch('/api/grievances/:id', isAuthenticated, grievanceController.updateGrievance);
+  // Grievances routes
+  app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, grievanceController.listGrievances);
+  app.get('/api/grievances/:id', isAuthenticated, grievanceController.getGrievance);
+  app.get('/api/grievances/:id/history', isAuthenticated, grievanceController.getGrievanceHistory);
+  app.put('/api/grievances/:id', canManageRequests, grievanceController.updateGrievance);
+  app.patch('/api/grievances/:id', canManageRequests, grievanceController.updateGrievance);
   
   // Public DPR routes (no authentication)
   app.post('/api/public/request-otp', (req, res) => dprController.requestOTP(req, res));
