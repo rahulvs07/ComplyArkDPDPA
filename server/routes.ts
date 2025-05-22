@@ -1,8 +1,9 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from 'multer';
 import session from 'express-session';
+import { isAuthenticated, isSameOrganization, isAdmin, AuthRequest } from './middleware/auth';
 import * as authController from './controllers/authController';
 import * as organizationController from './controllers/organizationController';
 import * as userController from './controllers/userController';
@@ -13,7 +14,6 @@ import * as dprController from './controllers/dprController';
 import * as requestPageController from './controllers/requestPageController';
 import * as grievanceController from './controllers/grievanceController';
 import * as complianceDocumentController from './controllers/complianceDocumentController';
-import { isAuthenticated, isAdmin, isSameOrganization } from './middleware/auth';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session
@@ -137,12 +137,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Grievance routes
   app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, grievanceController.getGrievances);
+  app.get('/api/grievances', isAuthenticated, async (req, res) => {
+    // Get user's organization ID from request
+    const orgId = (req as AuthRequest).user!.organizationId;
+    try {
+      const grievances = await storage.listGrievances(orgId);
+      return res.status(200).json(grievances);
+    } catch (error) {
+      console.error("Error fetching grievances:", error);
+      return res.status(500).json({ message: "Failed to fetch grievances" });
+    }
+  });
   app.get('/api/grievances/:id', isAuthenticated, grievanceController.getGrievance);
   app.put('/api/grievances/:id', isAuthenticated, grievanceController.updateGrievance);
   app.get('/api/grievances/:id/history', isAuthenticated, grievanceController.getGrievanceHistory);
   
   // Compliance Document routes
   app.get('/api/organizations/:orgId/compliance-documents', isAuthenticated, isSameOrganization, complianceDocumentController.getComplianceDocuments);
+  app.get('/api/compliance-documents', isAuthenticated, async (req, res) => {
+    // Get user's organization ID from request
+    const orgId = (req as AuthRequest).user!.organizationId;
+    try {
+      const documents = await storage.listComplianceDocuments(orgId);
+      return res.status(200).json(documents);
+    } catch (error) {
+      console.error("Error fetching compliance documents:", error);
+      return res.status(500).json({ message: "Failed to fetch compliance documents" });
+    }
+  });
   app.post('/api/organizations/:orgId/compliance-documents', isAuthenticated, isSameOrganization, complianceDocumentController.upload.single('document'), complianceDocumentController.uploadComplianceDocument);
   app.delete('/api/compliance-documents/:id', isAuthenticated, complianceDocumentController.deleteComplianceDocument);
   app.post('/api/organizations/:orgId/compliance-folders', isAuthenticated, isSameOrganization, complianceDocumentController.createFolder);
