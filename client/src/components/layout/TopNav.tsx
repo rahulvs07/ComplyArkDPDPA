@@ -1,6 +1,14 @@
 import { useAuth } from "@/lib/auth";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Menu } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 interface TopNavProps {
   title: string;
@@ -8,7 +16,25 @@ interface TopNavProps {
 }
 
 export default function TopNav({ title, onMenuClick }: TopNavProps) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { toast } = useToast();
+  
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account."
+      });
+      // Redirect will happen automatically via the auth context
+    } catch (error) {
+      toast({
+        title: "Logout failed",
+        description: "There was a problem logging out. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <header className="bg-background border-b border-border px-4 py-3 flex items-center justify-between shadow-sm dark:shadow-none">
@@ -47,15 +73,37 @@ export default function TopNav({ title, onMenuClick }: TopNavProps) {
         
         {user && (
           <div className="relative">
-            <div className="flex items-center cursor-pointer space-x-2">
-              <div className="hidden md:block">
-                <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
-                <p className="text-xs text-muted-foreground">{user.role === 'admin' ? 'Admin' : 'User'}</p>
-              </div>
-              <div className="h-9 w-9 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
-                <span className="material-icons text-sm">person</span>
-              </div>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="flex items-center cursor-pointer space-x-2">
+                  <div className="hidden md:block">
+                    <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
+                    <p className="text-xs text-muted-foreground">{user.role === 'admin' ? 'Admin' : 'User'}</p>
+                  </div>
+                  <div className="h-9 w-9 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center">
+                    <span className="material-icons text-sm">person</span>
+                  </div>
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="p-2">
+                  <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <a href="/settings" className="cursor-pointer">
+                    <span className="material-icons text-sm mr-2">settings</span>
+                    Settings
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-500 hover:text-red-600 cursor-pointer">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </div>
