@@ -150,14 +150,20 @@ export default function OTPAuthPage() {
       // Navigate to the request page with the token
       if (requestToken) {
         console.log('Redirecting to request page with token:', requestToken);
+        
+        // Store the token in sessionStorage to ensure it's available after redirect
+        sessionStorage.setItem('request_page_token', requestToken);
+        
+        // Using direct location change for more reliable redirection
         setTimeout(() => {
-          window.location.href = `/request-page/${requestToken}`;
-        }, 1000);
+          // Force full page navigation to ensure proper loading
+          window.location.replace(`/request-page/${requestToken}`);
+        }, 800);
       } else {
         console.log('No token found, redirecting to organization request page');
         setTimeout(() => {
-          window.location.href = `/request/${organizationId}`;
-        }, 1000);
+          window.location.replace(`/request/${organizationId}`);
+        }, 800);
       }
       
       return;
@@ -186,11 +192,22 @@ export default function OTPAuthPage() {
         description: "You are now verified to submit requests",
       });
       
-      // Navigate based on token presence
+      // Navigate based on token presence - using same direct approach as test mode
       if (requestToken) {
-        push(`/request-page/${requestToken}`);
+        console.log('Normal flow: Redirecting to request page with token:', requestToken);
+        
+        // Store the token in sessionStorage
+        sessionStorage.setItem('request_page_token', requestToken);
+        
+        // Using direct location change
+        setTimeout(() => {
+          window.location.replace(`/request-page/${requestToken}`);
+        }, 800);
       } else {
-        push(`/request/${organizationId}`);
+        console.log('Normal flow: Redirecting to organization request page');
+        setTimeout(() => {
+          window.location.replace(`/request/${organizationId}`);
+        }, 800);
       }
     } catch (error) {
       console.error('Error verifying OTP:', error);
