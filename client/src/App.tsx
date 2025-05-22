@@ -149,7 +149,7 @@ function Router() {
       {/* Public routes for external request submissions */}
       <Route path="/auth/otp/:orgId/:token?" component={OTPAuthPage} />
       <Route path="/request/:orgId/:type?" component={RequestPage} />
-      <Route path="/request-page/:token" component={RequestPageNew} />
+      <Route path="/request-page/:token" component={import("@/pages/request-page").default} />
       <Route path="/request-status" component={RequestStatusPage} />
       
       {/* Fallback to 404 */}
