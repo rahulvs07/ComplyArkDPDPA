@@ -273,13 +273,14 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
             <Button 
               variant="outline" 
               onClick={handlePreview}
+              className="text-[#2E77AE] border-[#2E77AE]/30 hover:bg-[#2E77AE]/10 hover:border-[#2E77AE]"
             >
               <span className="material-icons text-sm mr-2">visibility</span>
               Preview
             </Button>
             
             <Button 
-              className="bg-primary-500 text-white hover:bg-primary-600"
+              className="bg-[#2E77AE] text-white hover:bg-[#0F3460]"
               onClick={handleContinue}
             >
               Next
