@@ -26,7 +26,7 @@ export default function OTPAuthPage() {
   const [, params] = useRoute('/auth/otp/:orgId/:token?');
   const { toast } = useToast();
   
-  const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [step, setStep] = useState<'email' | 'otp' | 'complete'>('email');
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [organizationId, setOrganizationId] = useState<number>(1);
@@ -149,32 +149,32 @@ export default function OTPAuthPage() {
       
       // Navigate to the request page with the token
       if (requestToken) {
-        console.log('Redirecting to request page with token:', requestToken);
+        console.log('Setting up redirect to request page with token:', requestToken);
         
         // Store the token in sessionStorage to ensure it's available after redirect
+        sessionStorage.setItem('otp_verified', 'true');
+        sessionStorage.setItem('otp_email', email);
         sessionStorage.setItem('request_page_token', requestToken);
         
-        // Create a direct method for navigation with an actual anchor element
-        const requestPageUrl = `/request-page/${requestToken}`;
-        console.log('Creating physical navigation link to request page:', requestPageUrl);
-        
-        // Create and append a real link to the page
-        const navLink = document.createElement('a');
-        navLink.href = requestPageUrl;
-        navLink.innerText = "Continue to request page";
-        navLink.className = "block w-full mt-4 p-3 text-center bg-primary text-white rounded-md hover:bg-primary/90";
-        
-        // Add the link to the form container which we know exists
+        // Wait to show the success message before attempting to navigate
         setTimeout(() => {
-          // Find either the form container or use the main form element as fallback
-          const formContainer = document.querySelector('form')?.parentElement;
-          if (formContainer) {
-            formContainer.appendChild(navLink);
-          } else {
-            // Fallback to body if no form is found
-            document.body.appendChild(navLink);
+          try {
+            console.log('Attempting navigation to request page');
+            setLoading(false);
+            
+            // Show a manual navigation message
+            toast({
+              title: "Navigation required",
+              description: "Please click the button below to continue to the request page",
+            });
+            
+            // Change the component state to show a manual navigation button
+            setStep('complete');
+          } catch (e) {
+            console.error('Navigation error:', e);
+            setLoading(false);
+            setStep('complete');
           }
-          setLoading(false);
         }, 1000);
       } else {
         console.log('No token found, redirecting to organization request page');
@@ -247,7 +247,10 @@ export default function OTPAuthPage() {
           <CardDescription className="text-white/90">
             {step === 'email' 
               ? 'Enter your email to receive a verification code' 
-              : 'Enter the verification code sent to your email'}
+              : step === 'otp'
+              ? 'Enter the verification code sent to your email'
+              : 'Verification Complete'
+            }
           </CardDescription>
         </CardHeader>
         
@@ -286,7 +289,7 @@ export default function OTPAuthPage() {
                 </Button>
               </form>
             </Form>
-          ) : (
+          ) : step === 'otp' ? (
             <Form {...otpForm}>
               <form onSubmit={otpForm.handleSubmit(onOTPSubmit)} className="space-y-4">
                 <div className="text-sm text-muted-foreground mb-4">
@@ -323,6 +326,32 @@ export default function OTPAuthPage() {
                 </Button>
               </form>
             </Form>
+          ) : (
+            <div className="space-y-6 text-center">
+              <div className="rounded-full bg-green-100 p-3 w-16 h-16 mx-auto text-green-600 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
+                  <path d="M20 6L9 17l-5-5"></path>
+                </svg>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-xl font-medium">Verification Successful</h3>
+                <p className="text-muted-foreground">
+                  Your identity has been verified successfully.
+                </p>
+              </div>
+              
+              <Button 
+                className="w-full" 
+                onClick={() => {
+                  if (requestToken) {
+                    window.location.href = `/request-page/${requestToken}`;
+                  }
+                }}
+              >
+                Continue to Request Page
+              </Button>
+            </div>
           )}
         </CardContent>
         
