@@ -70,7 +70,7 @@ export default function GoogleLoginButton({ onSuccess, organizationId }: GoogleL
       variant="outline"
       onClick={handleGoogleLogin}
       disabled={isLoading}
-      className="w-full flex items-center justify-center gap-2"
+      className="w-full flex items-center justify-center gap-2 hover:bg-gray-100 hover:border-gray-300"
     >
       {isLoading ? (
         <Loader2 className="h-4 w-4 animate-spin" />

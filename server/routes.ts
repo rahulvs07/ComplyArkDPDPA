@@ -221,6 +221,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.status(200).json({ authenticated: false });
   });
   
+  // Social login authentication endpoint
+  app.post('/api/auth/social-login', (req, res) => {
+    console.log('Social login request:', req.body);
+    const { email, provider, organizationId } = req.body;
+    
+    if (!email || !provider || !organizationId) {
+      return res.status(400).json({ 
+        message: 'Missing required fields' 
+      });
+    }
+    
+    // Store authentication in session
+    if (req.session) {
+      req.session.authenticated = true;
+      req.session.email = email;
+      req.session.organizationId = parseInt(organizationId);
+      req.session.authProvider = provider;
+    }
+    
+    return res.status(200).json({
+      message: 'Authentication successful',
+      email,
+      provider
+    });
+  });
+  
   app.post('/api/otp/logout', (req, res) => {
     if (req.session) {
       req.session.destroy((err) => {
