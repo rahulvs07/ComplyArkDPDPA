@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { randomInt } from 'crypto';
+import { sendEmail, generateOTPEmailTemplate } from '../utils/emailService';
 
 // In-memory store for OTPs - in production, use a more persistent solution with TTL
 interface OTPRecord {
@@ -45,16 +46,21 @@ function generateOTP(length = 6): string {
   return result;
 }
 
-// Send OTP to email (mock implementation - replace with actual email sending)
+// Send OTP to email using our email service
 async function sendOTPEmail(email: string, otp: string, organizationName: string): Promise<boolean> {
   try {
-    // Here we would use an email service like SendGrid
-    // For now, we'll just log the OTP
-    console.log(`EMAIL TO: ${email}, OTP: ${otp}, Organization: ${organizationName}`);
+    // Get HTML and text versions of the email
+    const { text, html } = generateOTPEmailTemplate(otp, organizationName, 30);
     
-    // TODO: Implement actual email sending with SendGrid or similar service
+    // Send the email
+    const emailSent = await sendEmail({
+      to: email,
+      subject: `${organizationName} - Your Verification Code`,
+      text,
+      html
+    });
     
-    return true;
+    return emailSent;
   } catch (error) {
     console.error('Error sending OTP email:', error);
     return false;
@@ -168,6 +174,14 @@ export const verifyOTP = async (req: Request, res: Response) => {
     }
     
     // OTP verified successfully
+    
+    // Set session data
+    if (req.session) {
+      req.session.authenticated = true;
+      req.session.email = email;
+      req.session.organizationId = organizationId;
+    }
+    
     // Create a temporary access token
     const accessToken = generateSessionToken();
     
@@ -182,6 +196,62 @@ export const verifyOTP = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error verifying OTP:', error);
     return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Check if user is authenticated for a specific organization
+export const checkAuthentication = async (req: Request, res: Response) => {
+  try {
+    const { organizationId } = req.body;
+    
+    if (!organizationId) {
+      return res.status(400).json({ message: 'Organization ID is required' });
+    }
+    
+    const orgId = parseInt(organizationId.toString(), 10);
+    
+    if (isNaN(orgId)) {
+      return res.status(400).json({ message: 'Invalid organization ID' });
+    }
+    
+    // Check if session exists and if user is authenticated for this organization
+    if (
+      req.session && 
+      req.session.authenticated === true && 
+      req.session.organizationId === orgId
+    ) {
+      return res.status(200).json({ 
+        authenticated: true,
+        email: req.session.email
+      });
+    }
+    
+    return res.status(200).json({ authenticated: false });
+  } catch (error) {
+    console.error('Error checking authentication:', error);
+    return res.status(500).json({ message: 'An error occurred while checking authentication' });
+  }
+};
+
+// Logout / End session
+export const logout = async (req: Request, res: Response) => {
+  try {
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Error destroying session:', err);
+          return res.status(500).json({ message: 'Failed to log out' });
+        }
+        
+        res.clearCookie('connect.sid'); // Clear the session cookie
+        return res.status(200).json({ message: 'Logged out successfully' });
+      });
+    } else {
+      return res.status(200).json({ message: 'Already logged out' });
+    }
+  } catch (error) {
+    console.error('Error logging out:', error);
+    return res.status(500).json({ message: 'An error occurred while logging out' });
   }
 };
 

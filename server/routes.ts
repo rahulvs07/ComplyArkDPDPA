@@ -123,6 +123,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // OTP authentication for request pages
   app.post('/api/request-page/:organizationId/send-otp', otpAuthController.generateOTPForEmail);
   app.post('/api/request-page/verify-otp', otpAuthController.verifyOTP);
+  app.post('/api/otp/check-auth', otpAuthController.checkAuthentication);
+  app.post('/api/otp/logout', otpAuthController.logout);
   
   // Grievance routes
   app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, async (req, res) => {
