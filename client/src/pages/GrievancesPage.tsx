@@ -35,14 +35,19 @@ export default function GrievancesPage() {
     return matchesSearch;
   });
   
-  // Get status name from status ID (simplified for now)
+  // Get status name from status ID based on actual database values
   const getStatusName = (statusId: number) => {
     const statusMap: Record<number, { name: string; color: string }> = {
-      1: { name: "New", color: "blue" },
-      2: { name: "In Progress", color: "yellow" },
-      3: { name: "Pending", color: "orange" },
-      4: { name: "On Hold", color: "purple" },
-      10: { name: "Closed", color: "green" }
+      21: { name: "Submitted", color: "blue" },
+      22: { name: "Pending Verification", color: "orange" },
+      23: { name: "In Progress", color: "yellow" },
+      24: { name: "Under Review", color: "purple" },
+      25: { name: "Awaiting Information", color: "cyan" },
+      26: { name: "Completed", color: "green" },
+      27: { name: "Closed", color: "green" },
+      28: { name: "Rejected", color: "red" },
+      29: { name: "Overdue", color: "red" },
+      30: { name: "On Hold", color: "gray" }
     };
     
     return statusMap[statusId] || { name: "Unknown", color: "gray" };
