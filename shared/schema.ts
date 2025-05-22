@@ -65,6 +65,7 @@ export const notices = pgTable("notices", {
 export const translatedNotices = pgTable("translatedNotices", {
   id: serial("id").primaryKey(),
   noticeId: integer("noticeId").notNull().references(() => notices.noticeId),
+  organizationId: integer("organizationId").notNull().references(() => organizations.id),
   language: text("language").notNull(),
   translatedBody: text("translatedBody").notNull(),
   filePath: text("filePath"),
