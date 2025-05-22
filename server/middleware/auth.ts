@@ -13,6 +13,22 @@ export interface AuthRequest extends Request {
   };
 }
 
+// Middleware to check if user can manage request statuses
+export const canManageRequests = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  // All authenticated users (including regular users) can view and update request statuses
+  if (req.user) {
+    return next();
+  }
+  
+  return res.status(403).json({
+    message: "Forbidden. You need to be logged in to manage requests."
+  });
+};
+
 // Middleware to check if user is authenticated
 export const isAuthenticated = async (
   req: AuthRequest,

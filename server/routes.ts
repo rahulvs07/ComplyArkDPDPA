@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from 'multer';
 import session from 'express-session';
-import { isAuthenticated, isSameOrganization, isAdmin, isSuperAdmin, AuthRequest } from './middleware/auth';
+import { isAuthenticated, isSameOrganization, isAdmin, isSuperAdmin, canManageRequests, AuthRequest } from './middleware/auth';
 import * as authController from './controllers/authController';
 import * as organizationController from './controllers/organizationController';
 import * as userController from './controllers/userController';
@@ -81,8 +81,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/organizations/:orgId/dpr', isAuthenticated, isSameOrganization, dprController.listDPRequests);
   app.get('/api/dpr/:id', isAuthenticated, dprController.getDPRequest);
   app.get('/api/dpr/:id/history', isAuthenticated, dprController.getDPRequestHistory);
-  app.put('/api/dpr/:id', isAuthenticated, dprController.updateDPRequest);
-  app.patch('/api/dpr/:id', isAuthenticated, dprController.updateDPRequest);
+  app.put('/api/dpr/:id', canManageRequests, dprController.updateDPRequest);
+  app.patch('/api/dpr/:id', canManageRequests, dprController.updateDPRequest);
   
   // Grievances routes - temporarily disabled until controller is fully implemented
   // app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, grievanceController.listGrievances);
