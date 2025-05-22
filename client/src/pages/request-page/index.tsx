@@ -239,43 +239,80 @@ export default function RequestPage() {
                       <form className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <label htmlFor="fullName" className="text-sm font-medium">Full Name</label>
+                            <label htmlFor="firstName" className="text-sm font-medium">First Name <span className="text-red-500">*</span></label>
                             <input 
                               type="text" 
-                              id="fullName" 
+                              id="firstName" 
+                              required
                               className="w-full p-2 border rounded-md" 
-                              placeholder="Enter your full name"
+                              placeholder="Enter your first name"
                             />
                           </div>
                           <div className="space-y-2">
-                            <label htmlFor="dprType" className="text-sm font-medium">Request Type</label>
-                            <select 
-                              id="dprType" 
-                              className="w-full p-2 border rounded-md"
-                            >
-                              <option value="">Select request type</option>
-                              <option value="access">Access Request</option>
-                              <option value="correction">Correction Request</option>
-                              <option value="deletion">Deletion Request</option>
-                              <option value="objection">Objection</option>
-                            </select>
+                            <label htmlFor="lastName" className="text-sm font-medium">Last Name <span className="text-red-500">*</span></label>
+                            <input 
+                              type="text" 
+                              id="lastName" 
+                              required
+                              className="w-full p-2 border rounded-md" 
+                              placeholder="Enter your last name"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label htmlFor="email" className="text-sm font-medium">Email <span className="text-red-500">*</span></label>
+                            <input 
+                              type="email" 
+                              id="email" 
+                              required
+                              className="w-full p-2 border rounded-md" 
+                              placeholder="your@email.com"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor="phone" className="text-sm font-medium">Phone <span className="text-red-500">*</span></label>
+                            <input 
+                              type="tel" 
+                              id="phone" 
+                              required
+                              className="w-full p-2 border rounded-md" 
+                              placeholder="Your phone number"
+                            />
                           </div>
                         </div>
                         
                         <div className="space-y-2">
-                          <label htmlFor="description" className="text-sm font-medium">Request Details</label>
+                          <label htmlFor="requestType" className="text-sm font-medium">Request Type <span className="text-red-500">*</span></label>
+                          <select 
+                            id="requestType" 
+                            required
+                            className="w-full p-2 border rounded-md"
+                          >
+                            <option value="">Select request type</option>
+                            <option value="Access">Access</option>
+                            <option value="Correction">Correction</option>
+                            <option value="Nomination">Nomination</option>
+                            <option value="Erasure">Erasure</option>
+                          </select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label htmlFor="requestComment" className="text-sm font-medium">Request Comment <span className="text-red-500">*</span></label>
                           <textarea 
-                            id="description" 
+                            id="requestComment" 
                             rows={4} 
+                            required
                             className="w-full p-2 border rounded-md" 
-                            placeholder="Please describe your request in detail"
+                            placeholder="Please explain your request in detail"
                           ></textarea>
                         </div>
                         
                         <div className="space-y-2">
                           <label className="flex items-center space-x-2">
-                            <input type="checkbox" className="rounded border-gray-300" />
-                            <span className="text-sm">I confirm that I am the data subject or authorized to make this request</span>
+                            <input type="checkbox" required className="rounded border-gray-300" />
+                            <span className="text-sm">I confirm that all information provided is accurate</span>
                           </label>
                         </div>
                         
@@ -298,62 +335,65 @@ export default function RequestPage() {
                       <form className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <label htmlFor="complainantName" className="text-sm font-medium">Full Name</label>
+                            <label htmlFor="grievanceFirstName" className="text-sm font-medium">First Name <span className="text-red-500">*</span></label>
                             <input 
                               type="text" 
-                              id="complainantName" 
+                              id="grievanceFirstName" 
+                              required
                               className="w-full p-2 border rounded-md" 
-                              placeholder="Enter your full name"
+                              placeholder="Enter your first name"
                             />
                           </div>
                           <div className="space-y-2">
-                            <label htmlFor="grievanceType" className="text-sm font-medium">Grievance Type</label>
-                            <select 
-                              id="grievanceType" 
-                              className="w-full p-2 border rounded-md"
-                            >
-                              <option value="">Select grievance type</option>
-                              <option value="privacy">Privacy Violation</option>
-                              <option value="consent">Consent Issue</option>
-                              <option value="breach">Data Breach</option>
-                              <option value="other">Other</option>
-                            </select>
+                            <label htmlFor="grievanceLastName" className="text-sm font-medium">Last Name <span className="text-red-500">*</span></label>
+                            <input 
+                              type="text" 
+                              id="grievanceLastName" 
+                              required
+                              className="w-full p-2 border rounded-md" 
+                              placeholder="Enter your last name"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label htmlFor="grievanceEmail" className="text-sm font-medium">Email <span className="text-red-500">*</span></label>
+                            <input 
+                              type="email" 
+                              id="grievanceEmail" 
+                              required
+                              className="w-full p-2 border rounded-md" 
+                              placeholder="your@email.com"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor="grievancePhone" className="text-sm font-medium">Phone <span className="text-red-500">*</span></label>
+                            <input 
+                              type="tel" 
+                              id="grievancePhone" 
+                              required
+                              className="w-full p-2 border rounded-md" 
+                              placeholder="Your phone number"
+                            />
                           </div>
                         </div>
                         
                         <div className="space-y-2">
-                          <label htmlFor="incidentDate" className="text-sm font-medium">Incident Date</label>
-                          <input 
-                            type="date" 
-                            id="incidentDate" 
-                            className="w-full p-2 border rounded-md"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <label htmlFor="grievanceDescription" className="text-sm font-medium">Grievance Details</label>
+                          <label htmlFor="grievanceComments" className="text-sm font-medium">Grievance Comments <span className="text-red-500">*</span></label>
                           <textarea 
-                            id="grievanceDescription" 
+                            id="grievanceComments" 
                             rows={4} 
+                            required
                             className="w-full p-2 border rounded-md" 
                             placeholder="Please describe your grievance in detail"
                           ></textarea>
                         </div>
                         
                         <div className="space-y-2">
-                          <label htmlFor="expectedResolution" className="text-sm font-medium">Expected Resolution</label>
-                          <textarea 
-                            id="expectedResolution" 
-                            rows={2} 
-                            className="w-full p-2 border rounded-md" 
-                            placeholder="What outcome are you seeking?"
-                          ></textarea>
-                        </div>
-                        
-                        <div className="space-y-2">
                           <label className="flex items-center space-x-2">
-                            <input type="checkbox" className="rounded border-gray-300" />
-                            <span className="text-sm">I confirm all information provided is accurate to the best of my knowledge</span>
+                            <input type="checkbox" required className="rounded border-gray-300" />
+                            <span className="text-sm">I confirm all information provided is accurate and complete</span>
                           </label>
                         </div>
                         

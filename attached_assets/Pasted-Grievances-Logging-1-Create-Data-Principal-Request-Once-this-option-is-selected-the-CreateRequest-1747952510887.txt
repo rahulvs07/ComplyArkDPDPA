@@ -1,0 +1,42 @@
+Grievances Logging
+1.Create Data Principal Request.
+Once this option is selected the CreateRequestPage will show below fields, Create a table “DPRequests” with below fields.
+DPRequestId	int	
+firstName	string	
+lastName	string	
+email	string	
+phone	string	
+Request type	Access,Correction,Nomination,Erasure 	(must be a dropdown)
+RequestComment	MultiTextbox explain the changes.	
+		
+OrganisationId	int
+(embedded in URL of the CreateRequestPage.)	
+createdAt	string (ISO date)	
+
+AssignedTo	Int (Initially will be assigned to OrgAdminId by default)	
+CompletionDate	Date Time (This date will be calculated by adding digit from Requeststatus table column SLA value corresponding to Request StatusId assigned. 	
+		
+CompletedOnTime	Bool (Compare CompletionDate column with current date)	
+DPR_Request StatusId	Int (Initially data will be set to Request StatusId :1 from Requeststatus table)	
+Closure Comments	String	
+Closure datetime	datetime	
+All fields are mandatory and once submitted clicking submit button, Data to be inserted in” DPRequests” with above columns.
+Insert a row into DPRequestHistory colum with userdetails for showing the Request history in main application listing page where the created request will be displayed.
+1.	Grievance Logging
+This will be another type of Request created from   “RequestCreationPage” we should have below fields that needs to be filled by the outside user. More details on Logged Grievances requests will be explained below as one of the major modules in the main application (Module 3. Grievances.)
+firstName	string	
+lastName	string	
+email	string	
+phone	string	
+OrganisationId	int (embedded in RequestCreationPage URL)	
+Grievence Comments      string (multi text box)
+createdAt	string (ISO date)	
+
+AssignedTo	Int (Initially will be assigned to OrgAdminId by default)	
+CompletionDate	Date Time (This date will be calculate by adding number from Requeststatus table column SLA value corresponding to Request StatusId assigned. 	
+CompletedOnTime	Bool (Compare CompletionDate column with current date)	
+Request StatusId	Int (Initially data will be set to Request StatusId :1 from Requeststatus table)	
+Closure Comments	String (To be shown only when org user selects “closed ” status.
+	
+ClosedDateTime	ClosedDateTime	
+All fields are mandatory and once submitted clicking submit button, Data to be inserted in” Grievances” Table with above columns
