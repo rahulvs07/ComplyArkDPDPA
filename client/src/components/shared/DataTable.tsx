@@ -193,7 +193,11 @@ const DataTable: React.FC<DataTableProps> = ({
                   </div>
                 </th>
               ))}
-              {/* Actions column removed as requested */}
+              {(onEdit || onView || onDelete) && (
+                <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Actions
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -214,7 +218,49 @@ const DataTable: React.FC<DataTableProps> = ({
                             row[column.key || column.accessorKey || column.id || ''] : 'N/A'))}
                     </td>
                   ))}
-                  {/* Actions column removed as requested */}
+                  {(onEdit || onView || onDelete) && (
+                    <td className="px-4 py-3 text-sm text-right space-x-2 whitespace-nowrap">
+                      {onView && (
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onView(row);
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="text-blue-600 hover:text-blue-700 border-blue-600 hover:border-blue-700 hover:bg-blue-50"
+                        >
+                          <span className="material-icons text-sm">visibility</span>
+                        </Button>
+                      )}
+                      {onEdit && (
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(row);
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="text-blue-600 hover:text-blue-700 border-blue-600 hover:border-blue-700 hover:bg-blue-50 ml-2"
+                        >
+                          <span className="material-icons text-sm">edit</span>
+                        </Button>
+                      )}
+                      {onDelete && (
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(row);
+                          }}
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 hover:text-red-700 border-red-600 hover:border-red-700 hover:bg-red-50 ml-2"
+                        >
+                          <span className="material-icons text-sm">delete</span>
+                        </Button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))
             ) : (
