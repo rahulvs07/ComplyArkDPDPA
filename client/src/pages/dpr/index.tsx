@@ -149,10 +149,10 @@ export default function DPRModule() {
   
   // Update request mutation
   const updateMutation = useMutation({
-    mutationFn: async (data: RequestFormValues) => {
+    mutationFn: async (data: any) => {
       return apiRequest(`/api/dpr/${selectedRequest.requestId}`, {
         method: "PATCH",
-        body: JSON.stringify(data),
+        body: JSON.stringify(data)
       });
     },
     onSuccess: () => {
