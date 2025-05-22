@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
+import RequestPageUrlGenerator from "@/components/organizations/RequestPageUrlGenerator";
 
 // Organization form schema
 const organizationSchema = z.object({
@@ -276,19 +277,20 @@ export default function OrganizationForm({ onSuccess, initialData, isEdit = fals
         
         {/* Request Page URL Generator - Only show when editing */}
         {isEdit && initialData && (
-          <div className="border rounded-md p-4 bg-muted/20">
+          <div className="mt-6 pt-6 border-t">
             <h4 className="font-medium mb-2">Request Page Configuration</h4>
             <p className="text-sm text-muted-foreground mb-4">
               Generate a URL that allows external users to submit data protection requests and grievances for this organization.
             </p>
             
-            {/* Import and use the RequestPageUrlGenerator component */}
-            {React.lazy(() => import("@/components/organizations/RequestPageUrlGenerator"))({
-              organizationId: initialData.id,
-              currentUrl: initialData.requestPageUrlToken 
+            <RequestPageUrlGenerator 
+              organizationId={initialData.id}
+              organizationName={initialData.businessName}
+              currentUrl={initialData.requestPageUrlToken 
                 ? `${window.location.origin}/request-page/${initialData.requestPageUrlToken}`
                 : null
-            })}
+              }
+            />
           </div>
         )}
         

@@ -1,110 +1,193 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Copy, RefreshCw } from 'lucide-react';
+import { Loader2, Copy, RefreshCw, Check, Link, ExternalLink } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface RequestPageUrlGeneratorProps {
   organizationId: number;
+  organizationName: string;
   currentUrl: string | null;
 }
 
 export default function RequestPageUrlGenerator({ 
   organizationId, 
+  organizationName,
   currentUrl 
 }: RequestPageUrlGeneratorProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const [requestPageUrl, setRequestPageUrl] = useState<string | null>(currentUrl);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [url, setUrl] = useState<string>(currentUrl || '');
-
-  // Generate URL mutation
-  const generateMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/organizations/${organizationId}/request-page-url`, {
+  
+  // Generate or regenerate request page URL
+  const generateRequestPageUrl = async () => {
+    setIsGenerating(true);
+    
+    try {
+      const response = await fetch(`/api/organizations/${organizationId}/request-page-token`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
       
       if (!response.ok) {
-        throw new Error('Failed to generate Request Page URL');
+        throw new Error('Failed to generate request page URL');
       }
       
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setUrl(data.url);
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/organizations'] });
+      const data = await response.json();
+      setRequestPageUrl(data.requestPageUrl);
+      
       toast({
         title: 'URL Generated',
-        description: 'Request Page URL has been generated successfully.'
+        description: 'Request page URL has been generated successfully.',
       });
-    },
-    onError: () => {
+      
+      // Invalidate organization query to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['/api/organizations', organizationId] });
+    } catch (error) {
+      console.error('Error generating request page URL:', error);
+      
       toast({
         title: 'Error',
-        description: 'Failed to generate Request Page URL.',
+        description: (error as Error).message || 'Failed to generate request page URL',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+  
+  // Copy URL to clipboard
+  const copyToClipboard = async () => {
+    if (!requestPageUrl) return;
+    
+    try {
+      await navigator.clipboard.writeText(requestPageUrl);
+      setIsCopied(true);
+      
+      toast({
+        title: 'Copied',
+        description: 'URL copied to clipboard',
+      });
+      
+      // Reset copied state after 2 seconds
+      setTimeout(() => {
+        setIsCopied(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to copy URL to clipboard',
         variant: 'destructive',
       });
     }
-  });
-
-  // Copy URL to clipboard
-  const copyToClipboard = () => {
-    if (!url) return;
-    
-    navigator.clipboard.writeText(url).then(() => {
-      toast({
-        title: 'URL Copied',
-        description: 'The URL has been copied to your clipboard.'
-      });
-    }).catch(() => {
-      toast({
-        title: 'Copy Failed',
-        description: 'Failed to copy URL to clipboard.',
-        variant: 'destructive',
-      });
-    });
   };
 
+  // Open URL in new tab
+  const openUrl = () => {
+    if (!requestPageUrl) return;
+    window.open(requestPageUrl, '_blank');
+  };
+  
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col space-y-2">
-        <label className="text-sm font-medium">Request Page URL</label>
-        <div className="flex gap-2">
-          <Input 
-            value={url} 
-            readOnly 
-            placeholder="Generate a URL first" 
-            className="flex-1"
-          />
-          {url && (
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={copyToClipboard}
-              title="Copy to clipboard"
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-          )}
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={() => generateMutation.mutate()} 
-            disabled={generateMutation.isPending}
-            title="Generate new URL"
+    <Card>
+      <CardHeader>
+        <div className="flex items-center space-x-2">
+          <Link className="h-5 w-5" />
+          <CardTitle className="text-xl">Request Page URL</CardTitle>
+        </div>
+        <CardDescription>
+          Generate a unique URL for {organizationName} where external users can submit data protection
+          requests and grievances.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {requestPageUrl ? (
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Input
+                value={requestPageUrl}
+                readOnly
+                className="font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={copyToClipboard}
+                disabled={!requestPageUrl}
+                className="flex-shrink-0"
+              >
+                {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={openUrl}
+                disabled={!requestPageUrl}
+                className="flex-shrink-0"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Share this URL with individuals who need to submit data protection requests or
+              grievances to this organization.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-md border border-dashed p-6 flex flex-col items-center justify-center">
+            <div className="text-center">
+              <Link className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <h3 className="font-medium mb-1">No Request Page URL</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Generate a URL to allow external users to submit requests.
+              </p>
+              <Button
+                onClick={generateRequestPageUrl}
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>Generate URL</>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+      {requestPageUrl && (
+        <CardFooter>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={generateRequestPageUrl}
+            disabled={isGenerating}
           >
-            {generateMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+            {isGenerating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Regenerating...
+              </>
             ) : (
-              <RefreshCw className="h-4 w-4" />
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Regenerate URL
+              </>
             )}
           </Button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          This URL will allow external users to submit data protection requests and grievances for this organization.
-        </p>
-      </div>
-    </div>
+        </CardFooter>
+      )}
+    </Card>
   );
 }

@@ -1,75 +1,57 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'wouter';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { useState } from 'react';
+import { useParams, useLocation } from 'wouter';
 import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { useToast } from '@/hooks/use-toast';
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Loader2, Check, Building, User, Mail, Phone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
-// Schema for DP Request form
+// Schema for data protection request form
 const dpRequestSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Invalid email address'),
+  email: z.string().email('Invalid email format'),
   phone: z.string().min(1, 'Phone number is required'),
-  requestType: z.enum(['Access', 'Correction', 'Nomination', 'Erasure']),
-  requestComment: z.string().min(1, 'Please provide details about your request'),
+  requestType: z.enum(['Access', 'Correction', 'Nomination', 'Erasure'], {
+    required_error: 'Please select a request type',
+  }),
+  requestComment: z.string().optional(),
+  submissionType: z.literal('dpRequest'),
 });
 
-// Schema for Grievance form
+// Schema for grievance form
 const grievanceSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Invalid email address'),
+  email: z.string().email('Invalid email format'),
   phone: z.string().min(1, 'Phone number is required'),
-  grievanceDetails: z.string().min(1, 'Please provide details about your grievance'),
-  affectedRights: z.string().optional(),
+  grievanceComment: z.string().min(1, 'Please describe your grievance'),
+  submissionType: z.literal('grievance'),
 });
 
-export default function RequestPage() {
-  const { token } = useParams();
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('dpr');
-  const [isSubmitted, setIsSubmitted] = useState(false);
+type DPRequestFormValues = z.infer<typeof dpRequestSchema>;
+type GrievanceFormValues = z.infer<typeof grievanceSchema>;
 
-  // Form for Data Protection Request
-  const dprForm = useForm<z.infer<typeof dpRequestSchema>>({
+export default function RequestPage() {
+  const [location, setLocation] = useLocation();
+  const { token } = useParams<{ token: string }>();
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [submissionId, setSubmissionId] = useState<number | null>(null);
+  const [submissionType, setSubmissionType] = useState<'dpRequest' | 'grievance' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Form for data protection requests
+  const dpRequestForm = useForm<DPRequestFormValues>({
     resolver: zodResolver(dpRequestSchema),
     defaultValues: {
       firstName: '',
@@ -77,38 +59,30 @@ export default function RequestPage() {
       email: '',
       phone: '',
       requestComment: '',
+      submissionType: 'dpRequest',
     },
   });
-
-  // Form for Grievance
-  const grievanceForm = useForm<z.infer<typeof grievanceSchema>>({
+  
+  // Form for grievances
+  const grievanceForm = useForm<GrievanceFormValues>({
     resolver: zodResolver(grievanceSchema),
     defaultValues: {
       firstName: '',
       lastName: '',
       email: '',
       phone: '',
-      grievanceDetails: '',
-      affectedRights: '',
+      grievanceComment: '',
+      submissionType: 'grievance',
     },
   });
-
-  // Fetch organization data
-  const { data: orgData, isLoading, isError } = useQuery({
-    queryKey: [`/api/request-page/${token}`],
-    queryFn: async () => {
-      const response = await fetch(`/api/request-page/${token}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch organization data');
-      }
-      return response.json();
-    },
-  });
-
-  // Create DP Request mutation
-  const createDPRMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof dpRequestSchema>) => {
-      const response = await fetch(`/api/request-page/${token}/dp-request`, {
+  
+  // Handle DP request submission
+  const handleDPRequestSubmit = async (data: DPRequestFormValues) => {
+    setSubmitting(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`/api/request-page/${token}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -116,33 +90,41 @@ export default function RequestPage() {
         body: JSON.stringify(data),
       });
       
+      const result = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit request');
+        throw new Error(result.message || 'Failed to submit request');
       }
       
-      return response.json();
-    },
-    onSuccess: () => {
+      setSuccess(true);
+      setSubmissionId(result.requestId);
+      setSubmissionType('dpRequest');
+      
       toast({
         title: 'Request Submitted',
         description: 'Your data protection request has been submitted successfully.',
       });
-      setIsSubmitted(true);
-    },
-    onError: (error: Error) => {
+    } catch (error) {
+      console.error('Error submitting DP request:', error);
+      setError((error as Error).message || 'Failed to submit request. Please try again later.');
+      
       toast({
         title: 'Submission Failed',
-        description: error.message,
+        description: (error as Error).message || 'Failed to submit request. Please try again later.',
         variant: 'destructive',
       });
-    },
-  });
-
-  // Create Grievance mutation
-  const createGrievanceMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof grievanceSchema>) => {
-      const response = await fetch(`/api/request-page/${token}/grievance`, {
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  // Handle grievance submission
+  const handleGrievanceSubmit = async (data: GrievanceFormValues) => {
+    setSubmitting(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`/api/request-page/${token}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -150,188 +132,159 @@ export default function RequestPage() {
         body: JSON.stringify(data),
       });
       
+      const result = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit grievance');
+        throw new Error(result.message || 'Failed to submit grievance');
       }
       
-      return response.json();
-    },
-    onSuccess: () => {
+      setSuccess(true);
+      setSubmissionId(result.grievanceId);
+      setSubmissionType('grievance');
+      
       toast({
         title: 'Grievance Submitted',
         description: 'Your grievance has been submitted successfully.',
       });
-      setIsSubmitted(true);
-    },
-    onError: (error: Error) => {
+    } catch (error) {
+      console.error('Error submitting grievance:', error);
+      setError((error as Error).message || 'Failed to submit grievance. Please try again later.');
+      
       toast({
         title: 'Submission Failed',
-        description: error.message,
+        description: (error as Error).message || 'Failed to submit grievance. Please try again later.',
         variant: 'destructive',
       });
-    },
-  });
-
-  // Handle DPR form submission
-  const onDPRSubmit = (data: z.infer<typeof dpRequestSchema>) => {
-    createDPRMutation.mutate(data);
+    } finally {
+      setSubmitting(false);
+    }
   };
-
-  // Handle Grievance form submission
-  const onGrievanceSubmit = (data: z.infer<typeof grievanceSchema>) => {
-    createGrievanceMutation.mutate(data);
+  
+  // Check request status
+  const handleCheckStatus = () => {
+    setLocation('/request-status');
   };
-
-  if (isLoading) {
+  
+  // If submission was successful, show success message and tracking info
+  if (success && submissionId) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading...</span>
-      </div>
-    );
-  }
-
-  if (isError || !orgData) {
-    return (
-      <div className="container mx-auto p-8 max-w-4xl">
+      <div className="container max-w-2xl mx-auto py-12 px-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-center text-red-600">Invalid Request Page</CardTitle>
-            <CardDescription className="text-center">
-              This request page link is invalid or has expired. Please contact the organization for a valid link.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isSubmitted) {
-    return (
-      <div className="container mx-auto p-8 max-w-4xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center text-green-600">Request Submitted</CardTitle>
-            <CardDescription className="text-center">
-              Your request has been submitted successfully. Thank you for your submission.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center items-center p-8">
-            <div className="bg-green-100 p-4 rounded-full">
-              <Check className="h-16 w-16 text-green-600" />
+            <div className="flex items-center space-x-2">
+              <CheckCircle2 className="h-6 w-6 text-green-500" />
+              <CardTitle>Submission Successful</CardTitle>
             </div>
+            <CardDescription>
+              Your {submissionType === 'dpRequest' ? 'data protection request' : 'grievance'} has been submitted successfully.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="border rounded-md p-4 bg-muted/30">
+              <h3 className="font-medium text-sm mb-2">Reference Number</h3>
+              <p className="text-lg font-bold">{submissionId}</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Please save this reference number to check the status of your request.
+              </p>
+            </div>
+            
+            <Alert>
+              <AlertTitle>What happens next?</AlertTitle>
+              <AlertDescription>
+                Your submission will be reviewed by the organization. You can check the status of your request
+                at any time using your reference number and email address.
+              </AlertDescription>
+            </Alert>
           </CardContent>
-          <CardFooter className="flex justify-center">
-            <Button onClick={() => window.location.reload()}>Submit Another Request</Button>
+          <CardFooter>
+            <Button onClick={handleCheckStatus} className="w-full">
+              Check Request Status
+            </Button>
           </CardFooter>
         </Card>
       </div>
     );
   }
-
+  
   return (
-    <div className="container mx-auto p-4 md:p-8 max-w-4xl">
-      <Card className="mb-8">
+    <div className="container max-w-2xl mx-auto py-12 px-4">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Building className="mr-2 h-6 w-6" />
-            {orgData.organization?.name || 'Organization'}
-          </CardTitle>
+          <CardTitle>Data Protection Request Form</CardTitle>
           <CardDescription>
-            Data Protection and Grievance Portal
+            Use this form to submit data protection requests or grievances to the organization.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <User className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span>Contact: {orgData.organization?.contactPerson}</span>
-              </div>
-              <div className="flex items-center">
-                <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span>Email: {orgData.organization?.contactEmail}</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <Phone className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span>Phone: {orgData.organization?.contactPhone}</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Tabs defaultValue="dpr" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="dpr">Data Protection Request</TabsTrigger>
-          <TabsTrigger value="grievance">Grievance</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="dpr" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Submit a Data Protection Request</CardTitle>
-              <CardDescription>
-                Use this form to request access, correction, erasure, or nomination of your personal data.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...dprForm}>
-                <form onSubmit={dprForm.handleSubmit(onDPRSubmit)} className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          <Tabs defaultValue="request" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="request">Data Protection Request</TabsTrigger>
+              <TabsTrigger value="grievance">Grievance</TabsTrigger>
+            </TabsList>
+            
+            {/* Data Protection Request Form */}
+            <TabsContent value="request">
+              <Form {...dpRequestForm}>
+                <form onSubmit={dpRequestForm.handleSubmit(handleDPRequestSubmit)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
-                      control={dprForm.control}
+                      control={dpRequestForm.control}
                       name="firstName"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter your first name" {...field} />
+                            <Input placeholder="Enter your first name" {...field} disabled={submitting} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    
                     <FormField
-                      control={dprForm.control}
+                      control={dpRequestForm.control}
                       name="lastName"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Last Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter your last name" {...field} />
+                            <Input placeholder="Enter your last name" {...field} disabled={submitting} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </div>
-                  
-                  <div className="grid md:grid-cols-2 gap-4">
+                    
                     <FormField
-                      control={dprForm.control}
+                      control={dpRequestForm.control}
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel>Email Address</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="Enter your email" {...field} />
+                            <Input type="email" placeholder="Enter your email" {...field} disabled={submitting} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    
                     <FormField
-                      control={dprForm.control}
+                      control={dpRequestForm.control}
                       name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Phone</FormLabel>
+                          <FormLabel>Phone Number</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter your phone number" {...field} />
+                            <Input placeholder="Enter your phone number" {...field} disabled={submitting} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -340,81 +293,87 @@ export default function RequestPage() {
                   </div>
                   
                   <FormField
-                    control={dprForm.control}
+                    control={dpRequestForm.control}
                     name="requestType"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="space-y-3">
                         <FormLabel>Request Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select request type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Access">Access to my data</SelectItem>
-                            <SelectItem value="Correction">Correction of my data</SelectItem>
-                            <SelectItem value="Nomination">Nomination (Transfer of data to third party)</SelectItem>
-                            <SelectItem value="Erasure">Erasure (Delete my data)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Select the type of data protection request you want to make
-                        </FormDescription>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="grid grid-cols-2 gap-4"
+                            disabled={submitting}
+                          >
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="Access" />
+                              </FormControl>
+                              <FormLabel className="font-normal">Access</FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="Correction" />
+                              </FormControl>
+                              <FormLabel className="font-normal">Correction</FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="Erasure" />
+                              </FormControl>
+                              <FormLabel className="font-normal">Erasure</FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="Nomination" />
+                              </FormControl>
+                              <FormLabel className="font-normal">Nomination</FormLabel>
+                            </FormItem>
+                          </RadioGroup>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   
                   <FormField
-                    control={dprForm.control}
+                    control={dpRequestForm.control}
                     name="requestComment"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Request Details</FormLabel>
+                        <FormLabel>Additional Details</FormLabel>
                         <FormControl>
-                          <Textarea 
-                            placeholder="Please provide details about your request" 
-                            className="min-h-32"
-                            {...field} 
+                          <Textarea
+                            placeholder="Please provide additional details about your request"
+                            className="min-h-[120px]"
+                            {...field}
+                            disabled={submitting}
                           />
                         </FormControl>
-                        <FormDescription>
-                          Provide as much detail as possible to help us process your request efficiently
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={createDPRMutation.isPending}
-                  >
-                    {createDPRMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Button type="submit" className="w-full" disabled={submitting}>
+                    {submitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      'Submit Request'
                     )}
-                    Submit Request
                   </Button>
                 </form>
               </Form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="grievance" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Submit a Grievance</CardTitle>
-              <CardDescription>
-                Use this form to report a grievance or complaint related to your data protection rights.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+            </TabsContent>
+            
+            {/* Grievance Form */}
+            <TabsContent value="grievance">
               <Form {...grievanceForm}>
-                <form onSubmit={grievanceForm.handleSubmit(onGrievanceSubmit)} className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
+                <form onSubmit={grievanceForm.handleSubmit(handleGrievanceSubmit)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={grievanceForm.control}
                       name="firstName"
@@ -422,12 +381,13 @@ export default function RequestPage() {
                         <FormItem>
                           <FormLabel>First Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter your first name" {...field} />
+                            <Input placeholder="Enter your first name" {...field} disabled={submitting} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    
                     <FormField
                       control={grievanceForm.control}
                       name="lastName"
@@ -435,36 +395,35 @@ export default function RequestPage() {
                         <FormItem>
                           <FormLabel>Last Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter your last name" {...field} />
+                            <Input placeholder="Enter your last name" {...field} disabled={submitting} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </div>
-                  
-                  <div className="grid md:grid-cols-2 gap-4">
+                    
                     <FormField
                       control={grievanceForm.control}
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel>Email Address</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="Enter your email" {...field} />
+                            <Input type="email" placeholder="Enter your email" {...field} disabled={submitting} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                    
                     <FormField
                       control={grievanceForm.control}
                       name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Phone</FormLabel>
+                          <FormLabel>Phone Number</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter your phone number" {...field} />
+                            <Input placeholder="Enter your phone number" {...field} disabled={submitting} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -474,58 +433,44 @@ export default function RequestPage() {
                   
                   <FormField
                     control={grievanceForm.control}
-                    name="affectedRights"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Affected Rights (Optional)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Specify the rights you believe have been affected" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          For example: Right to access, right to erasure, etc.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={grievanceForm.control}
-                    name="grievanceDetails"
+                    name="grievanceComment"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Grievance Details</FormLabel>
                         <FormControl>
-                          <Textarea 
-                            placeholder="Please describe your grievance in detail" 
-                            className="min-h-32"
-                            {...field} 
+                          <Textarea
+                            placeholder="Please describe your grievance in detail"
+                            className="min-h-[150px]"
+                            {...field}
+                            disabled={submitting}
                           />
                         </FormControl>
-                        <FormDescription>
-                          Provide as much detail as possible about your grievance, including dates, specific incidents, and any previous communication
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={createGrievanceMutation.isPending}
-                  >
-                    {createGrievanceMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Button type="submit" className="w-full" disabled={submitting}>
+                    {submitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      'Submit Grievance'
                     )}
-                    Submit Grievance
                   </Button>
                 </form>
               </Form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <Button variant="outline" onClick={handleCheckStatus}>
+            Check Request Status
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

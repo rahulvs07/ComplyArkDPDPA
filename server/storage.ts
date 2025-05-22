@@ -857,6 +857,14 @@ export class DatabaseStorage implements IStorage {
     const [organization] = await db.select().from(organizations).where(eq(organizations.id, id));
     return organization;
   }
+  
+  async getOrganizationByToken(token: string): Promise<Organization | undefined> {
+    const [organization] = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.requestPageUrlToken, token));
+    return organization;
+  }
 
   async createOrganization(organization: InsertOrganization): Promise<Organization> {
     const [org] = await db.insert(organizations).values(organization).returning();

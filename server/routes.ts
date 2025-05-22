@@ -128,10 +128,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Request Page URL Generation route (for organization management)
-  app.post('/api/organizations/:id/request-page-url', isAuthenticated, isAdmin, requestPageController.generateRequestPageUrl);
+  app.post('/api/organizations/:organizationId/request-page-token', isAuthenticated, isAdmin, requestPageController.generateRequestPageToken);
   
   // External Request Page routes (no authentication)
-  app.post('/api/request-page/:token/submit', requestPageController.submitDataProtectionRequest);
+  app.get('/api/request-page/:token', requestPageController.getRequestPageByToken);
+  app.post('/api/request-page/:token/submit', requestPageController.submitRequest);
   app.get('/api/request-page/status', requestPageController.checkRequestStatus);
   
   // Grievance routes

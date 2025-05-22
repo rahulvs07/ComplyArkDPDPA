@@ -13,6 +13,8 @@ import AdminIndustries from "@/pages/admin/industries";
 import AdminTemplates from "@/pages/admin/templates";
 import UserSettings from "@/pages/user/settings";
 import WelcomePage from "@/pages/welcome";
+import RequestPage from "@/pages/RequestPage";
+import RequestStatusPage from "@/pages/RequestStatusPage";
 import React from "react";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "./components/layout/AppLayout";
@@ -96,7 +98,7 @@ function Router() {
       
       <Route path="/admin/request-statuses">
         <AppLayout>
-          <ProtectedRoute component={React.lazy(() => import("./pages/RequestStatusPage"))} adminOnly={true} />
+          <ProtectedRoute component={RequestStatusPage} adminOnly={true} />
         </AppLayout>
       </Route>
       
@@ -106,11 +108,9 @@ function Router() {
         </AppLayout>
       </Route>
       
-      <Route path="/request-page/:token">
-        <React.Suspense fallback={<div>Loading...</div>}>
-          <ProtectedRoute component={React.lazy(() => import("./pages/RequestPage"))} />
-        </React.Suspense>
-      </Route>
+      {/* Public routes for external request submissions */}
+      <Route path="/request-page/:token" component={RequestPage} />
+      <Route path="/request-status" component={RequestStatusPage} />
       
       {/* Fallback to 404 */}
       <Route component={NotFound} />
