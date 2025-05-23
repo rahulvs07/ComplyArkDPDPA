@@ -34,10 +34,24 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
     if (selectedTemplate) {
       const template = templates.find(t => t.templateId.toString() === selectedTemplate);
       if (template) {
-        setNoticeBody(template.templateBody);
+        let templateContent = template.templateBody;
+        
+        // Check if this is the simple privacy notice template
+        if (template.templateName === "Simple Privacy Notice") {
+          // Get the formatted data from questionnaire
+          const formattedData = formatSelectedData();
+          
+          // Replace the placeholder with the formatted data
+          templateContent = templateContent.replace(
+            "Selected Personal Data Fields:",
+            "Selected Personal Data Fields:\n" + formattedData
+          );
+        }
+        
+        setNoticeBody(templateContent);
       }
     }
-  }, [selectedTemplate, templates]);
+  }, [selectedTemplate, templates, questionnaireData]);
   
   // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
