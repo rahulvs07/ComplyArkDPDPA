@@ -324,7 +324,11 @@ export default function OTPVerificationPage() {
           <CardFooter>
             <Button 
               className="w-full bg-primary-600 hover:bg-primary-700"
-              onClick={() => navigate(`/request-form/${token}`)}
+              onClick={() => {
+                console.log('Navigating to request page with token:', token);
+                // Force navigation with window.location to ensure proper redirect
+                window.location.href = `/request-form/${token}`;
+              }}
             >
               Continue to Request Page
               <ChevronRight className="ml-2 h-4 w-4" />
@@ -422,7 +426,8 @@ export default function OTPVerificationPage() {
                         onSuccess={(email) => {
                           setVerified(true);
                           setEmail(email);
-                          navigate(`/request-form/${token}`);
+                          console.log('Google login successful, navigating to:', `/request-form/${token}`);
+                          window.location.href = `/request-form/${token}`;
                         }}
                         organizationId={organization.id}
                       />
@@ -431,7 +436,8 @@ export default function OTPVerificationPage() {
                         onSuccess={(email) => {
                           setVerified(true);
                           setEmail(email);
-                          navigate(`/request-form/${token}`);
+                          console.log('Microsoft login successful, navigating to:', `/request-form/${token}`);
+                          window.location.href = `/request-form/${token}`;
                         }}
                         organizationId={organization.id}
                       />
