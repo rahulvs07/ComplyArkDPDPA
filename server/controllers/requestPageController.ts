@@ -164,13 +164,25 @@ export async function createDPRequest(req: Request, res: Response) {
       .values(requestValues)
       .returning();
     
-    // Create initial history record - use consistent fallbacks for required fields
+    // Create initial history record with a valid user ID
+    // First try to find any valid user in the database to use
+    const anyValidUser = await db.query.users.findFirst();
+    
     const historyEntry: any = {
       requestId: dpRequest.requestId,
-      changedByUserId: adminId || 999, // Use superadmin ID if no admin found
+      changedByUserId: adminId || (anyValidUser ? anyValidUser.id : null),
       newStatusId: initialStatus.statusId,
       comments: "Request created by data principal"
     };
+    
+    // If we still don't have a valid user ID, skip history creation
+    if (!historyEntry.changedByUserId) {
+      console.log("Warning: No valid user ID found for request history, skipping history creation");
+      return res.status(201).json({
+        message: "Data Protection Request created successfully (without history)",
+        requestId: dpRequest.requestId
+      });
+    }
     
     // Only include assigned user ID if it exists
     if (adminId) {
