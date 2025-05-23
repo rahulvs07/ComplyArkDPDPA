@@ -265,6 +265,7 @@ export const translateNotice = async (req: AuthRequest, res: Response) => {
       // Create translated notice record
       const translatedNotice = await storage.createTranslatedNotice({
         noticeId: notice.noticeId,
+        organizationId: notice.organizationId,
         language: languageMapping[langCode] || langCode,
         translatedBody: translatedText,
         filePath
@@ -275,6 +276,24 @@ export const translateNotice = async (req: AuthRequest, res: Response) => {
         languageCode: langCode,
         languageName: languageMapping[langCode] || langCode
       });
+      
+      // Create a notification for the translation
+      try {
+        await storage.createNotification({
+          userId: req.user.id,
+          organizationId: notice.organizationId,
+          module: 'Notice',
+          action: `Notice translated to ${languageMapping[langCode] || langCode}`,
+          actionType: 'translated',
+          message: `The notice "${notice.noticeName}" has been translated to ${languageMapping[langCode] || langCode}`,
+          initiator: 'user',
+          relatedItemId: notice.noticeId,
+          relatedItemType: 'Notice'
+        });
+      } catch (error) {
+        console.error('Failed to create notification:', error);
+        // Continue execution even if notification creation fails
+      }
     }
     
     return res.status(200).json({
