@@ -170,6 +170,7 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
     }
     
     // Generate default folders as a fallback
+    // Create folders with contextual folderPath to match the current navigation
     const defaultFolders = [
       {
         documentId: -1, // Use negative IDs for temporary folders
@@ -179,7 +180,8 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
         uploadedBy: validUserId || 1,
         uploadedAt: new Date(),
         organizationId: orgId,
-        folderPath: "/"
+        folderPath: folderPath,
+        uploadedByName: "System"
       },
       {
         documentId: -2,
@@ -189,7 +191,8 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
         uploadedBy: validUserId || 1,
         uploadedAt: new Date(),
         organizationId: orgId,
-        folderPath: "/"
+        folderPath: folderPath,
+        uploadedByName: "System"
       },
       {
         documentId: -3,
@@ -199,7 +202,8 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
         uploadedBy: validUserId || 1,
         uploadedAt: new Date(),
         organizationId: orgId,
-        folderPath: "/"
+        folderPath: folderPath,
+        uploadedByName: "System"
       }
     ];
     
