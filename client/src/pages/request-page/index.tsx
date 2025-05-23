@@ -67,8 +67,8 @@ export default function RequestPage() {
         type: 'dpr'
       });
       
-      // Reset form
-      e.currentTarget.reset();
+      // Form reset is not needed since the component will re-render 
+      // and hide this form when showing the success message
       
     } catch (error) {
       console.error('Error submitting DP request:', error);
@@ -117,8 +117,8 @@ export default function RequestPage() {
         type: 'grievance'
       });
       
-      // Reset form
-      e.currentTarget.reset();
+      // Form reset is not needed since the component will re-render
+      // and hide this form when showing the success message
       
     } catch (error) {
       console.error('Error submitting grievance:', error);
