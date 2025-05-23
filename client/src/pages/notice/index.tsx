@@ -25,7 +25,9 @@ export default function NoticeModule() {
       apiRequest(
         "POST", 
         `/api/organizations/${user?.organizationId}/notices`, 
-        data
+        {
+          body: JSON.stringify(data)
+        }
       ),
     onSuccess: async (response) => {
       const data = await response.json();
@@ -57,18 +59,50 @@ export default function NoticeModule() {
     console.log("Preview data received:", data);
     setNoticeData(data);
     
-    // Create notice with required fields validation
-    // Using direct field names that match the schema in the server
+    // Create a direct fetch request instead of using the mutation
+    // This bypasses potential issues with how the data is being passed
     const noticePayload = {
-      noticeName: data.noticeName || "Untitled Notice",
-      noticeBody: data.noticeBody || "No content provided",
+      noticeName: data.noticeName,
+      noticeBody: data.noticeBody,
       noticeType: data.noticeType || "General",
-      // Add any additional fields needed by the schema
       version: "1.0"
     };
     
-    console.log("Sending notice payload:", noticePayload);
-    createNoticeMutation.mutate(noticePayload);
+    console.log("Sending direct fetch request with payload:", noticePayload);
+    
+    // Use direct fetch with explicit content type and method
+    fetch(`/api/organizations/${user?.organizationId}/notices`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(noticePayload),
+      credentials: "include"
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log("Notice created successfully:", data);
+      setCreatedNotice(data);
+      setActiveTab("translation");
+      queryClient.invalidateQueries({ queryKey: [`/api/organizations/${user?.organizationId}/notices`] });
+      toast({
+        title: "Success",
+        description: "Notice created successfully",
+      });
+    })
+    .catch(error => {
+      console.error("Failed to create notice:", error);
+      toast({
+        title: "Error",
+        description: `Failed to create notice: ${error.message}`,
+        variant: "destructive",
+      });
+    });
   };
   
   // Handle previous navigation
