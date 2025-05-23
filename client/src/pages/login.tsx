@@ -76,10 +76,9 @@ export default function Login() {
         <div className="w-full max-w-md flex flex-col items-center">
           {/* Logo */}
           <div className="mb-8 flex flex-col items-center">
-            <div className="h-16 w-16 bg-[#2E77AE] rounded-full flex items-center justify-center mb-4">
-              <Shield className="h-8 w-8 text-white" />
+            <div className="mb-4">
+              <img src="/images/complyark-full-logo.jpg" alt="ComplyArk Logo" className="h-16" />
             </div>
-            <h1 className="text-2xl font-bold mb-1">ComplyArk</h1>
             <p className="text-sm text-[#0F3460]">
               DPDPA Compliance Management System
             </p>

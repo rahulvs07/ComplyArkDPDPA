@@ -307,10 +307,7 @@ export default function RequestPage() {
       <header className="bg-white border-b border-gray-200 py-4 px-6 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="font-bold text-xl text-primary">
-              <span className="text-black font-bold">Comply</span>
-              <span className="text-blue-600 font-bold">Ark</span>
-            </span>
+            <img src="/images/complyark-full-logo.jpg" alt="ComplyArk Logo" className="h-10" />
           </div>
           <div className="text-sm text-muted-foreground">
             Request Page for {organization.name}

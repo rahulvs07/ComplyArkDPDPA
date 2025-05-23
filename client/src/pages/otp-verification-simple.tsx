@@ -347,16 +347,10 @@ export default function OTPVerificationSimplePage() {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 bg-primary-600 text-white rounded-t-lg">
           <div className="flex flex-col items-center mb-4">
-            <div className="bg-white rounded-full p-3 mb-2">
-              <ShieldCheck className="h-8 w-8 text-primary-600" />
+            <div className="bg-white rounded-md p-2 mb-2">
+              <img src="/images/complyark-full-logo.jpg" alt="ComplyArk Logo" className="h-12" />
             </div>
-            <div className="text-center">
-              <h2 className="text-xl font-bold">
-                <span className="text-black">Comply</span>
-                <span className="text-blue-500">Ark</span>
-              </h2>
-              <p className="text-sm text-white/80">Privacy Request Portal</p>
-            </div>
+            <p className="text-sm text-white/80">Privacy Request Portal</p>
           </div>
           
           <div className="flex items-center gap-2">
