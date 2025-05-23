@@ -1,7 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import Logo from "@/components/Logo";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -26,7 +25,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Logo Area */}
       <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Logo size="sm" />
+          <div className="h-9 w-9 rounded bg-[#2E77AE] flex items-center justify-center">
+            <span className="text-white font-display font-bold text-xl">C</span>
+          </div>
+          <h1 className="text-xl font-display font-semibold">
+            <span className="text-[#0F3460]">Comply</span>
+            <span className="text-[#2E77AE]">Ark</span>
+          </h1>
         </div>
         <button 
           className="lg:hidden text-neutral-500 hover:text-neutral-800" 

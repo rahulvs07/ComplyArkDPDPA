@@ -9,7 +9,6 @@ import {
   LayoutDashboardIcon,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import Logo from "@/components/Logo";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -71,102 +70,158 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white px-4">
-      <div className="w-full max-w-md flex flex-col items-center bg-white p-8 rounded-lg">
-        {/* Logo */}
-        <div className="mb-6 flex flex-col items-center">
-          <Logo size="lg" />
-          <p className="text-center text-gray-700 font-medium">
-            DPDPA Compliance Management System
-          </p>
-        </div>
-
-        {/* Login form */}
-        <form onSubmit={handleSubmit} className="w-full space-y-4">
-          <div>
-            <input
-              id="email"
-              type="text"
-              placeholder="Email address"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#2E77AE] focus:border-[#2E77AE]"
-              required
-            />
+    <div className="flex min-h-screen">
+      {/* Left side - Login form */}
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center px-6 lg:px-16 xl:px-28">
+        <div className="w-full max-w-md flex flex-col items-center">
+          {/* Logo */}
+          <div className="mb-8 flex flex-col items-center">
+            <div className="mb-4">
+              <img src="/images/complyark-full-logo.jpg" alt="ComplyArk Logo" className="h-16" />
+            </div>
+            <p className="text-sm text-[#0F3460]">
+              DPDPA Compliance Management System
+            </p>
           </div>
 
-          <div>
-            <input
-              id="password"
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#2E77AE] focus:border-[#2E77AE]"
-              required
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Checkbox
-                id="remember-me"
-                checked={rememberMe}
-                onCheckedChange={(checked) =>
-                  setRememberMe(checked as boolean)
-                }
-                className="h-4 w-4 text-[#2E77AE] focus:ring-[#2E77AE]"
+          {/* Login form */}
+          <form onSubmit={handleSubmit} className="w-full space-y-4">
+            <div>
+              <input
+                id="email"
+                type="text"
+                placeholder="Email address"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#2E77AE] focus:border-[#2E77AE]"
+                required
               />
-              <label
-                htmlFor="remember-me"
-                className="ml-2 block text-sm text-gray-700"
-              >
-                Remember me
-              </label>
             </div>
 
-            <div className="text-sm">
-              <a
-                href="#"
-                className="text-[#2E77AE] hover:text-[#0F3460]"
-                onClick={(e) => e.preventDefault()}
-              >
-                Forgot your password?
-              </a>
+            <div>
+              <input
+                id="password"
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
             </div>
-          </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoadingLogin}
-              className="w-full bg-[#2E77AE] hover:bg-[#0F3460] text-white py-3 px-4 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#2E77AE] focus:ring-offset-2"
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) =>
+                    setRememberMe(checked as boolean)
+                  }
+                  className="h-4 w-4 text-blue-500 focus:ring-blue-500"
+                />
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-700"
+                >
+                  Remember me
+                </label>
+              </div>
+
+              <div className="text-sm">
+                <a
+                  href="#"
+                  className="text-blue-500 hover:text-blue-600"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  Forgot your password?
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={isLoadingLogin}
+                className="w-full bg-[#2E77AE] hover:bg-[#0F3460] text-white py-2 px-4 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#2E77AE] focus:ring-offset-2"
+              >
+                {isLoadingLogin ? "Signing in..." : "Sign in"}
+              </button>
+            </div>
+          </form>
+
+          {success && (
+            <div className="mt-4 p-2 bg-green-50 border border-green-200 rounded text-green-700 text-center w-full">
+              {success}
+            </div>
+          )}
+
+          <div className="mt-4 text-center text-sm text-gray-600">
+            <a
+              href="#"
+              className="text-blue-500 hover:text-blue-600"
+              onClick={(e) => e.preventDefault()}
             >
-              {isLoadingLogin ? "Signing in..." : "Sign in"}
-            </button>
+              Administrator Login
+            </a>
           </div>
-        </form>
 
-        {success && (
-          <div className="mt-4 p-2 bg-green-50 border border-green-200 rounded text-green-700 text-center w-full">
-            {success}
+          <div className="mt-6 text-center text-sm text-gray-500">
+            <p>Demo Credentials:</p>
+            <p>Admin: complyarkadmin / complyarkadmin</p>
+            <p>User: user / password</p>
           </div>
-        )}
-
-        <div className="mt-4 text-center text-sm">
-          <a
-            href="#"
-            className="text-[#2E77AE] hover:text-[#0F3460]"
-            onClick={(e) => e.preventDefault()}
-          >
-            Administrator Login
-          </a>
         </div>
+      </div>
 
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Demo Credentials:</p>
-          <p>Admin: complyarkadmin / complyarkadmin</p>
-          <p>User: user / password</p>
+      {/* Right side - Banner image */}
+      <div className="hidden lg:block lg:w-1/2 bg-blue-600 relative">
+        <div className="absolute inset-0 p-12 flex flex-col justify-center text-white">
+          <h2 className="text-3xl font-bold mb-4">
+            Streamline Your DPDPA Compliance
+          </h2>
+          <p className="mb-8">
+            Comprehensive tools to manage data protection and privacy policies
+            efficiently.
+          </p>
+
+          <div className="space-y-6">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-white/20 p-2 rounded-full">
+                <LockIcon className="h-5 w-5" />
+              </div>
+              <div className="ml-4">
+                <h3 className="font-semibold">Enhanced Security</h3>
+                <p className="text-sm text-white/80">
+                  Protect sensitive data with robust compliance tools
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-white/20 p-2 rounded-full">
+                <BadgeCheckIcon className="h-5 w-5" />
+              </div>
+              <div className="ml-4">
+                <h3 className="font-semibold">Automated Compliance</h3>
+                <p className="text-sm text-white/80">
+                  Simplify compliance processes with automated workflows
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-white/20 p-2 rounded-full">
+                <LayoutDashboardIcon className="h-5 w-5" />
+              </div>
+              <div className="ml-4">
+                <h3 className="font-semibold">Comprehensive Tools</h3>
+                <p className="text-sm text-white/80">
+                  All-in-one platform for notice generation and management
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
