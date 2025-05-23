@@ -25,13 +25,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Logo Area */}
       <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <div className="h-9 w-9 rounded bg-[#2E77AE] flex items-center justify-center">
-            <span className="text-white font-display font-bold text-xl">C</span>
-          </div>
-          <h1 className="text-xl font-display font-semibold">
-            <span className="text-[#0F3460]">Comply</span>
-            <span className="text-[#2E77AE]">Ark</span>
-          </h1>
+          <img src="/images/complyark-full-logo.jpg" alt="ComplyArk Logo" className="h-10" />
         </div>
         <button 
           className="lg:hidden text-neutral-500 hover:text-neutral-800" 
