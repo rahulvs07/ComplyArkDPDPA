@@ -329,7 +329,7 @@ export default function OTPVerificationSimplePage() {
           </CardContent>
           <CardFooter>
             <Button 
-              className="w-full bg-primary-600 hover:bg-primary-700"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               onClick={continueToRequestPage}
             >
               Continue to Request Page
@@ -351,9 +351,9 @@ export default function OTPVerificationSimplePage() {
               <ShieldCheck className="h-8 w-8 text-primary-600" />
             </div>
             <div className="text-center">
-              <h2 className="text-xl font-bold text-white">
+              <h2 className="text-xl font-bold">
                 <span className="text-black">Comply</span>
-                <span className="text-white">Ark</span>
+                <span className="text-blue-500">Ark</span>
               </h2>
               <p className="text-sm text-white/80">Privacy Request Portal</p>
             </div>
@@ -397,7 +397,7 @@ export default function OTPVerificationSimplePage() {
                 
                 <Button
                   type="submit"
-                  className="w-full bg-primary-600 hover:bg-primary-700"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
@@ -480,7 +480,7 @@ export default function OTPVerificationSimplePage() {
                 <div className="flex flex-col space-y-2">
                   <Button
                     type="submit"
-                    className="w-full bg-primary-600 hover:bg-primary-700"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                     disabled={isVerifying}
                   >
                     {isVerifying ? (
