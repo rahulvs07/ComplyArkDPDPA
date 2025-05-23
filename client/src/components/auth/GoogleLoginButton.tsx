@@ -41,9 +41,9 @@ export default function GoogleLoginButton({ onSuccess, organizationId }: GoogleL
         throw new Error('Google authentication failed');
       }
       
-      // Store authenticated status in session storage
-      sessionStorage.setItem('otp_verified', 'true');
-      sessionStorage.setItem('otp_email', email);
+      // Store authenticated status in organization-specific session storage
+      sessionStorage.setItem(`otp_verified_${organizationId}`, 'true');
+      sessionStorage.setItem(`otp_email_${organizationId}`, email);
       
       // Call the success callback with the email
       onSuccess(email);

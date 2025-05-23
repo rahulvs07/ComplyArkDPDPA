@@ -220,9 +220,9 @@ export default function OTPVerificationPage() {
       
       setVerified(true);
       
-      // Store authenticated status in session storage as a fallback
-      sessionStorage.setItem('otp_verified', 'true');
-      sessionStorage.setItem('otp_email', email);
+      // Store authenticated status in organization-specific session storage
+      sessionStorage.setItem(`otp_verified_${organization.id}`, 'true');
+      sessionStorage.setItem(`otp_email_${organization.id}`, email);
       
       toast({
         title: 'Verification Successful',

@@ -130,11 +130,12 @@ export default function RequestPage() {
 
   useEffect(() => {
     // Check session storage for authentication flag from OTP process
-    const checkSessionAuth = () => {
-      const isVerified = sessionStorage.getItem('otp_verified');
-      const verifiedEmail = sessionStorage.getItem('otp_email');
+    // Make verification organization-specific
+    const checkSessionAuth = (orgId: number) => {
+      const isVerified = sessionStorage.getItem(`otp_verified_${orgId}`);
+      const verifiedEmail = sessionStorage.getItem(`otp_email_${orgId}`);
       if (isVerified === 'true' && verifiedEmail) {
-        console.log('User is already verified via OTP:', verifiedEmail);
+        console.log(`User is already verified via OTP for organization ${orgId}:`, verifiedEmail);
         setIsAuthenticated(true);
         return true;
       }
@@ -152,7 +153,7 @@ export default function RequestPage() {
       }
 
       // Check if user is already verified from OTP flow
-      const isAlreadyVerified = checkSessionAuth();
+      // We need organization id for this, but we don't have it yet
       
       try {
         const response = await fetch(`/api/request-page/${pageToken}`);
@@ -167,19 +168,24 @@ export default function RequestPage() {
           token: data.token
         });
 
-        // Check if user is already authenticated
-        const authCheckResponse = await fetch('/api/otp/check-auth', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            organizationId: data.id
-          }),
-        });
+        // Now check if user is already verified with organization-specific session storage
+        const isAlreadyVerified = checkSessionAuth(data.id);
 
-        const authData = await authCheckResponse.json();
-        setIsAuthenticated(authData.authenticated);
+        // If not verified in session storage, check with the server
+        if (!isAlreadyVerified) {
+          const authCheckResponse = await fetch('/api/otp/check-auth', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              organizationId: data.id
+            }),
+          });
+
+          const authData = await authCheckResponse.json();
+          setIsAuthenticated(authData.authenticated);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load organization information');
       } finally {
@@ -192,16 +198,18 @@ export default function RequestPage() {
 
   // Redirect to OTP verification if not authenticated
   useEffect(() => {
-    // Always check session storage first
-    const isVerified = sessionStorage.getItem('otp_verified') === 'true';
-    const verifiedEmail = sessionStorage.getItem('otp_email');
-    const storedToken = sessionStorage.getItem('request_page_token');
-    
-    // If we have verified status in session storage, use it
-    if (isVerified && verifiedEmail && storedToken) {
-      console.log('Session storage shows verified user:', verifiedEmail);
-      setIsAuthenticated(true);
-      return;
+    // We need to check organization-specific verification
+    if (organization) {
+      const isVerified = sessionStorage.getItem(`otp_verified_${organization.id}`) === 'true';
+      const verifiedEmail = sessionStorage.getItem(`otp_email_${organization.id}`);
+      const storedToken = sessionStorage.getItem('request_page_token');
+      
+      // If we have verified status in session storage for this organization, use it
+      if (isVerified && verifiedEmail && storedToken) {
+        console.log(`Session storage shows verified user for org ${organization.id}:`, verifiedEmail);
+        setIsAuthenticated(true);
+        return;
+      }
     }
     
     // Otherwise redirect to OTP verification
