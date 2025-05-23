@@ -434,11 +434,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Compliance Document routes
   app.get('/api/compliance-documents', isAuthenticated, async (req, res) => {
-    // Get user's organization ID from request
-    const orgId = (req as AuthRequest).user!.organizationId;
-    const folderPath = req.query.folder as string | undefined;
     try {
+      // Get user's organization ID from request
+      const orgId = (req as AuthRequest).user!.organizationId;
+      // Handle folder path parameter
+      const folderPath = req.query.folder as string || '/';
+      
+      console.log(`Fetching compliance documents for org: ${orgId}, path: ${folderPath}`);
+      
       const documents = await storage.listComplianceDocuments(orgId, folderPath);
+      
+      console.log(`Found ${documents.length} documents`);
+      
       return res.status(200).json(documents);
     } catch (error) {
       console.error("Error fetching compliance documents:", error);
