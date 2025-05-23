@@ -22,6 +22,17 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
   const [noticeType, setNoticeType] = useState("");
   const [noticeBody, setNoticeBody] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
+  
+  // Set Simple Privacy Notice as default when templates are loaded
+  useEffect(() => {
+    if (templates && templates.length > 0) {
+      // Find the Simple Privacy Notice template
+      const simpleTemplate = templates.find(t => t.templateName === "Simple Privacy Notice");
+      if (simpleTemplate) {
+        setSelectedTemplate(simpleTemplate.templateId.toString());
+      }
+    }
+  }, [templates]);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   
   // Fetch templates
