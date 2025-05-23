@@ -345,12 +345,33 @@ export default function OTPVerificationSimplePage() {
   
   // Email verification or OTP verification forms
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="min-h-screen bg-background dark:bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-lg dark:shadow-none">
         <CardHeader className="space-y-1 bg-primary-600 text-white rounded-t-lg">
+          <div className="flex items-center justify-between w-full mb-2">
+            <div className="flex-1"></div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={toggleTheme}
+              className="text-white hover:bg-primary-700"
+            >
+              {theme === "light" ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+          </div>
           <div className="flex flex-col items-center mb-4">
             <div className="bg-white rounded-md p-2 mb-2">
-              <img src="/images/complyark-full-logo.jpg" alt="ComplyArk Logo" className="h-12" />
+              <div className="flex items-center">
+                <span className="font-bold text-2xl">
+                  <span className="text-[#0F3460]">Comply</span>
+                  <span className="text-[#2E77AE]">Ark</span>
+                </span>
+              </div>
             </div>
             <p className="text-sm text-white/80">Privacy Request Portal</p>
           </div>
