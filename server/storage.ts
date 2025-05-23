@@ -1,6 +1,7 @@
 import { 
   users, industries, organizations, templates, notices, translatedNotices,
   requestStatuses, dpRequests, dpRequestHistory, grievances, grievanceHistory, complianceDocuments,
+  notificationLogs,
   type User, type InsertUser, 
   type Industry, type InsertIndustry,
   type Organization, type InsertOrganization,
@@ -12,7 +13,8 @@ import {
   type DPRequestHistory, type InsertDPRequestHistory,
   type Grievance, type InsertGrievance,
   type GrievanceHistory, type InsertGrievanceHistory,
-  type ComplianceDocument, type InsertComplianceDocument
+  type ComplianceDocument, type InsertComplianceDocument,
+  type NotificationLog, type InsertNotificationLog
 } from "@shared/schema";
 import crypto from 'crypto';
 
@@ -705,9 +707,141 @@ class MemStorage {
 }
 
 import { db } from "./db";
-import { eq, and, desc, sql, count, isNull, like } from "drizzle-orm";
+import { eq, and, desc, sql, count, isNull, like, inArray } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
+  // Notification operations
+  async getNotifications(organizationId: number, limit: number = 5, offset: number = 0): Promise<any[]> {
+    try {
+      const notifications = await db
+        .select({
+          notificationId: notificationLogs.notificationId,
+          userId: notificationLogs.userId,
+          organizationId: notificationLogs.organizationId,
+          module: notificationLogs.module,
+          action: notificationLogs.action,
+          actionType: notificationLogs.actionType,
+          timestamp: notificationLogs.timestamp,
+          status: notificationLogs.status,
+          initiator: notificationLogs.initiator,
+          message: notificationLogs.message,
+          isRead: notificationLogs.isRead,
+          relatedItemId: notificationLogs.relatedItemId,
+          relatedItemType: notificationLogs.relatedItemType
+        })
+        .from(notificationLogs)
+        .where(eq(notificationLogs.organizationId, organizationId))
+        .orderBy(desc(notificationLogs.timestamp))
+        .limit(limit)
+        .offset(offset);
+      
+      // Add user name to each notification
+      const results = [];
+      for (const notification of notifications) {
+        const user = await this.getUser(notification.userId);
+        results.push({
+          ...notification,
+          userName: user ? `${user.firstName} ${user.lastName}` : 'Unknown User',
+          minutesAgo: Math.floor((Date.now() - new Date(notification.timestamp).getTime()) / 60000)
+        });
+      }
+      
+      return results;
+    } catch (error) {
+      console.error('Error getting notifications:', error);
+      return [];
+    }
+  }
+
+  async getNotificationById(notificationId: number): Promise<any | undefined> {
+    try {
+      const [notification] = await db
+        .select()
+        .from(notificationLogs)
+        .where(eq(notificationLogs.notificationId, notificationId));
+      
+      if (!notification) return undefined;
+      
+      const user = await this.getUser(notification.userId);
+      return {
+        ...notification,
+        userName: user ? `${user.firstName} ${user.lastName}` : 'Unknown User',
+        minutesAgo: Math.floor((Date.now() - new Date(notification.timestamp).getTime()) / 60000)
+      };
+    } catch (error) {
+      console.error('Error getting notification by ID:', error);
+      return undefined;
+    }
+  }
+
+  async createNotification(notification: InsertNotificationLog): Promise<NotificationLog> {
+    try {
+      const [result] = await db
+        .insert(notificationLogs)
+        .values(notification)
+        .returning();
+      
+      return result;
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      throw error;
+    }
+  }
+
+  async markNotificationsAsRead(userId: number, notificationIds?: number[]): Promise<number> {
+    try {
+      if (notificationIds && notificationIds.length > 0) {
+        // Mark specific notifications as read
+        const updateResult = await db
+          .update(notificationLogs)
+          .set({ isRead: true })
+          .where(
+            and(
+              eq(notificationLogs.userId, userId),
+              eq(notificationLogs.isRead, false),
+              inArray(notificationLogs.notificationId, notificationIds)
+            )
+          );
+        
+        return updateResult.rowCount || 0;
+      } else {
+        // Mark all notifications for this user as read
+        const updateResult = await db
+          .update(notificationLogs)
+          .set({ isRead: true })
+          .where(
+            and(
+              eq(notificationLogs.userId, userId),
+              eq(notificationLogs.isRead, false)
+            )
+          );
+        
+        return updateResult.rowCount || 0;
+      }
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+      return 0;
+    }
+  }
+
+  async getUnreadNotificationCount(organizationId: number): Promise<number> {
+    try {
+      const result = await db
+        .select({ count: count() })
+        .from(notificationLogs)
+        .where(
+          and(
+            eq(notificationLogs.organizationId, organizationId),
+            eq(notificationLogs.isRead, false)
+          )
+        );
+      
+      return result[0]?.count || 0;
+    } catch (error) {
+      console.error('Error getting unread notification count:', error);
+      return 0;
+    }
+  }
   // RequestStatus operations
   async updateRequestStatus(id: number, updates: Partial<InsertRequestStatus>): Promise<RequestStatus | undefined> {
     const [updatedStatus] = await db

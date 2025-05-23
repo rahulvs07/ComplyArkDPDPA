@@ -195,6 +195,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
+  // Notification routes
+  app.get('/api/notifications', isAuthenticated, async (req, res) => {
+    try {
+      const notificationController = await import('./controllers/notificationController');
+      await notificationController.getNotifications(req, res);
+    } catch (error) {
+      console.error('Error loading notification controller:', error);
+      res.status(500).json({ message: 'Server error processing notifications request' });
+    }
+  });
+  
+  app.post('/api/notifications', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const notificationController = await import('./controllers/notificationController');
+      await notificationController.addNotification(req, res);
+    } catch (error) {
+      console.error('Error loading notification controller:', error);
+      res.status(500).json({ message: 'Server error processing notification creation' });
+    }
+  });
+  
+  app.put('/api/notifications/mark-as-read', isAuthenticated, async (req, res) => {
+    try {
+      const notificationController = await import('./controllers/notificationController');
+      await notificationController.markNotificationsAsRead(req, res);
+    } catch (error) {
+      console.error('Error loading notification controller:', error);
+      res.status(500).json({ message: 'Server error marking notifications as read' });
+    }
+  });
+  
+  app.get('/api/notifications/unread-count', isAuthenticated, async (req, res) => {
+    try {
+      const notificationController = await import('./controllers/notificationController');
+      await notificationController.getUnreadNotificationCount(req, res);
+    } catch (error) {
+      console.error('Error loading notification controller:', error);
+      res.status(500).json({ message: 'Server error getting unread notification count' });
+    }
+  });
+  
   // Simple OTP test endpoint that always works with "1234"
   app.post('/api/otp/generate', (req, res) => {
     console.log('OTP generate request:', req.body);
