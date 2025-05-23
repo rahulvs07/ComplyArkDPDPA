@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -22,47 +22,87 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
   const [noticeType, setNoticeType] = useState("");
   const [noticeBody, setNoticeBody] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
-  
-  // Set Simple Privacy Notice as default when templates are loaded
-  useEffect(() => {
-    if (templates && templates.length > 0) {
-      // Find the Simple Privacy Notice template
-      const simpleTemplate = templates.find(t => t.templateName === "Simple Privacy Notice");
-      if (simpleTemplate) {
-        setSelectedTemplate(simpleTemplate.templateId.toString());
-      }
-    }
-  }, [templates]);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  
+  // Format selected data for display
+  const formatSelectedData = useMemo(() => {
+    if (!questionnaireData) return "";
+    
+    const { selectedData = {}, thirdPartyData = { sharesWithThirdParties: false, thirdParties: [], sharingPurpose: "" } } = questionnaireData || {};
+    let formattedText = "";
+    
+    // Format categories and fields
+    if (selectedData && typeof selectedData === 'object') {
+      Object.entries(selectedData).forEach(([category, fields]: [string, any]) => {
+        formattedText += `${category}:\n`;
+        
+        if (fields && typeof fields === 'object') {
+          Object.entries(fields).forEach(([field, reason]: [string, any]) => {
+            formattedText += `  - ${field}: ${reason}\n`;
+          });
+        }
+        
+        formattedText += "\n";
+      });
+    }
+    
+    // Add third party information
+    if (thirdPartyData && thirdPartyData.sharesWithThirdParties) {
+      formattedText += "Data Sharing with Third Parties:\n";
+      
+      if (thirdPartyData.thirdParties && thirdPartyData.thirdParties.length > 0) {
+        formattedText += "  Third parties:\n";
+        thirdPartyData.thirdParties.forEach((party: string) => {
+          formattedText += `    - ${party}\n`;
+        });
+      }
+      
+      if (thirdPartyData.sharingPurpose) {
+        formattedText += `  Purpose of sharing: ${thirdPartyData.sharingPurpose}\n`;
+      }
+    } else {
+      formattedText += "Data Sharing with Third Parties: None\n";
+    }
+    
+    return formattedText;
+  }, [questionnaireData]);
   
   // Fetch templates
   const { data: templates = [] } = useQuery({
     queryKey: ["/api/templates"],
   });
   
+  // Set Simple Privacy Notice as default when templates are loaded
+  useEffect(() => {
+    if (templates && Array.isArray(templates) && templates.length > 0) {
+      // Find the Simple Privacy Notice template
+      const simpleTemplate = templates.find((t: any) => t.templateName === "Simple Privacy Notice");
+      if (simpleTemplate) {
+        setSelectedTemplate(simpleTemplate.templateId.toString());
+      }
+    }
+  }, [templates]);
+  
   // Initialize notice body when selected template changes
   useEffect(() => {
-    if (selectedTemplate) {
-      const template = templates.find(t => t.templateId.toString() === selectedTemplate);
+    if (selectedTemplate && templates && Array.isArray(templates)) {
+      const template = templates.find((t: any) => t.templateId.toString() === selectedTemplate);
       if (template) {
         let templateContent = template.templateBody;
         
         // Check if this is the simple privacy notice template
         if (template.templateName === "Simple Privacy Notice") {
-          // Get the formatted data from questionnaire
-          const formattedData = formatSelectedData();
-          
           // Replace the placeholder with the formatted data
           templateContent = templateContent.replace(
             "Selected Personal Data Fields:",
-            "Selected Personal Data Fields:\n" + formattedData
+            "Selected Personal Data Fields:\n" + formatSelectedData
           );
         }
         
         setNoticeBody(templateContent);
       }
     }
-  }, [selectedTemplate, templates, questionnaireData]);
+  }, [selectedTemplate, templates, formatSelectedData]);
   
   // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,45 +128,6 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
         });
       }
     }
-  };
-  
-  // Format selected data for display
-  const formatSelectedData = () => {
-    if (!questionnaireData) return "";
-    
-    const { selectedData, thirdPartyData } = questionnaireData;
-    let formattedText = "";
-    
-    // Format categories and fields
-    Object.entries(selectedData).forEach(([category, fields]: [string, any]) => {
-      formattedText += `${category}:\n`;
-      
-      Object.entries(fields).forEach(([field, reason]: [string, any]) => {
-        formattedText += `  - ${field}: ${reason}\n`;
-      });
-      
-      formattedText += "\n";
-    });
-    
-    // Add third party information
-    if (thirdPartyData.sharesWithThirdParties) {
-      formattedText += "Data Sharing with Third Parties:\n";
-      
-      if (thirdPartyData.thirdParties.length > 0) {
-        formattedText += "  Third parties:\n";
-        thirdPartyData.thirdParties.forEach((party: string) => {
-          formattedText += `    - ${party}\n`;
-        });
-      }
-      
-      if (thirdPartyData.sharingPurpose) {
-        formattedText += `  Purpose of sharing: ${thirdPartyData.sharingPurpose}\n`;
-      }
-    } else {
-      formattedText += "Data Sharing with Third Parties: None\n";
-    }
-    
-    return formattedText;
   };
   
   // Generate preview
@@ -229,7 +230,7 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
-              {templates.map((template: any) => (
+              {Array.isArray(templates) && templates.map((template: any) => (
                 <SelectItem 
                   key={template.templateId} 
                   value={template.templateId.toString()}
@@ -278,7 +279,7 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
                 readOnly 
                 className="font-mono text-sm" 
                 rows={12} 
-                value={formatSelectedData()}
+                value={formatSelectedData}
               />
             </CardContent>
           </Card>
