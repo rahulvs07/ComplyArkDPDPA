@@ -34,9 +34,10 @@ async function calculateCompletionDate(statusId: number): Promise<Date | null> {
   }
 }
 
-// Helper to find organization admin user
+// Helper to find organization admin user or fallback
 async function findOrgAdmin(organizationId: number): Promise<number | null> {
   try {
+    // First try to find an admin user in the organization
     const admin = await db.query.users.findFirst({
       where: and(
         eq(users.organizationId, organizationId),
@@ -44,7 +45,33 @@ async function findOrgAdmin(organizationId: number): Promise<number | null> {
       )
     });
     
-    return admin?.id || null;
+    if (admin) {
+      console.log(`Found admin user for organization ${organizationId}: ${admin.id}`);
+      return admin.id;
+    }
+    
+    // If no admin, try to find any user in the organization
+    const anyUser = await db.query.users.findFirst({
+      where: eq(users.organizationId, organizationId)
+    });
+    
+    if (anyUser) {
+      console.log(`No admin found, using regular user for organization ${organizationId}: ${anyUser.id}`);
+      return anyUser.id;
+    }
+    
+    // As a last resort, find the superadmin (complyarkadmin)
+    const superAdmin = await db.query.users.findFirst({
+      where: eq(users.username, "complyarkadmin")
+    });
+    
+    if (superAdmin) {
+      console.log(`No users found for organization ${organizationId}, using superadmin: ${superAdmin.id}`);
+      return superAdmin.id;
+    }
+    
+    console.error(`No suitable user found for organization ${organizationId}`);
+    return null;
   } catch (error) {
     console.error("Error finding organization admin:", error);
     return null;

@@ -2,7 +2,12 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, LockIcon, BadgeCheckIcon, LayoutDashboardIcon } from "lucide-react";
+import {
+  Shield,
+  LockIcon,
+  BadgeCheckIcon,
+  LayoutDashboardIcon,
+} from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Login() {
@@ -15,7 +20,7 @@ export default function Login() {
   const [success, setSuccess] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  
+
   // Redirect to dashboard if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
@@ -23,7 +28,7 @@ export default function Login() {
       setLocation("/dashboard");
     }
   }, [isAuthenticated, isLoading, setLocation]);
-  
+
   // Show loading state if we're authenticating or redirecting
   if (isLoading || isRedirecting) {
     return (
@@ -37,22 +42,21 @@ export default function Login() {
       </div>
     );
   }
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     setIsLoadingLogin(true);
     setSuccess("");
-    
+
     try {
       await login(username, password);
       setSuccess(`Login successful! Redirecting to dashboard...`);
-      
+
       // Redirect to dashboard after a short delay
       setTimeout(() => {
         setLocation("/dashboard");
       }, 1500);
-      
     } catch (error) {
       console.error("Login error:", error);
       toast({
@@ -64,7 +68,7 @@ export default function Login() {
       setIsLoadingLogin(false);
     }
   };
-  
+
   return (
     <div className="flex min-h-screen">
       {/* Left side - Login form */}
@@ -76,13 +80,15 @@ export default function Login() {
               <Shield className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold mb-1">ComplyArk</h1>
-            <p className="text-sm text-[#0F3460]">DPDPA Compliance Management System</p>
+            <p className="text-sm text-[#0F3460]">
+              DPDPA Compliance Management System
+            </p>
           </div>
-          
+
           {/* Login form */}
           <form onSubmit={handleSubmit} className="w-full space-y-4">
             <div>
-              <input 
+              <input
                 id="email"
                 type="text"
                 placeholder="Email address"
@@ -92,9 +98,9 @@ export default function Login() {
                 required
               />
             </div>
-            
+
             <div>
-              <input 
+              <input
                 id="password"
                 type="password"
                 placeholder="Password"
@@ -104,29 +110,38 @@ export default function Login() {
                 required
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <Checkbox 
-                  id="remember-me" 
+                <Checkbox
+                  id="remember-me"
                   checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    setRememberMe(checked as boolean)
+                  }
                   className="h-4 w-4 text-blue-500 focus:ring-blue-500"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-700"
+                >
                   Remember me
                 </label>
               </div>
-              
+
               <div className="text-sm">
-                <a href="#" className="text-blue-500 hover:text-blue-600" onClick={(e) => e.preventDefault()}>
+                <a
+                  href="#"
+                  className="text-blue-500 hover:text-blue-600"
+                  onClick={(e) => e.preventDefault()}
+                >
                   Forgot your password?
                 </a>
               </div>
             </div>
-            
+
             <div>
-              <button 
+              <button
                 type="submit"
                 disabled={isLoadingLogin}
                 className="w-full bg-[#2E77AE] hover:bg-[#0F3460] text-white py-2 px-4 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#2E77AE] focus:ring-offset-2"
@@ -135,19 +150,23 @@ export default function Login() {
               </button>
             </div>
           </form>
-          
+
           {success && (
             <div className="mt-4 p-2 bg-green-50 border border-green-200 rounded text-green-700 text-center w-full">
               {success}
             </div>
           )}
-          
+
           <div className="mt-4 text-center text-sm text-gray-600">
-            <a href="#" className="text-blue-500 hover:text-blue-600" onClick={(e) => e.preventDefault()}>
+            <a
+              href="#"
+              className="text-blue-500 hover:text-blue-600"
+              onClick={(e) => e.preventDefault()}
+            >
               Administrator Login
             </a>
           </div>
-          
+
           <div className="mt-6 text-center text-sm text-gray-500">
             <p>Demo Credentials:</p>
             <p>Admin: complyarkadmin / complyarkadmin</p>
@@ -155,13 +174,18 @@ export default function Login() {
           </div>
         </div>
       </div>
-      
+
       {/* Right side - Banner image */}
       <div className="hidden lg:block lg:w-1/2 bg-blue-600 relative">
         <div className="absolute inset-0 p-12 flex flex-col justify-center text-white">
-          <h2 className="text-3xl font-bold mb-4">Streamline Your DPDPA Compliance</h2>
-          <p className="mb-8">Comprehensive tools to manage data protection and privacy policies efficiently.</p>
-          
+          <h2 className="text-3xl font-bold mb-4">
+            Streamline Your DPDPA Compliance
+          </h2>
+          <p className="mb-8">
+            Comprehensive tools to manage data protection and privacy policies
+            efficiently.
+          </p>
+
           <div className="space-y-6">
             <div className="flex items-start">
               <div className="flex-shrink-0 bg-white/20 p-2 rounded-full">
@@ -169,27 +193,33 @@ export default function Login() {
               </div>
               <div className="ml-4">
                 <h3 className="font-semibold">Enhanced Security</h3>
-                <p className="text-sm text-white/80">Protect sensitive data with robust compliance tools</p>
+                <p className="text-sm text-white/80">
+                  Protect sensitive data with robust compliance tools
+                </p>
               </div>
             </div>
-            
+
             <div className="flex items-start">
               <div className="flex-shrink-0 bg-white/20 p-2 rounded-full">
                 <BadgeCheckIcon className="h-5 w-5" />
               </div>
               <div className="ml-4">
                 <h3 className="font-semibold">Automated Compliance</h3>
-                <p className="text-sm text-white/80">Simplify compliance processes with automated workflows</p>
+                <p className="text-sm text-white/80">
+                  Simplify compliance processes with automated workflows
+                </p>
               </div>
             </div>
-            
+
             <div className="flex items-start">
               <div className="flex-shrink-0 bg-white/20 p-2 rounded-full">
                 <LayoutDashboardIcon className="h-5 w-5" />
               </div>
               <div className="ml-4">
                 <h3 className="font-semibold">Comprehensive Tools</h3>
-                <p className="text-sm text-white/80">All-in-one platform for notice generation and management</p>
+                <p className="text-sm text-white/80">
+                  All-in-one platform for notice generation and management
+                </p>
               </div>
             </div>
           </div>
