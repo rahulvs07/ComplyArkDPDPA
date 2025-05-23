@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ShieldAlert, AlertCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, ShieldAlert, AlertCircle, AlertTriangle, Moon, Sun } from 'lucide-react';
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 interface RequestPageProps {}
 
@@ -25,6 +26,7 @@ export default function RequestPage() {
   const [submitSuccess, setSubmitSuccess] = useState<{message: string, id: number, type: string} | null>(null);
   const { token } = useParams<{ token: string }>();
   const [, navigate] = useLocation();
+  const { theme, toggleTheme } = useTheme();
   
   // Form submission handlers
   const handleDPRequestSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -303,14 +305,34 @@ export default function RequestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white border-b border-gray-200 py-4 px-6 shadow-sm">
+    <div className="min-h-screen bg-background dark:bg-background flex flex-col">
+      <header className="bg-background dark:bg-background border-b border-border py-4 px-6 shadow-sm dark:shadow-none">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <img src="/images/complyark-full-logo.jpg" alt="ComplyArk Logo" className="h-10" />
+            <div className="flex items-center">
+              <span className="font-bold text-2xl">
+                <span className="text-foreground dark:text-white">Comply</span>
+                <span className="text-[#2E77AE]">Ark</span>
+              </span>
+            </div>
           </div>
-          <div className="text-sm text-muted-foreground">
-            Request Page for {organization.name}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              Request Page for {organization.name}
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={toggleTheme}
+              className="text-foreground hover:bg-muted"
+            >
+              {theme === "light" ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
+              <span className="sr-only">Toggle theme</span>
+            </Button>
           </div>
         </div>
       </header>

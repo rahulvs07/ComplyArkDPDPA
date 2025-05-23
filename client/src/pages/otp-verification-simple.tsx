@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useRoute } from 'wouter';
-import { AlertCircle, CheckCircle, ChevronRight, Loader2, ShieldCheck } from 'lucide-react';
+import { AlertCircle, CheckCircle, ChevronRight, Loader2, ShieldCheck, Moon, Sun } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from '@/components/theme/ThemeProvider';
 import GoogleLoginButton from '@/components/auth/GoogleLoginButton';
 import MicrosoftLoginButton from '@/components/auth/MicrosoftLoginButton';
 
@@ -20,6 +21,7 @@ export default function OTPVerificationSimplePage() {
   const [, params] = useRoute('/otp-verification/:token');
   const [, requestPageParams] = useRoute('/request-page/:token');
   const { toast } = useToast();
+  const { theme, toggleTheme } = useTheme();
   
   const token = params?.token || requestPageParams?.token;
   
