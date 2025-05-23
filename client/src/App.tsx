@@ -23,7 +23,7 @@ import OTPVerificationPage from "@/pages/otp-verification-simple";
 // React is already imported by JSX
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "./components/layout/AppLayout";
-import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 // Protected route component that redirects to login if not authenticated
 function ProtectedRoute({ component: Component, adminOnly = false, superAdminOnly = false, ...rest }: { 
