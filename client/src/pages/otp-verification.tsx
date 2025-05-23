@@ -67,6 +67,22 @@ export default function OTPVerificationPage() {
   // Get token from either route
   const token = params?.token || requestPageParams?.token;
   
+  // Clear any previous verification data to avoid conflicts
+  useEffect(() => {
+    if (token) {
+      // Remove any old verification data
+      const oldKeys = Object.keys(sessionStorage).filter(
+        key => key.startsWith('otp_verified_') || key.startsWith('otp_email_')
+      );
+      
+      oldKeys.forEach(key => {
+        sessionStorage.removeItem(key);
+      });
+      
+      console.log('Cleared previous verification data for fresh verification');
+    }
+  }, [token]);
+  
   // Fetch organization from token
   useEffect(() => {
     const fetchOrganization = async () => {
@@ -106,19 +122,19 @@ export default function OTPVerificationPage() {
         if (authData.authenticated) {
           setVerified(true);
           setEmail(authData.email);
-          // Store authenticated status in session storage
-          sessionStorage.setItem('otp_verified', 'true');
-          sessionStorage.setItem('otp_email', authData.email);
-          console.log('User is already verified via OTP:', authData.email);
+          // Store authenticated status in organization-specific session storage
+          sessionStorage.setItem(`otp_verified_${data.id}`, 'true');
+          sessionStorage.setItem(`otp_email_${data.id}`, authData.email);
+          console.log(`User is already verified via OTP for org ${data.id}:`, authData.email);
         } else {
-          // Check session storage as fallback
-          const storedVerified = sessionStorage.getItem('otp_verified');
-          const storedEmail = sessionStorage.getItem('otp_email');
+          // Check organization-specific session storage as fallback
+          const storedVerified = sessionStorage.getItem(`otp_verified_${data.id}`);
+          const storedEmail = sessionStorage.getItem(`otp_email_${data.id}`);
           
           if (storedVerified === 'true' && storedEmail) {
             setVerified(true);
             setEmail(storedEmail);
-            console.log('Session storage shows verified user:', storedEmail);
+            console.log(`Session storage shows verified user for org ${data.id}:`, storedEmail);
           }
         }
       } catch (err) {
