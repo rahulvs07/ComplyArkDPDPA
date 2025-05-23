@@ -308,8 +308,8 @@ export default function RequestPage() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="font-bold text-xl text-primary">
-              <span className="text-black">Comply</span>
-              <span className="text-blue-600">Ark</span>
+              <span className="text-black font-bold">Comply</span>
+              <span className="text-blue-600 font-bold">Ark</span>
             </span>
           </div>
           <div className="text-sm text-muted-foreground">
