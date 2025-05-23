@@ -361,14 +361,16 @@ export default function ComplianceDocumentsPage() {
       description: `Opening folder: ${folder.documentName}`,
     });
     
-    // Clear any existing query data to force a refetch
-    const newFolderPath = currentPath.length > 0 
-      ? `/${[...currentPath, folder.documentName].join('/')}/` 
-      : `/${folder.documentName}/`;
+    // Calculate new folder path - both as array and string format
+    const updatedPathArray = [...currentPath, folder.documentName];
+    const newFolderPath = updatedPathArray.length > 0 
+      ? `/${updatedPathArray.join('/')}/` 
+      : '/';
       
+    // Invalidate specific path query
     queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', newFolderPath] });
     
-    // Force a complete refresh of all document queries
+    // Force a complete refresh of all document queries to ensure data consistency
     queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents'] });
   };
 
