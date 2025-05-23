@@ -24,13 +24,12 @@ interface ComplianceDocument {
   documentId: number;
   documentName: string;
   documentPath: string;
-  documentType: string;
+  documentType: string; // 'folder' or 'file'
   uploadedBy: number;
   uploadedAt: string;
   organizationId: number;
   folderPath: string;
   fileSize?: number;
-  isFolder?: boolean;
   uploadedByName?: string;
 }
 
@@ -73,11 +72,8 @@ export default function ComplianceDocumentsPage() {
   const { data: documents, isLoading, isError, error } = useQuery<ComplianceDocument[]>({
     queryKey: ['/api/compliance-documents', currentPath],
     queryFn: async () => {
-      const response = await fetch(`/api/compliance-documents?folder=${encodeURIComponent(currentPath)}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch documents');
-      }
-      return response.json();
+      const response = await apiRequest('GET', `/api/compliance-documents?folder=${encodeURIComponent(currentPath)}`);
+      return response;
     }
   });
 
