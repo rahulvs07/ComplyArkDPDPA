@@ -668,8 +668,9 @@ export default function ComplianceDocumentsPage() {
                         {document.documentType === 'folder' ? (
                           <button
                             onClick={() => navigateToFolder(document)}
-                            className="hover:text-blue-600 dark:hover:text-blue-400"
+                            className="hover:text-blue-600 dark:hover:text-blue-400 font-medium flex items-center"
                           >
+                            <Folder className="h-4 w-4 mr-1 text-blue-500" />
                             {document.documentName}
                           </button>
                         ) : (
