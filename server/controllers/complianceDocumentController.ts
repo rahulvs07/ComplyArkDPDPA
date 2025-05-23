@@ -230,7 +230,8 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
       
       // Try to count documents to see if table exists and is accessible
       try {
-        const countResult = await db.execute(
+        // Use raw query with proper parameter binding
+        const countResult = await pool.query(
           'SELECT COUNT(*) FROM "complianceDocuments" WHERE "organizationId" = $1', 
           [orgId]
         );
