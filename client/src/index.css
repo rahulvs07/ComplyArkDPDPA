@@ -40,39 +40,40 @@
 }
 
 .dark {
-  /* Base colors */
-  --background: 218 45% 8%; /* Darker navy */
-  --foreground: 0 0% 95%; /* Light text */
-  --muted: 218 30% 15%; /* Dark navy gray */
-  --muted-foreground: 0 0% 70%; /* Light gray text */
+  /* Base colors - Improved for better contrast */
+  --background: 218 45% 13%; /* Darker navy but slightly lighter for readability */
+  --foreground: 0 0% 98%; /* Very light text for better contrast */
+  --muted: 218 25% 22%; /* Lighter muted background for better contrast */
+  --muted-foreground: 0 0% 80%; /* Lighter gray text for better readability */
   
-  /* Layout */
-  --popover: 218 45% 10%; /* Dark navy */
-  --popover-foreground: 0 0% 95%; /* Light text */
-  --card: 218 45% 10%; /* Dark navy */
-  --card-foreground: 0 0% 95%; /* Light text */
-  --border: 218 30% 20%; /* Dark border */
-  --input: 218 30% 20%; /* Dark input */
+  /* Layout - Enhanced contrast */
+  --popover: 218 45% 15%; /* Slightly lighter dark navy */
+  --popover-foreground: 0 0% 98%; /* Very light text */
+  --card: 218 45% 15%; /* Slightly lighter dark navy */
+  --card-foreground: 0 0% 98%; /* Very light text */
+  --border: 218 25% 27%; /* Lighter border for visibility */
+  --input: 218 25% 18%; /* Input background with better contrast */
   
-  /* Brand colors */
-  --primary: 208 58% 43%; /* #2E77AE - Light blue */
-  --primary-foreground: 0 0% 100%; /* #FFFFFF */
-  --secondary: 218 45% 30%; /* Lighter navy for dark mode */
-  --secondary-foreground: 0 0% 100%; /* #FFFFFF */
-  --accent: 210 50% 30%; /* Darker accent */
-  --accent-foreground: 0 0% 100%; /* #FFFFFF */
+  /* Brand colors - Brightened for dark mode */
+  --primary: 208 58% 50%; /* Brighter blue for dark mode */
+  --primary-foreground: 0 0% 100%; /* White text */
+  --secondary: 218 30% 40%; /* Much lighter navy for better visibility */
+  --secondary-foreground: 0 0% 100%; /* White text */
+  --accent: 210 50% 45%; /* Brighter accent */
+  --accent-foreground: 0 0% 100%; /* White text */
   
-  /* Status colors */
-  --success: 122 39% 40%; /* Darker green */
-  --success-foreground: 0 0% 100%; /* #FFFFFF */
-  --warning: 36 90% 45%; /* Darker orange */
-  --warning-foreground: 0 0% 100%; /* #FFFFFF */
-  --destructive: 0 73% 50%; /* Darker red */
-  --destructive-foreground: 0 0% 100%; /* #FFFFFF */
-  --info: 210 79% 40%; /* Darker info blue */
-  --info-foreground: 0 0% 100%; /* #FFFFFF */
+  /* Status colors - Brightened for dark mode */
+  --success: 122 39% 45%; /* Brighter green */
+  --success-foreground: 0 0% 100%; /* White text */
+  --warning: 36 90% 55%; /* Brighter orange */
+  --warning-foreground: 0 0% 100%; /* White text */
+  --destructive: 0 73% 58%; /* Brighter red */
+  --destructive-foreground: 0 0% 100%; /* White text */
+  --info: 210 79% 50%; /* Brighter info blue */
+  --info-foreground: 0 0% 100%; /* White text */
   
-  --ring: 218 45% 40%; /* Light ring for dark mode */
+  /* Ring - Brighter for visibility */
+  --ring: 208 58% 50%; /* Match primary for consistency */
   --radius: 0.5rem;
 }
 

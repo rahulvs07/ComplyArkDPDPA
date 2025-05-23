@@ -173,14 +173,14 @@ const DataTable: React.FC<DataTableProps> = ({
       )}
       
       {/* Table */}
-      <div className="w-full overflow-x-auto border rounded-md">
+      <div className="w-full overflow-x-auto border rounded-md dark:border-muted">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-neutral-50 border-b border-neutral-200">
+            <tr className="bg-neutral-50 dark:bg-muted border-b border-neutral-200 dark:border-border">
               {columns.map((column, colIndex) => (
                 <th 
                   key={column.key || column.accessorKey || column.id || `col-${colIndex}`} 
-                  className={`px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider ${column.sortable ? 'cursor-pointer hover:bg-neutral-100' : ''}`}
+                  className={`px-4 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-foreground uppercase tracking-wider ${column.sortable ? 'cursor-pointer hover:bg-neutral-100 dark:hover:bg-secondary' : ''}`}
                   onClick={() => column.sortable && requestSort(column.key || column.accessorKey || column.id || '')}
                 >
                   <div className="flex items-center">
@@ -194,7 +194,7 @@ const DataTable: React.FC<DataTableProps> = ({
                 </th>
               ))}
               {(onEdit || onView || onDelete) && (
-                <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600 dark:text-foreground uppercase tracking-wider">
                   Actions
                 </th>
               )}
@@ -205,11 +205,11 @@ const DataTable: React.FC<DataTableProps> = ({
               paginatedData.map((row, rowIndex) => (
                 <tr 
                   key={rowIndex} 
-                  className={`border-b border-neutral-200 ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-neutral-50'} ${onRowClick ? 'cursor-pointer hover:bg-neutral-100' : ''}`}
+                  className={`border-b border-neutral-200 dark:border-border ${rowIndex % 2 === 0 ? 'bg-white dark:bg-card' : 'bg-neutral-50 dark:bg-muted'} ${onRowClick ? 'cursor-pointer hover:bg-neutral-100 dark:hover:bg-secondary/30' : ''}`}
                   onClick={() => handleRowClick(row)}
                 >
                   {columns.map((column, cellIndex) => (
-                    <td key={`${rowIndex}-${column.key || column.accessorKey || column.id || cellIndex}`} className="px-4 py-3 text-sm text-neutral-800">
+                    <td key={`${rowIndex}-${column.key || column.accessorKey || column.id || cellIndex}`} className="px-4 py-3 text-sm text-neutral-800 dark:text-foreground">
                       {column.cell ? 
                         column.cell({ row: { getValue: (key: string) => row[key], original: row } }) : 
                         (column.render ? 
@@ -228,7 +228,7 @@ const DataTable: React.FC<DataTableProps> = ({
                           }}
                           size="sm"
                           variant="outline"
-                          className="text-blue-600 hover:text-blue-700 border-blue-600 hover:border-blue-700 hover:bg-blue-50"
+                          className="text-blue-600 dark:text-primary hover:text-blue-700 dark:hover:text-primary-foreground border-blue-600 dark:border-primary hover:border-blue-700 dark:hover:border-primary-foreground hover:bg-blue-50 dark:hover:bg-primary/20"
                         >
                           <span className="material-icons text-sm">visibility</span>
                         </Button>
@@ -241,7 +241,7 @@ const DataTable: React.FC<DataTableProps> = ({
                           }}
                           size="sm"
                           variant="outline"
-                          className="text-blue-600 hover:text-blue-700 border-blue-600 hover:border-blue-700 hover:bg-blue-50 ml-2"
+                          className="text-blue-600 dark:text-primary hover:text-blue-700 dark:hover:text-primary-foreground border-blue-600 dark:border-primary hover:border-blue-700 dark:hover:border-primary-foreground hover:bg-blue-50 dark:hover:bg-primary/20 ml-2"
                         >
                           <span className="material-icons text-sm">edit</span>
                         </Button>
@@ -254,7 +254,7 @@ const DataTable: React.FC<DataTableProps> = ({
                           }}
                           size="sm"
                           variant="outline"
-                          className="text-red-600 hover:text-red-700 border-red-600 hover:border-red-700 hover:bg-red-50 ml-2"
+                          className="text-red-600 dark:text-destructive hover:text-red-700 dark:hover:text-destructive-foreground border-red-600 dark:border-destructive hover:border-red-700 dark:hover:border-destructive-foreground hover:bg-red-50 dark:hover:bg-destructive/20 ml-2"
                         >
                           <span className="material-icons text-sm">delete</span>
                         </Button>
