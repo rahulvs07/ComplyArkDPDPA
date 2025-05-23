@@ -50,6 +50,25 @@ export default function QuestionnaireTab({ onNext }: QuestionnaireTabProps) {
       ]
     },
     {
+      id: "email",
+      name: "Email",
+      fields: [
+        { id: "personalEmail", label: "Personal Email Address", reason: "For general communication.", selected: false },
+        { id: "workEmail", label: "Work Email Address", reason: "For official, work-related communication.", selected: false },
+        { id: "alternateEmail", label: "Alternate Email Address", reason: "For backup communication.", selected: false },
+      ]
+    },
+    {
+      id: "phone",
+      name: "Phone",
+      fields: [
+        { id: "personalMobile", label: "Personal Mobile Number", reason: "For direct communication.", selected: false },
+        { id: "workPhone", label: "Work Telephone Number", reason: "For work-related communication.", selected: false },
+        { id: "homePhone", label: "Home Telephone Number", reason: "As a fallback contact method.", selected: false },
+        { id: "emergencyPhone", label: "Emergency Contact Number", reason: "For urgent contact in case of emergencies.", selected: false },
+      ]
+    },
+    {
       id: "financialInfo",
       name: "Financial Info",
       fields: [
@@ -58,6 +77,8 @@ export default function QuestionnaireTab({ onNext }: QuestionnaireTabProps) {
         { id: "cardDetails", label: "Credit/Debit Card Details", reason: "For billing and secure payments.", selected: false },
         { id: "billingAddress", label: "Billing Address", reason: "For issuing invoices and matching transactions.", selected: false },
         { id: "taxId", label: "Tax Identification Number", reason: "For tax reporting and statutory compliance.", selected: false },
+        { id: "salaryDetails", label: "Salary and Compensation Details", reason: "For payroll and financial planning.", selected: false },
+        { id: "paymentHistory", label: "Payment History", reason: "To track and audit transactions.", selected: false },
       ]
     },
     {
@@ -69,6 +90,22 @@ export default function QuestionnaireTab({ onNext }: QuestionnaireTabProps) {
         { id: "mentalHealthInfo", label: "Mental Health Information", reason: "To support employee well-being and workplace accommodations.", selected: false },
         { id: "immunizationRecords", label: "Immunisation Records", reason: "For workplace health compliance (e.g., COVID-19).", selected: false },
         { id: "prescriptionDetails", label: "Prescription Details", reason: "For health and medical records.", selected: false },
+        { id: "allergiesConditions", label: "Allergies and Chronic Conditions", reason: "For safety and emergency preparedness.", selected: false },
+        { id: "fitnessData", label: "Fitness/Wellness Data", reason: "For wellness initiatives or health tracking.", selected: false },
+      ]
+    },
+    {
+      id: "demographics",
+      name: "Demographics",
+      fields: [
+        { id: "dateOfBirth", label: "Date of Birth", reason: "For identity verification and age-based eligibility.", selected: false },
+        { id: "gender", label: "Gender", reason: "For diversity metrics and appropriate communication.", selected: false },
+        { id: "nationality", label: "Nationality", reason: "For eligibility and compliance with immigration laws.", selected: false },
+        { id: "ethnicity", label: "Ethnicity", reason: "For diversity monitoring and reporting.", selected: false },
+        { id: "maritalStatus", label: "Marital Status", reason: "For HR benefits and record keeping.", selected: false },
+        { id: "numberOfDependents", label: "Number of Dependents", reason: "For HR planning and benefits eligibility.", selected: false },
+        { id: "educationLevel", label: "Education Level", reason: "For assessing qualifications.", selected: false },
+        { id: "employmentStatus", label: "Employment Status", reason: "For eligibility and demographic profiling.", selected: false },
       ]
     },
     {
@@ -80,6 +117,9 @@ export default function QuestionnaireTab({ onNext }: QuestionnaireTabProps) {
         { id: "religiousBeliefs", label: "Religious or Philosophical Beliefs", reason: "For accommodation of practices (e.g., holidays, dietary needs).", selected: false },
         { id: "tradeUnionMembership", label: "Trade Union Membership", reason: "For collective bargaining and legal compliance.", selected: false },
         { id: "geneticData", label: "Genetic Data", reason: "For specific health or legal contexts (with consent).", selected: false },
+        { id: "biometricData", label: "Biometric Data", reason: "For secure identification and access control.", selected: false },
+        { id: "sexualOrientation", label: "Sexual Orientation", reason: "For equality monitoring and anti-discrimination policies.", selected: false },
+        { id: "criminalConvictions", label: "Criminal Convictions or Offences", reason: "For background checks, especially in sensitive or regulated industries.", selected: false },
       ]
     }
   ]);

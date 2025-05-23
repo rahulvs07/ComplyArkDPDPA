@@ -1,0 +1,48 @@
+Category	Data Field	Reason for Collection
+Name	First Name	To identify the individual correctly.
+ 	Middle Name	For full legal identification.
+ 	Last Name	To identify the individual correctly.
+ 	Preferred Name / Nickname	For personalised communication.
+ 	Former Name(s)	For record-keeping and legal verification.
+Contact Details	Residential Address	For official correspondence and service delivery.
+ 	Mailing Address	To send documents, communications, or parcels.
+ 	Country of Residence	For compliance with regional laws.
+ 	Postcode	For accurate address verification.
+ 	Emergency Contact Information	For emergencies or health & safety reasons.
+Email	Personal Email Address	For general communication.
+ 	Work Email Address	For official, work-related communication.
+ 	Alternate Email Address	For backup communication.
+Phone	Personal Mobile Number	For direct communication.
+ 	Work Telephone Number	For work-related communication.
+ 	Home Telephone Number	As a fallback contact method.
+ 	Emergency Contact Number	For urgent contact in case of emergencies.
+Financial Info	Bank Account Number	For salary or financial transactions.
+ 	Sort Code	For banking and payment processing (UK-specific).
+ 	Credit/Debit Card Details	For billing and secure payments.
+ 	Billing Address	For issuing invoices and matching transactions.
+ 	Tax Identification Number	For tax reporting and statutory compliance.
+ 	Salary and Compensation Details	For payroll and financial planning.
+ 	Payment History	To track and audit transactions.
+Health Data	Medical History	For providing appropriate care and accommodations.
+ 	Disability Status	To ensure accessibility and legal compliance.
+ 	Mental Health Information	To support employee well-being and workplace accommodations.
+ 	Immunisation Records	For workplace health compliance (e.g., COVID-19).
+ 	Prescription Details	For health and medical records.
+ 	Allergies and Chronic Conditions	For safety and emergency preparedness.
+ 	Fitness/Wellness Data	For wellness initiatives or health tracking.
+Demographics	Date of Birth	For identity verification and age-based eligibility.
+ 	Gender	For diversity metrics and appropriate communication.
+ 	Nationality	For eligibility and compliance with immigration laws.
+ 	Ethnicity	For diversity monitoring and reporting.
+ 	Marital Status	For HR benefits and record keeping.
+ 	Number of Dependents	For HR planning and benefits eligibility.
+ 	Education Level	For assessing qualifications.
+ 	Employment Status	For eligibility and demographic profiling.
+Sensitive Data	Racial or Ethnic Origin	For diversity compliance and monitoring.
+ 	Political Opinions	Only collected when required for transparency (e.g., political organisations).
+ 	Religious or Philosophical Beliefs	For accommodation of practices (e.g., holidays, dietary needs).
+ 	Trade Union Membership	For collective bargaining and legal compliance.
+ 	Genetic Data	For specific health or legal contexts (with consent).
+ 	Biometric Data	For secure identification and access control.
+ 	Sexual Orientation	For equality monitoring and anti-discrimination policies.
+ 	Criminal Convictions or Offences	For background checks, especially in sensitive or regulated industries.
