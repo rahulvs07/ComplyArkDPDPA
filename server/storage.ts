@@ -824,10 +824,10 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(complianceDocuments.organizationId, organizationId),
-          eq(complianceDocuments.path, path)
+          eq(complianceDocuments.folderPath, path)
         )
       )
-      .orderBy(complianceDocuments.isFolder, complianceDocuments.name);
+      .orderBy([complianceDocuments.documentType, complianceDocuments.documentName]);
   }
   
   async deleteComplianceDocument(id: number): Promise<boolean> {
