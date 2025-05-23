@@ -33,8 +33,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
   
   // Configure multer for file uploads
-  const storage = multer.memoryStorage();
-  const upload = multer({ storage });
+  const multerStorage = multer.memoryStorage();
+  const upload = multer({ storage: multerStorage });
   
   // Authentication routes
   app.post('/api/auth/login', authController.login);
