@@ -58,12 +58,13 @@ export default function NoticeModule() {
     setNoticeData(data);
     
     // Create notice with required fields validation
+    // Using direct field names that match the schema in the server
     const noticePayload = {
       noticeName: data.noticeName || "Untitled Notice",
       noticeBody: data.noticeBody || "No content provided",
       noticeType: data.noticeType || "General",
-      selectedQuestionnaireData: JSON.stringify(questionnaireData || {}),
-      baseTemplateId: data.selectedTemplateId
+      // Add any additional fields needed by the schema
+      version: "1.0"
     };
     
     console.log("Sending notice payload:", noticePayload);
