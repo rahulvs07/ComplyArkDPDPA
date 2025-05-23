@@ -91,11 +91,9 @@ export interface IStorage {
   // Compliance Document operations
   getComplianceDocument(id: number): Promise<ComplianceDocument | undefined>;
   createComplianceDocument(document: InsertComplianceDocument): Promise<ComplianceDocument>;
+  updateComplianceDocument(id: number, document: Partial<InsertComplianceDocument>): Promise<ComplianceDocument | undefined>;
   deleteComplianceDocument(id: number): Promise<boolean>;
-  listComplianceDocuments(organizationId: number): Promise<ComplianceDocument[]>;
-  updateNotice(id: number, notice: Partial<InsertNotice>): Promise<Notice | undefined>;
-  deleteNotice(id: number): Promise<boolean>;
-  listNotices(organizationId: number): Promise<Notice[]>;
+  listComplianceDocuments(organizationId: number, path?: string): Promise<ComplianceDocument[]>;
   
   // Translated Notice operations
   getTranslatedNotice(id: number): Promise<TranslatedNotice | undefined>;
@@ -817,6 +815,19 @@ export class DatabaseStorage implements IStorage {
       .where(eq(complianceDocuments.documentId, id))
       .returning();
     return updatedDocument;
+  }
+  
+  async listComplianceDocuments(organizationId: number, path: string = '/'): Promise<ComplianceDocument[]> {
+    return db
+      .select()
+      .from(complianceDocuments)
+      .where(
+        and(
+          eq(complianceDocuments.organizationId, organizationId),
+          eq(complianceDocuments.path, path)
+        )
+      )
+      .orderBy(complianceDocuments.isFolder, complianceDocuments.name);
   }
   
   async deleteComplianceDocument(id: number): Promise<boolean> {
