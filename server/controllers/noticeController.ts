@@ -6,12 +6,54 @@ import path from 'path';
 import fs from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 const execPromise = promisify(exec);
 
 // Directories for notice files
 const NOTICES_DIR = path.join(process.cwd(), 'NoticesGenerated');
 const TRANSLATED_NOTICES_DIR = path.join(process.cwd(), 'NoticesTranslated');
+
+// Helper function to generate DOCX document from notice content
+async function generateDocxNotice(noticeContent: string, outputPath: string): Promise<void> {
+  try {
+    // Create a new document
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({
+            heading: HeadingLevel.HEADING_1,
+            children: [
+              new TextRun({
+                text: "Privacy Notice",
+                bold: true,
+                size: 36
+              }),
+            ],
+          }),
+          new Paragraph({
+            text: ""
+          }),
+          // Process notice content by paragraphs
+          ...noticeContent.split('\n').map(line => 
+            new Paragraph({
+              children: [new TextRun({ text: line })]
+            })
+          )
+        ],
+      }],
+    });
+
+    // Generate the DOCX file
+    const buffer = await Packer.toBuffer(doc);
+    fs.writeFileSync(outputPath, buffer);
+  } catch (error) {
+    console.error("Error generating DOCX document:", error);
+    // Create a simple text file as fallback
+    fs.writeFileSync(outputPath, noticeContent);
+  }
+}
 
 // Ensure directories exist
 if (!fs.existsSync(NOTICES_DIR)) {
@@ -132,13 +174,19 @@ export const createNotice = async (req: AuthRequest, res: Response) => {
       fs.mkdirSync(orgDir, { recursive: true });
     }
     
-    // Generate PDF or use placeholder
-    const pdfFileName = `${noticeName.replace(/\s+/g, '_')}.pdf`;
+    // Generate PDF and DOCX files
+    const baseName = `${noticeName.replace(/\s+/g, '_')}`;
+    const pdfFileName = `${baseName}.pdf`;
+    const docxFileName = `${baseName}.docx`;
     const pdfPath = path.join(orgDir, pdfFileName);
+    const docxPath = path.join(orgDir, docxFileName);
     
     // Generate a simple text file as PDF placeholder
     // In a real implementation, we would use a library like puppeteer to generate a PDF
     fs.writeFileSync(pdfPath, validatedData.noticeBody);
+    
+    // Generate DOCX file using docx library
+    await generateDocxNotice(validatedData.noticeBody, docxPath);
     
     // Create the notice
     const notice = await storage.createNotice({
@@ -146,6 +194,24 @@ export const createNotice = async (req: AuthRequest, res: Response) => {
       noticeName,
       folderLocation: pdfPath
     });
+    
+    // Create notification for notice creation
+    try {
+      await storage.createNotification({
+        userId: req.user.id,
+        organizationId: orgId,
+        module: 'Notice',
+        action: 'Notice created',
+        actionType: 'created',
+        message: `A new notice "${noticeName}" has been created`,
+        initiator: 'user',
+        relatedItemId: notice.noticeId,
+        relatedItemType: 'Notice'
+      });
+    } catch (error) {
+      console.error('Failed to create notification:', error);
+      // Continue execution even if notification creation fails
+    }
     
     const creator = await storage.getUser(notice.createdBy);
     
