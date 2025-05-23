@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useParams, useRoute } from 'wouter';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { AlertCircle, CheckCircle, ChevronRight, Loader2, Mail, ShieldCheck } from 'lucide-react';
+import { useRoute } from 'wouter';
+import { AlertCircle, CheckCircle, ChevronRight, Loader2, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import GoogleLoginButton from '@/components/auth/GoogleLoginButton';
 import MicrosoftLoginButton from '@/components/auth/MicrosoftLoginButton';
@@ -17,60 +14,29 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// Schema for email input
-const emailSchema = z.object({
-  email: z
-    .string()
-    .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
-});
-
-// Schema for OTP input
-const otpSchema = z.object({
-  otp: z
-    .string()
-    .min(1, 'OTP code is required')
-    .max(6, 'OTP code must be at most 6 characters'),
-});
-
-type EmailFormValues = z.infer<typeof emailSchema>;
-type OTPFormValues = z.infer<typeof otpSchema>;
-
-export default function OTPVerificationPage() {
+export default function OTPVerificationSimplePage() {
   const [, params] = useRoute('/otp-verification/:token');
   const [, requestPageParams] = useRoute('/request-page/:token');
-  const [, navigate] = useLocation();
   const { toast } = useToast();
+  
+  const token = params?.token || requestPageParams?.token;
   
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [organization, setOrganization] = useState<{ id: number; name: string } | null>(null);
   const [step, setStep] = useState<'email' | 'verify'>('email');
   const [email, setEmail] = useState('');
+  const [otpValue, setOtpValue] = useState('');
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
   
-  // Get token from either route
-  const token = params?.token || requestPageParams?.token;
-  
-  // Clear any previous verification data to avoid conflicts
+  // Clear any previous verification data on load
   useEffect(() => {
     if (token) {
-      // Remove any old verification data
       const oldKeys = Object.keys(sessionStorage).filter(
         key => key.startsWith('otp_verified_') || key.startsWith('otp_email_')
       );
@@ -79,11 +45,11 @@ export default function OTPVerificationPage() {
         sessionStorage.removeItem(key);
       });
       
-      console.log('Cleared previous verification data for fresh verification');
+      console.log('Cleared previous verification data');
     }
   }, [token]);
   
-  // Fetch organization from token
+  // Fetch organization based on the token
   useEffect(() => {
     const fetchOrganization = async () => {
       if (!token) {
@@ -106,7 +72,7 @@ export default function OTPVerificationPage() {
           name: data.name || data.businessName || 'Organization'
         });
         
-        // Check if user is already authenticated
+        // Check if already authenticated
         const authCheckResponse = await fetch('/api/otp/check-auth', {
           method: 'POST',
           headers: {
@@ -122,50 +88,43 @@ export default function OTPVerificationPage() {
         if (authData.authenticated) {
           setVerified(true);
           setEmail(authData.email);
-          // Store authenticated status in organization-specific session storage
           sessionStorage.setItem(`otp_verified_${data.id}`, 'true');
           sessionStorage.setItem(`otp_email_${data.id}`, authData.email);
-          console.log(`User is already verified via OTP for org ${data.id}:`, authData.email);
         } else {
-          // Check organization-specific session storage as fallback
+          // Check session storage as fallback
           const storedVerified = sessionStorage.getItem(`otp_verified_${data.id}`);
           const storedEmail = sessionStorage.getItem(`otp_email_${data.id}`);
           
           if (storedVerified === 'true' && storedEmail) {
             setVerified(true);
             setEmail(storedEmail);
-            console.log(`Session storage shows verified user for org ${data.id}:`, storedEmail);
           }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load organization information');
+        setError(err instanceof Error ? err.message : 'Failed to load organization');
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchOrganization();
-  }, [params]);
+  }, [token]);
   
-  // Form for email input
-  const emailForm = useForm<EmailFormValues>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: {
-      email: '',
-    },
-  });
-  
-  // Form for OTP verification
-  const otpForm = useForm<OTPFormValues>({
-    resolver: zodResolver(otpSchema),
-    defaultValues: {
-      otp: '',
-    },
-  });
-  
-  // Handle email submission
-  const onEmailSubmit = async (data: EmailFormValues) => {
-    if (!organization) return;
+  // Send email verification code
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const emailInput = document.getElementById('email-input') as HTMLInputElement;
+    const emailValue = emailInput ? emailInput.value : '';
+    
+    if (!emailValue || !organization) {
+      toast({
+        title: 'Email Required',
+        description: 'Please enter a valid email address',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -176,7 +135,7 @@ export default function OTPVerificationPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: data.email,
+          email: emailValue,
           organizationId: organization.id,
           organizationName: organization.name,
         }),
@@ -189,13 +148,13 @@ export default function OTPVerificationPage() {
       
       const responseData = await response.json();
       
-      setEmail(data.email);
+      setEmail(emailValue);
       setStep('verify');
       setExpiresAt(new Date(responseData.expiresAt));
       
       toast({
         title: 'OTP Sent',
-        description: `We've sent a verification code to ${data.email}. For testing, use "1234".`,
+        description: `We've sent a verification code to ${emailValue}. For testing, use "1234".`,
       });
     } catch (err) {
       toast({
@@ -208,13 +167,39 @@ export default function OTPVerificationPage() {
     }
   };
   
-  // Handle OTP verification
-  const onOTPSubmit = async (data: OTPFormValues) => {
-    if (!organization) return;
+  // Verify OTP code
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!otpValue || !organization) {
+      toast({
+        title: 'Code Required',
+        description: 'Please enter the verification code',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     setIsVerifying(true);
     
     try {
+      // For testing, accept "1234" without server validation
+      if (otpValue === "1234") {
+        setVerified(true);
+        
+        // Store authenticated status in organization-specific session storage
+        sessionStorage.setItem(`otp_verified_${organization.id}`, 'true');
+        sessionStorage.setItem(`otp_email_${organization.id}`, email);
+        
+        toast({
+          title: 'Verification Successful',
+          description: 'You can now submit your request.',
+        });
+        
+        setIsVerifying(false);
+        return;
+      }
+      
       const response = await fetch('/api/otp/verify', {
         method: 'POST',
         headers: {
@@ -222,7 +207,7 @@ export default function OTPVerificationPage() {
         },
         body: JSON.stringify({
           email,
-          otp: data.otp,
+          otp: otpValue,
           organizationId: organization.id,
         }),
       });
@@ -231,8 +216,6 @@ export default function OTPVerificationPage() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Invalid OTP code');
       }
-      
-      const responseData = await response.json();
       
       setVerified(true);
       
@@ -245,11 +228,6 @@ export default function OTPVerificationPage() {
         description: 'You can now submit your request.',
       });
       
-      // Store token for verification on request page
-      sessionStorage.setItem('request_page_token', params?.token || '');
-      
-      // Navigate to request form page (using a different route)
-      navigate(`/request-form/${params?.token}`);
     } catch (err) {
       toast({
         title: 'Verification Failed',
@@ -261,7 +239,19 @@ export default function OTPVerificationPage() {
     }
   };
   
-  // Show loading state
+  // Continue to request page
+  const continueToRequestPage = () => {
+    window.location.href = `/request-form/${token}`;
+  };
+  
+  // Reset to email step
+  const resetToEmailStep = () => {
+    setStep('email');
+    setEmail('');
+    setOtpValue('');
+  };
+  
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -274,7 +264,7 @@ export default function OTPVerificationPage() {
     );
   }
   
-  // Show error state
+  // Error state
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -314,7 +304,7 @@ export default function OTPVerificationPage() {
     );
   }
   
-  // Show already verified status
+  // Already verified state
   if (verified) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -340,11 +330,7 @@ export default function OTPVerificationPage() {
           <CardFooter>
             <Button 
               className="w-full bg-primary-600 hover:bg-primary-700"
-              onClick={() => {
-                console.log('Navigating to request page with token:', token);
-                // Force navigation with window.location to ensure proper redirect
-                window.location.href = `/request-form/${token}`;
-              }}
+              onClick={continueToRequestPage}
             >
               Continue to Request Page
               <ChevronRight className="ml-2 h-4 w-4" />
@@ -355,7 +341,7 @@ export default function OTPVerificationPage() {
     );
   }
   
-  // Show email form or OTP verification form
+  // Email verification or OTP verification forms
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
@@ -365,7 +351,10 @@ export default function OTPVerificationPage() {
               <ShieldCheck className="h-8 w-8 text-primary-600" />
             </div>
             <div className="text-center">
-              <h2 className="text-xl font-bold text-white">ComplyArk</h2>
+              <h2 className="text-xl font-bold text-white">
+                <span className="text-black">Comply</span>
+                <span className="text-white">Ark</span>
+              </h2>
               <p className="text-sm text-white/80">Privacy Request Portal</p>
             </div>
           </div>
@@ -382,33 +371,30 @@ export default function OTPVerificationPage() {
               : `Enter the verification code sent to ${email}`}
           </CardDescription>
         </CardHeader>
+        
         <CardContent className="pt-6">
           {step === 'email' ? (
-            <Form {...emailForm}>
-              <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
-                <FormField
-                  control={emailForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email Address</FormLabel>
-                      <FormControl>
-                        <div className="flex items-center border rounded-md focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500 bg-white">
-                          <Mail className="ml-2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="Enter your email address"
-                            className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormDescription>
-                        We'll send a verification code to this email.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <div>
+              <form onSubmit={handleEmailSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="email-input" className="text-sm font-medium">
+                    Email Address
+                  </label>
+                  <div className="flex items-center border rounded-md focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500 bg-white">
+                    <span className="ml-3 text-gray-500">@</span>
+                    <input
+                      id="email-input"
+                      type="email" 
+                      placeholder="Enter your email address"
+                      className="flex-1 p-2 border-0 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    We'll send a verification code to this email.
+                  </p>
+                </div>
+                
                 <Button
                   type="submit"
                   className="w-full bg-primary-600 hover:bg-primary-700"
@@ -442,7 +428,7 @@ export default function OTPVerificationPage() {
                         onSuccess={(email) => {
                           setVerified(true);
                           setEmail(email);
-                          console.log('Google login successful, navigating to:', `/request-form/${token}`);
+                          console.log('Google login successful');
                           window.location.href = `/request-form/${token}`;
                         }}
                         organizationId={organization.id}
@@ -452,7 +438,7 @@ export default function OTPVerificationPage() {
                         onSuccess={(email) => {
                           setVerified(true);
                           setEmail(email);
-                          console.log('Microsoft login successful, navigating to:', `/request-form/${token}`);
+                          console.log('Microsoft login successful');
                           window.location.href = `/request-form/${token}`;
                         }}
                         organizationId={organization.id}
@@ -461,49 +447,22 @@ export default function OTPVerificationPage() {
                   </>
                 )}
               </form>
-            </Form>
+            </div>
           ) : (
             <div>
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                const otpInput = document.getElementById('otpInput') as HTMLInputElement;
-                const otpValue = otpInput ? otpInput.value : '';
-                
-                if (otpValue) {
-                  // For testing, we'll accept any code entered but especially "1234"
-                  setVerified(true);
-                  
-                  // Store authenticated status in organization-specific session storage
-                  if (organization) {
-                    sessionStorage.setItem(`otp_verified_${organization.id}`, 'true');
-                    sessionStorage.setItem(`otp_email_${organization.id}`, email);
-                  }
-                  
-                  toast({
-                    title: 'Verification Successful',
-                    description: 'You can now submit your request.',
-                  });
-                  
-                  // Navigate to request form page
-                  window.location.href = `/request-form/${token}`;
-                } else {
-                  toast({
-                    title: 'Verification Failed',
-                    description: 'Please enter the verification code',
-                    variant: 'destructive',
-                  });
-                }
-              }} className="space-y-4">
+              <form onSubmit={handleOtpSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
+                  <label htmlFor="otp-input" className="text-sm font-medium">
                     Verification Code
                   </label>
                   <input
-                    id="otpInput"
+                    id="otp-input"
                     type="text"
                     placeholder="Enter the 4-6 digit code"
                     className="w-full p-2 text-center text-xl tracking-widest border rounded-md"
                     maxLength={6}
+                    value={otpValue}
+                    onChange={(e) => setOtpValue(e.target.value)}
                   />
                   <p className="text-sm text-muted-foreground mt-1">
                     Enter the code sent to your email. For testing, use "1234".
@@ -514,6 +473,7 @@ export default function OTPVerificationPage() {
                     )}
                   </p>
                 </div>
+                
                 <div className="flex flex-col space-y-2">
                   <Button
                     type="submit"
@@ -529,28 +489,20 @@ export default function OTPVerificationPage() {
                       'Verify Code'
                     )}
                   </Button>
+                  
                   <Button
                     type="button"
-                    variant="ghost"
-                    className="w-full"
-                    onClick={() => {
-                      setStep('email');
-                      otpForm.reset();
-                    }}
-                    disabled={isVerifying}
+                    variant="link"
+                    className="text-sm"
+                    onClick={resetToEmailStep}
                   >
-                    Use a different email
+                    Use a different email address
                   </Button>
                 </div>
               </form>
-            </Form>
+            </div>
           )}
         </CardContent>
-        <CardFooter className="bg-gray-50 border-t flex justify-center">
-          <p className="text-sm text-muted-foreground">
-            Protected by ComplyArk Security
-          </p>
-        </CardFooter>
       </Card>
     </div>
   );

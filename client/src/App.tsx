@@ -19,7 +19,7 @@ import RequestPage from "@/pages/RequestPage";
 import RequestPageNew from "@/pages/request-page/index";
 import RequestStatusPage from "@/pages/RequestStatusPage";
 import OTPAuthPage from "@/pages/OTPAuthPage";
-import OTPVerificationPage from "@/pages/otp-verification";
+import OTPVerificationPage from "@/pages/otp-verification-simple";
 // React is already imported by JSX
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "./components/layout/AppLayout";
