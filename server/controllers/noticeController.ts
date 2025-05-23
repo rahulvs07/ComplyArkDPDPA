@@ -232,6 +232,7 @@ export const createNotice = async (req: AuthRequest, res: Response) => {
 export const downloadNotice = async (req: AuthRequest, res: Response) => {
   const orgId = parseInt(req.params.orgId);
   const noticeId = parseInt(req.params.noticeId);
+  const format = req.query.format as string || 'pdf';
   
   if (isNaN(orgId) || isNaN(noticeId)) {
     return res.status(400).json({ message: "Invalid ID parameters" });
@@ -249,17 +250,52 @@ export const downloadNotice = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: "Notice does not belong to this organization" });
     }
     
-    if (!notice.folderLocation || !fs.existsSync(notice.folderLocation)) {
-      return res.status(404).json({ message: "Notice file not found" });
+    // Create temporary directory if it doesn't exist
+    if (!fs.existsSync(NOTICES_DIR)) {
+      fs.mkdirSync(NOTICES_DIR, { recursive: true });
     }
     
-    const fileContent = fs.readFileSync(notice.folderLocation);
-    const fileName = path.basename(notice.folderLocation);
-    
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    
-    return res.send(fileContent);
+    // Handle format
+    if (format === 'docx') {
+      // Generate DOCX version of the notice
+      const docxFilePath = path.join(NOTICES_DIR, `notice_${noticeId}_${Date.now()}.docx`);
+      await generateDocxNotice(notice.noticeBody, docxFilePath);
+      
+      const fileContent = fs.readFileSync(docxFilePath);
+      const fileName = `${notice.noticeName.replace(/\s+/g, '_')}.docx`;
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      
+      // Send file and clean up
+      res.send(fileContent);
+      
+      // Clean up temp file after sending
+      setTimeout(() => {
+        try {
+          if (fs.existsSync(docxFilePath)) {
+            fs.unlinkSync(docxFilePath);
+          }
+        } catch (cleanupError) {
+          console.error("Error cleaning up temporary DOCX file:", cleanupError);
+        }
+      }, 5000);
+      
+      return;
+    } else {
+      // Default PDF format - use existing file or generate if needed
+      if (!notice.folderLocation || !fs.existsSync(notice.folderLocation)) {
+        return res.status(404).json({ message: "Notice file not found" });
+      }
+      
+      const fileContent = fs.readFileSync(notice.folderLocation);
+      const fileName = `${notice.noticeName.replace(/\s+/g, '_')}.pdf`;
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      
+      return res.send(fileContent);
+    }
   } catch (error) {
     console.error("Download notice error:", error);
     return res.status(500).json({ message: "An error occurred while downloading the notice" });
@@ -408,6 +444,7 @@ export const downloadTranslatedNotice = async (req: AuthRequest, res: Response) 
   const orgId = parseInt(req.params.orgId);
   const noticeId = parseInt(req.params.noticeId);
   const translationId = parseInt(req.params.translationId);
+  const format = req.query.format as string || 'pdf';
   
   if (isNaN(orgId) || isNaN(noticeId) || isNaN(translationId)) {
     return res.status(400).json({ message: "Invalid ID parameters" });
@@ -431,17 +468,54 @@ export const downloadTranslatedNotice = async (req: AuthRequest, res: Response) 
       return res.status(404).json({ message: "Translated notice not found" });
     }
     
-    if (!translatedNotice.filePath || !fs.existsSync(translatedNotice.filePath)) {
-      return res.status(404).json({ message: "Translated notice file not found" });
+    // Create translated notices directory if it doesn't exist
+    if (!fs.existsSync(TRANSLATED_NOTICES_DIR)) {
+      fs.mkdirSync(TRANSLATED_NOTICES_DIR, { recursive: true });
     }
     
-    const fileContent = fs.readFileSync(translatedNotice.filePath);
-    const fileName = path.basename(translatedNotice.filePath);
-    
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-    
-    return res.send(fileContent);
+    // Handle format
+    if (format === 'docx') {
+      // Generate DOCX version of the notice
+      const docxFilePath = path.join(TRANSLATED_NOTICES_DIR, `translated_notice_${translationId}_${Date.now()}.docx`);
+      await generateDocxNotice(translatedNotice.translatedBody, docxFilePath);
+      
+      const fileContent = fs.readFileSync(docxFilePath);
+      const baseName = translatedNotice.language.replace(/\s+/g, '_');
+      const fileName = `${notice.noticeName.replace(/\s+/g, '_')}_${baseName}.docx`;
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      
+      // Send file and clean up
+      res.send(fileContent);
+      
+      // Clean up temp file after sending
+      setTimeout(() => {
+        try {
+          if (fs.existsSync(docxFilePath)) {
+            fs.unlinkSync(docxFilePath);
+          }
+        } catch (cleanupError) {
+          console.error("Error cleaning up temporary DOCX file:", cleanupError);
+        }
+      }, 5000);
+      
+      return;
+    } else {
+      // Default PDF format - use existing file or generate if needed
+      if (!translatedNotice.filePath || !fs.existsSync(translatedNotice.filePath)) {
+        return res.status(404).json({ message: "Translated notice file not found" });
+      }
+      
+      const fileContent = fs.readFileSync(translatedNotice.filePath);
+      const baseName = translatedNotice.language.replace(/\s+/g, '_');
+      const fileName = `${notice.noticeName.replace(/\s+/g, '_')}_${baseName}.pdf`;
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      
+      return res.send(fileContent);
+    }
   } catch (error) {
     console.error("Download translated notice error:", error);
     return res.status(500).json({ message: "An error occurred while downloading the translated notice" });
