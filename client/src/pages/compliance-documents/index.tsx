@@ -85,13 +85,29 @@ export default function ComplianceDocumentsPage() {
   // Create folder mutation
   const createFolderMutation = useMutation({
     mutationFn: async (data: { folderName: string }) => {
-      const response = await apiRequest('POST', `/api/organizations/${user?.organizationId}/folders`, {
-        body: JSON.stringify({
-          folderName: data.folderName,
-          parentFolder: currentPath
-        })
-      });
-      return response.json();
+      try {
+        const response = await fetch(`/api/organizations/${user?.organizationId}/compliance-documents/folders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            folderName: data.folderName,
+            parentFolder: currentPath
+          }),
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to create folder');
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('Create folder failed:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', currentPath] });
