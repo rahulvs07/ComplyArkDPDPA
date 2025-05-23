@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
 import { AuthRequest } from '../middleware/auth';
-import { db } from '../db';
+import { db, pool } from '../db';
 import { complianceDocuments, type ComplianceDocument } from '@shared/schema';
 import multer from 'multer';
 import path from 'path';
@@ -45,7 +45,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
 
 // Configure multer upload
 export const upload = multer({
-  storage: multerDiskStorage, // Fixed variable name to match definition above
+  storage: multerDiskStorage,
   fileFilter: fileFilter,
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB max file size
 });
@@ -74,18 +74,15 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
     // Normalize the folder path to ensure consistent handling
     if (!folderPath.startsWith('/')) {
       folderPath = `/${folderPath}`;
-      console.log(`Added leading slash: '${folderPath}'`);
     }
     
     if (!folderPath.endsWith('/')) {
       folderPath = `${folderPath}/`;
-      console.log(`Added trailing slash: '${folderPath}'`);
     }
     
     // Remove any double slashes that might cause issues
     while (folderPath.includes('//')) {
       folderPath = folderPath.replace('//', '/');
-      console.log(`Removed double slash: '${folderPath}'`);
     }
     
     // Important: Make sure we decode any URL encoding to get the actual path
@@ -94,90 +91,17 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
     
     console.log(`Controller fetching documents for org: ${orgId}, path: '${folderPath}'`);
     
-    // First check if the special admin user (999) exists, if not create it
-    try {
-      // Check if user 999 exists in the users table
-      const adminUserResult = await db.execute(`
-        SELECT id FROM users WHERE id = 999 LIMIT 1
-      `);
-      
-      // If admin user doesn't exist in the database, insert it
-      if (!adminUserResult.rows || adminUserResult.rows.length === 0) {
-        console.log("Admin user doesn't exist in the database, creating it...");
-        
-        try {
-          // Create the admin user to satisfy the foreign key constraint
-          await db.execute(`
-            INSERT INTO users 
-            (id, username, "firstName", "lastName", email, phone, password, "organizationId", role, "isActive", "createdAt", "canEdit", "canDelete") 
-            VALUES 
-            (999, 'complyarkadmin', 'Admin', 'User', 'admin@complyark.com', '1234567890', 'adminpassword', 32, 'admin', true, NOW(), true, true)
-            ON CONFLICT (id) DO NOTHING
-          `);
-          console.log("Created admin user with ID 999");
-        } catch (createError) {
-          console.error("Error creating admin user:", createError);
-        }
-      }
-    } catch (adminCheckError) {
-      console.error("Error checking for admin user:", adminCheckError);
-    }
-    
-    // First try to get any valid user ID for this organization (needed for default folders)
-    let validUserId = authReq.user?.id;
-    
-    if (!validUserId) {
-      try {
-        // Try to use a direct query without parameters
-        const validUserResult = await db.execute(`
-          SELECT id FROM users WHERE "organizationId" = ${orgId} LIMIT 1
-        `);
-        
-        if (validUserResult.rows && validUserResult.rows.length > 0) {
-          validUserId = validUserResult.rows[0].id;
-          console.log(`Found valid user ID ${validUserId} for org ${orgId}`);
-        } else {
-          const anyUserResult = await db.execute(`SELECT id FROM users LIMIT 1`);
-          if (anyUserResult.rows && anyUserResult.rows.length > 0) {
-            validUserId = anyUserResult.rows[0].id;
-            console.log(`Found any user ID ${validUserId} as fallback`);
-          } else {
-            console.log("No users found, creating a default user...");
-            try {
-              // Create a default user for this organization
-              const createUserResult = await db.execute(`
-                INSERT INTO users 
-                (username, "firstName", "lastName", email, phone, password, "organizationId", role, "isActive", "createdAt", "canEdit", "canDelete") 
-                VALUES 
-                ('defaultuser', 'Default', 'User', 'default@example.com', '1234567890', 'defaultpassword', ${orgId}, 'admin', true, NOW(), true, true)
-                RETURNING id
-              `);
-              
-              if (createUserResult.rows && createUserResult.rows.length > 0) {
-                validUserId = createUserResult.rows[0].id;
-                console.log(`Created default user with ID ${validUserId}`);
-              }
-            } catch (createUserError) {
-              console.error("Error creating default user:", createUserError);
-              validUserId = 1; // Last resort fallback
-            }
-          }
-        }
-      } catch (userError) {
-        console.log("Error finding valid user ID:", userError);
-        validUserId = 1; // Fallback
-      }
-    }
+    // Find a valid user ID for this organization (needed for default folders)
+    let validUserId = authReq.user?.id || 1;
     
     // Generate default folders as a fallback
-    // Create folders with contextual folderPath to match the current navigation
     const defaultFolders = [
       {
-        documentId: -1, // Use negative IDs for temporary folders
+        documentId: -1,
         documentName: "Notices",
         documentType: "folder",
         documentPath: "",
-        uploadedBy: validUserId || 1,
+        uploadedBy: validUserId,
         uploadedAt: new Date(),
         organizationId: orgId,
         folderPath: folderPath,
@@ -188,7 +112,7 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
         documentName: "Translated Notices",
         documentType: "folder",
         documentPath: "",
-        uploadedBy: validUserId || 1,
+        uploadedBy: validUserId,
         uploadedAt: new Date(),
         organizationId: orgId,
         folderPath: folderPath,
@@ -199,7 +123,7 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
         documentName: "Other Templates",
         documentType: "folder",
         documentPath: "",
-        uploadedBy: validUserId || 1,
+        uploadedBy: validUserId,
         uploadedAt: new Date(),
         organizationId: orgId,
         folderPath: folderPath,
@@ -207,80 +131,50 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
       }
     ];
     
+    // Create the table if it doesn't exist
     try {
-      // Create the table if it doesn't exist (use directly instead of checking)
-      try {
-        await db.execute(`
-          CREATE TABLE IF NOT EXISTS "complianceDocuments" (
-            "documentId" SERIAL PRIMARY KEY,
-            "documentName" VARCHAR(255) NOT NULL,
-            "documentType" VARCHAR(50) NOT NULL,
-            "documentPath" TEXT,
-            "folderPath" VARCHAR(255) NOT NULL DEFAULT '/',
-            "uploadedBy" INTEGER NOT NULL,
-            "organizationId" INTEGER NOT NULL,
-            "uploadedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-          )
-        `);
-        console.log("Ensured complianceDocuments table exists");
-      } catch (createError) {
-        console.error("Error creating table:", createError);
-        // Continue execution - table might already exist
-      }
-      
-      // Try to count documents to see if table exists and is accessible
-      try {
-        // Use raw query with proper parameter binding
-        const countResult = await pool.query(
-          'SELECT COUNT(*) FROM "complianceDocuments" WHERE "organizationId" = $1', 
-          [orgId]
-        );
-        console.log(`Found ${countResult.rows[0].count} documents for org ${orgId}`);
-      } catch (countError) {
-        console.error("Error counting documents:", countError);
-        // If we can't even count, return default folders
-        return res.status(200).json(defaultFolders);
-      }
-      
-      // Log what we're doing
-      console.log(`Fetching documents for org: ${orgId}, folderPath: '${folderPath}'`);
-      
-      // Direct database query with direct string substitution instead of parameters
-      // This avoids parameter binding issues
-      // CRITICAL FIX: Look specifically for exact folderPath match to ensure proper folder navigation
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS "complianceDocuments" (
+          "documentId" SERIAL PRIMARY KEY,
+          "documentName" VARCHAR(255) NOT NULL,
+          "documentType" VARCHAR(50) NOT NULL,
+          "documentPath" TEXT,
+          "folderPath" VARCHAR(255) NOT NULL DEFAULT '/',
+          "uploadedBy" INTEGER NOT NULL,
+          "organizationId" INTEGER NOT NULL,
+          "uploadedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+        )
+      `);
+      console.log("Ensured complianceDocuments table exists");
+    } catch (createError) {
+      console.error("Error creating table:", createError);
+      return res.status(200).json(defaultFolders);
+    }
+    
+    // Fetch documents from database
+    try {
       const query = `
         SELECT *, 
         (SELECT username FROM users WHERE id = "uploadedBy" LIMIT 1) as "uploadedByName",
         (SELECT LENGTH(CAST("documentPath" AS BYTEA)) FROM "complianceDocuments" doc2 WHERE doc2."documentId" = "complianceDocuments"."documentId") as "fileSize"
         FROM "complianceDocuments" 
-        WHERE "organizationId" = ${orgId} AND "folderPath" = '${folderPath.replace(/'/g, "''")}'
+        WHERE "organizationId" = $1 AND "folderPath" = $2
         ORDER BY 
           CASE WHEN "documentType" = 'folder' THEN 0 ELSE 1 END, 
           "documentName" ASC
       `;
       
-      console.log(`SQL Query: ${query}`);
-      console.log("Running query:", query);
-      const result = await db.execute(query);
+      console.log(`Executing query for org: ${orgId}, path: '${folderPath}'`);
+      const result = await pool.query(query, [orgId, folderPath]);
       
-      // Check if rows property exists
-      if (!result.rows) {
-        console.log("Database query did not return rows property");
-        return res.status(200).json(folderPath === '/' ? defaultFolders : []);
-      }
-      
-      // Access rows safely
-      const rows = result.rows;
-      console.log(`SQL query returned ${rows.length} documents for org ${orgId} in path ${folderPath}`);
-      
-      // If we got no documents and this is the root folder, create default folders in database
-      if (rows.length === 0 && folderPath === '/') {
+      // If no documents found in root, create default folders
+      if ((!result.rows || result.rows.length === 0) && folderPath === '/') {
         console.log("No documents found for organization, creating default folders");
         
         try {
           // Create default folders if they don't exist
           for (const folder of defaultFolders) {
-            await db.execute(`
+            await pool.query(`
               INSERT INTO "complianceDocuments" 
               ("documentName", "documentType", "documentPath", "folderPath", "uploadedBy", "organizationId", "uploadedAt")
               VALUES ($1, $2, $3, $4, $5, $6, NOW())
@@ -296,7 +190,7 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
           }
           
           // Fetch the newly created folders
-          const newResult = await db.execute(`
+          const newResult = await pool.query(`
             SELECT * FROM "complianceDocuments" 
             WHERE "organizationId" = $1 AND "folderPath" = $2
             ORDER BY "documentName" ASC
@@ -304,7 +198,7 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
           
           if (newResult.rows && newResult.rows.length > 0) {
             // Map DB rows to ComplianceDocument objects
-            const documents = newResult.rows.map(row => ({
+            const documents = newResult.rows.map((row: any) => ({
               documentId: Number(row.documentId),
               documentName: String(row.documentName || ''),
               documentType: String(row.documentType || 'folder'),
@@ -312,7 +206,9 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
               uploadedBy: Number(row.uploadedBy),
               uploadedAt: new Date(row.uploadedAt),
               organizationId: Number(row.organizationId),
-              folderPath: String(row.folderPath || '/')
+              folderPath: String(row.folderPath || '/'),
+              uploadedByName: row.uploadedByName || 'System',
+              fileSize: row.fileSize || 0
             }));
             
             return res.status(200).json(documents);
@@ -326,8 +222,13 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
         }
       }
       
+      if (!result.rows) {
+        console.log("Database query did not return rows property");
+        return res.status(200).json(folderPath === '/' ? defaultFolders : []);
+      }
+      
       // Map DB rows to ComplianceDocument objects with type safety
-      const documents = rows.map(row => ({
+      const documents = result.rows.map((row: any) => ({
         documentId: Number(row.documentId),
         documentName: String(row.documentName || ''),
         documentType: String(row.documentType || 'file'),
@@ -335,16 +236,16 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
         uploadedBy: Number(row.uploadedBy),
         uploadedAt: new Date(row.uploadedAt || new Date()),
         organizationId: Number(row.organizationId),
-        folderPath: String(row.folderPath || '/')
+        folderPath: String(row.folderPath || '/'),
+        uploadedByName: row.uploadedByName || 'Unknown',
+        fileSize: row.fileSize || 0
       }));
       
       return res.status(200).json(documents);
-      
-    } catch (dbError) {
-      console.error("Database error fetching compliance documents:", dbError);
-      // Return default folders instead of error
+    } catch (error) {
+      console.error("Database error fetching compliance documents:", error);
+      // Return default folders instead of error for root folder
       if (folderPath === '/') {
-        console.log("Using default folders as fallback due to database error");
         return res.status(200).json(defaultFolders);
       }
       return res.status(200).json([]);
@@ -373,41 +274,12 @@ export const uploadComplianceDocument = async (req: AuthRequest, res: Response) 
   }
   
   try {
-    const { documentName, documentType, folderPath, description } = req.body;
+    const { documentName, documentType, folderPath } = req.body;
+    let validUserId = req.user?.id || 1;
     
-    // Find a valid user ID to satisfy foreign key constraint
-    let validUserId = req.user?.id;
-    
-    if (!validUserId) {
-      // Try to find a valid user ID from the database
-      try {
-        const validUserResult = await db.execute(
-          `SELECT id FROM users WHERE "organizationId" = ${orgId} LIMIT 1`
-        );
-        
-        if (validUserResult.rows && validUserResult.rows.length > 0) {
-          validUserId = validUserResult.rows[0].id;
-        } else {
-          // Find any valid user as a fallback
-          const anyUserResult = await db.execute(`SELECT id FROM users LIMIT 1`);
-          if (anyUserResult.rows && anyUserResult.rows.length > 0) {
-            validUserId = anyUserResult.rows[0].id;
-          } else {
-            return res.status(400).json({ 
-              message: "No valid user found to upload document. Please create a user first." 
-            });
-          }
-        }
-      } catch (userError) {
-        console.error("Error finding valid user:", userError);
-        // Default to user ID 1 as a last resort
-        validUserId = 1;
-      }
-    }
-    
-    // Ensure table exists first
+    // Ensure table exists
     try {
-      await db.execute(`
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS "complianceDocuments" (
           "documentId" SERIAL PRIMARY KEY,
           "documentName" VARCHAR(255) NOT NULL,
@@ -420,44 +292,50 @@ export const uploadComplianceDocument = async (req: AuthRequest, res: Response) 
         )
       `);
     } catch (tableError) {
-      console.error("Error creating table:", tableError);
+      console.error("Error ensuring table exists:", tableError);
     }
     
-    // Create document record using direct SQL without parameterized query
-    const filePath = req.file.path.replace(/\\/g, '/').replace(/'/g, "''"); // Normalize path and escape single quotes
-    const actualDocumentName = (documentName || req.file.originalname).replace(/'/g, "''");
-    const actualDocumentType = (documentType || path.extname(req.file.originalname).substring(1) || 'file').replace(/'/g, "''");
-    const actualFolderPath = (folderPath || '/').replace(/'/g, "''");
-    
-    // Create direct SQL query without using parameters that might cause issues
+    // Prepare and execute the insert query
     const query = `
       INSERT INTO "complianceDocuments" 
       ("documentName", "documentType", "documentPath", "uploadedBy", "organizationId", "folderPath", "uploadedAt") 
-      VALUES ('${actualDocumentName}', '${actualDocumentType}', '${filePath}', ${validUserId}, ${orgId}, '${actualFolderPath}', NOW()) 
+      VALUES ($1, $2, $3, $4, $5, $6, NOW()) 
       RETURNING *
     `;
     
     console.log("Running upload query:", query);
-    const documentResult = await db.execute(query);
     
-    if (documentResult.rows && documentResult.rows.length > 0) {
-      const document = documentResult.rows[0];
-      return res.status(201).json(document);
+    const values = [
+      documentName || req.file.originalname,
+      documentType || path.extname(req.file.originalname).substring(1) || 'plain',
+      req.file.path,
+      validUserId,
+      orgId,
+      folderPath || '/'
+    ];
+    
+    const result = await pool.query(query, values);
+    
+    if (result.rows && result.rows.length > 0) {
+      const document = result.rows[0];
+      
+      return res.status(201).json({
+        documentId: document.documentId,
+        documentName: document.documentName,
+        documentType: document.documentType,
+        documentPath: document.documentPath,
+        uploadedBy: document.uploadedBy,
+        uploadedAt: document.uploadedAt,
+        organizationId: document.organizationId,
+        folderPath: document.folderPath
+      });
     } else {
-      throw new Error("No document record returned from insert");
+      throw new Error("Document upload failed - no record created");
     }
   } catch (error) {
-    console.error("Error uploading compliance document:", error);
-    
-    // Clean up the file if there was an error
-    if (req.file && req.file.path) {
-      fs.unlink(req.file.path, (err) => {
-        if (err) console.error("Error removing file after failed upload:", err);
-      });
-    }
-    
+    console.error('Upload failed:', error);
     return res.status(500).json({ 
-      message: "Failed to upload compliance document", 
+      message: "Failed to upload document", 
       error: (error as Error).message 
     });
   }
@@ -467,39 +345,54 @@ export const uploadComplianceDocument = async (req: AuthRequest, res: Response) 
  * Delete a compliance document
  */
 export const deleteComplianceDocument = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id);
+  const { documentId } = req.params;
   
-  if (isNaN(id)) {
-    return res.status(400).json({ message: "Invalid document ID" });
+  if (!documentId) {
+    return res.status(400).json({ message: "Document ID is required" });
   }
   
   try {
-    // Get document details to delete the file
-    const document = await storage.getComplianceDocument(id);
-    if (!document) {
+    // Get document info first to retrieve file path
+    const getResult = await pool.query(
+      'SELECT * FROM "complianceDocuments" WHERE "documentId" = $1',
+      [documentId]
+    );
+    
+    if (!getResult.rows || getResult.rows.length === 0) {
       return res.status(404).json({ message: "Document not found" });
     }
     
-    // Delete document from database
-    const result = await storage.deleteComplianceDocument(id);
-    if (!result) {
-      return res.status(500).json({ message: "Failed to delete document record" });
+    const document = getResult.rows[0];
+    
+    // Delete from database
+    const deleteResult = await pool.query(
+      'DELETE FROM "complianceDocuments" WHERE "documentId" = $1 RETURNING *',
+      [documentId]
+    );
+    
+    if (!deleteResult.rows || deleteResult.rows.length === 0) {
+      return res.status(404).json({ message: "Document not found or already deleted" });
     }
     
-    // Delete the file from disk
-    if (document.filePath) {
-      fs.unlink(document.filePath, (err) => {
-        if (err) {
-          console.error("Error removing file:", err);
-          // Still return success as the database record was deleted
+    // If it's a file (not a folder), also delete the physical file
+    if (document.documentType !== 'folder' && document.documentPath) {
+      try {
+        if (fs.existsSync(document.documentPath)) {
+          fs.unlinkSync(document.documentPath);
         }
-      });
+      } catch (fileError) {
+        console.error("Error deleting physical file:", fileError);
+        // Continue execution - the database entry is more important
+      }
     }
     
     return res.status(200).json({ message: "Document deleted successfully" });
   } catch (error) {
-    console.error("Error deleting compliance document:", error);
-    return res.status(500).json({ message: "Failed to delete compliance document" });
+    console.error('Delete failed:', error);
+    return res.status(500).json({ 
+      message: "Failed to delete document",
+      error: (error as Error).message
+    });
   }
 };
 
@@ -513,56 +406,27 @@ export const createFolder = async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ message: "Invalid organization ID" });
   }
   
+  const { folderName, parentFolder } = req.body;
+  
+  if (!folderName) {
+    return res.status(400).json({ message: "Folder name is required" });
+  }
+  
+  console.log(`Folder creation endpoint called with:`, {
+    folderName,
+    parentFolder
+  });
+  
   try {
-    const { folderName, parentFolder } = req.body;
-    
-    if (!folderName) {
-      return res.status(400).json({ message: "Folder name is required" });
+    // Normalize the parent folder path
+    let normalizedParentFolder = parentFolder || '/';
+    if (!normalizedParentFolder.endsWith('/')) {
+      normalizedParentFolder += '/';
     }
     
-    // Sanitize folder name to prevent path traversal
-    const sanitizedFolderName = folderName.replace(/[^\w\s-]/g, '');
-    
-    // Create the folder path
-    const folderPath = parentFolder ? 
-      `${parentFolder.endsWith('/') ? parentFolder : parentFolder + '/'}${sanitizedFolderName}` : 
-      `/${sanitizedFolderName}`;
-    
-    // Find a valid user ID to satisfy the foreign key constraint
-    let validUserId = req.user?.id;
-    
-    if (!validUserId) {
-      // Try to find any valid user in this organization
-      try {
-        const validUserResult = await db.execute(`
-          SELECT id FROM users WHERE "organizationId" = ${orgId} LIMIT 1
-        `);
-        
-        if (validUserResult.rows && validUserResult.rows.length > 0) {
-          validUserId = validUserResult.rows[0].id;
-          console.log(`Found valid user ID ${validUserId} for org ${orgId}`);
-        } else {
-          // As a last resort, find any valid user
-          const anyUserResult = await db.execute(`SELECT id FROM users LIMIT 1`);
-          if (anyUserResult.rows && anyUserResult.rows.length > 0) {
-            validUserId = anyUserResult.rows[0].id;
-            console.log(`Found any user ID ${validUserId} as fallback`);
-          } else {
-            return res.status(400).json({ 
-              message: "No valid user found to create folder. Please create a user first." 
-            });
-          }
-        }
-      } catch (userError) {
-        console.error("Error finding valid user:", userError);
-        // Default to user ID 1 as a last resort
-        validUserId = 1;
-      }
-    }
-    
-    // Make sure table exists first
+    // Create the table if it doesn't exist
     try {
-      await db.execute(`
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS "complianceDocuments" (
           "documentId" SERIAL PRIMARY KEY,
           "documentName" VARCHAR(255) NOT NULL,
@@ -575,32 +439,54 @@ export const createFolder = async (req: AuthRequest, res: Response) => {
         )
       `);
       console.log("Ensured complianceDocuments table exists");
-    } catch (tableError) {
-      console.error("Error ensuring table exists:", tableError);
+    } catch (createError) {
+      console.error("Error creating table:", createError);
     }
     
-    // Clean and sanitize inputs to avoid SQL injection issues
-    const sanitizedParentFolder = (parentFolder || '/').replace(/'/g, "''");
+    let validUserId = req.user?.id || 1;
     
-    // Here's the important change - we're storing the parentFolder directly, not constructing a path
-    // The UI will handle the actual path construction when navigating
-    console.log(`Creating folder "${sanitizedFolderName}" in parent folder "${sanitizedParentFolder}"`);
+    console.log(`Creating folder "${folderName}" in parent folder "${normalizedParentFolder}"`);
     
-    // Create the folder with direct database query - use a raw query without placeholders
+    // Insert the folder
     const query = `
       INSERT INTO "complianceDocuments" 
       ("documentName", "documentType", "documentPath", "uploadedBy", "organizationId", "folderPath", "uploadedAt") 
-      VALUES ('${sanitizedFolderName}', 'folder', '', ${validUserId}, ${orgId}, '${sanitizedParentFolder}', NOW()) 
+      VALUES ($1, $2, $3, $4, $5, $6, NOW()) 
       RETURNING *
     `;
+    
     console.log("Running query:", query);
-    const folderResult = await db.execute(query);
     
-    const folder = folderResult.rows[0];
+    const result = await pool.query(query, [
+      folderName,
+      'folder',
+      '',
+      validUserId,
+      orgId,
+      normalizedParentFolder
+    ]);
     
-    return res.status(201).json(folder);
+    if (result.rows && result.rows.length > 0) {
+      const folder = result.rows[0];
+      
+      return res.status(201).json({
+        documentId: folder.documentId,
+        documentName: folder.documentName,
+        documentType: 'folder',
+        documentPath: '',
+        uploadedBy: folder.uploadedBy,
+        uploadedAt: folder.uploadedAt,
+        organizationId: folder.organizationId,
+        folderPath: folder.folderPath
+      });
+    } else {
+      throw new Error("Folder creation failed - no record created");
+    }
   } catch (error) {
-    console.error("Error creating folder:", error);
-    return res.status(500).json({ message: "Failed to create folder" });
+    console.error('Folder creation failed:', error);
+    return res.status(500).json({ 
+      message: "Failed to create folder", 
+      error: (error as Error).message 
+    });
   }
 };
