@@ -130,37 +130,36 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
     ];
     
     try {
-      // First, check if the table exists
-      const tableExists = await db.execute(`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_name = 'complianceDocuments'
-        );
-      `);
+      // Create the table if it doesn't exist (use directly instead of checking)
+      try {
+        await db.execute(`
+          CREATE TABLE IF NOT EXISTS "complianceDocuments" (
+            "documentId" SERIAL PRIMARY KEY,
+            "documentName" VARCHAR(255) NOT NULL,
+            "documentType" VARCHAR(50) NOT NULL,
+            "documentPath" TEXT,
+            "folderPath" VARCHAR(255) NOT NULL DEFAULT '/',
+            "uploadedBy" INTEGER NOT NULL,
+            "organizationId" INTEGER NOT NULL,
+            "uploadedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+          )
+        `);
+        console.log("Ensured complianceDocuments table exists");
+      } catch (createError) {
+        console.error("Error creating table:", createError);
+        // Continue execution - table might already exist
+      }
       
-      if (!tableExists.rows || !tableExists.rows[0] || !tableExists.rows[0].exists) {
-        console.log("Table 'complianceDocuments' does not exist yet - returning default folders");
-        
-        // Create the table if it doesn't exist
-        try {
-          await db.execute(`
-            CREATE TABLE IF NOT EXISTS "complianceDocuments" (
-              "documentId" SERIAL PRIMARY KEY,
-              "documentName" VARCHAR(255) NOT NULL,
-              "documentType" VARCHAR(50) NOT NULL,
-              "documentPath" TEXT,
-              "folderPath" VARCHAR(255) NOT NULL DEFAULT '/',
-              "uploadedBy" INTEGER NOT NULL,
-              "organizationId" INTEGER NOT NULL,
-              "uploadedAt" TIMESTAMP NOT NULL DEFAULT NOW()
-            );
-          `);
-          console.log("Created complianceDocuments table");
-        } catch (createError) {
-          console.error("Error creating table:", createError);
-        }
-        
+      // Try to count documents to see if table exists and is accessible
+      try {
+        const countResult = await db.execute(
+          'SELECT COUNT(*) FROM "complianceDocuments" WHERE "organizationId" = $1', 
+          [orgId]
+        );
+        console.log(`Found ${countResult.rows[0].count} documents for org ${orgId}`);
+      } catch (countError) {
+        console.error("Error counting documents:", countError);
+        // If we can't even count, return default folders
         return res.status(200).json(defaultFolders);
       }
       
@@ -290,46 +289,72 @@ export const uploadComplianceDocument = async (req: AuthRequest, res: Response) 
     
     if (!validUserId) {
       // Try to find a valid user ID from the database
-      const validUserResult = await db.execute(
-        `SELECT id FROM users WHERE "organizationId" = $1 LIMIT 1`,
-        [orgId]
-      );
-      
-      if (validUserResult.rows && validUserResult.rows.length > 0) {
-        validUserId = validUserResult.rows[0].id;
-      } else {
-        // Find any valid user as a fallback
-        const anyUserResult = await db.execute(`SELECT id FROM users LIMIT 1`);
-        if (anyUserResult.rows && anyUserResult.rows.length > 0) {
-          validUserId = anyUserResult.rows[0].id;
+      try {
+        const validUserResult = await db.execute(
+          `SELECT id FROM users WHERE "organizationId" = ${orgId} LIMIT 1`
+        );
+        
+        if (validUserResult.rows && validUserResult.rows.length > 0) {
+          validUserId = validUserResult.rows[0].id;
         } else {
-          return res.status(400).json({ 
-            message: "No valid user found to upload document. Please create a user first." 
-          });
+          // Find any valid user as a fallback
+          const anyUserResult = await db.execute(`SELECT id FROM users LIMIT 1`);
+          if (anyUserResult.rows && anyUserResult.rows.length > 0) {
+            validUserId = anyUserResult.rows[0].id;
+          } else {
+            return res.status(400).json({ 
+              message: "No valid user found to upload document. Please create a user first." 
+            });
+          }
         }
+      } catch (userError) {
+        console.error("Error finding valid user:", userError);
+        // Default to user ID 1 as a last resort
+        validUserId = 1;
       }
     }
     
-    // Create document record using direct database query
-    const filePath = req.file.path.replace(/\\/g, '/'); // Normalize path for database
-    const documentResult = await db.execute(
-      `INSERT INTO "complianceDocuments" 
-       ("documentName", "documentType", "documentPath", "uploadedBy", "organizationId", "folderPath", "uploadedAt") 
-       VALUES ($1, $2, $3, $4, $5, $6, NOW()) 
-       RETURNING *`,
-      [
-        documentName || req.file.originalname,
-        documentType || path.extname(req.file.originalname).substring(1) || 'file',
-        filePath,
-        validUserId,
-        orgId,
-        folderPath || '/'
-      ]
-    );
+    // Ensure table exists first
+    try {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS "complianceDocuments" (
+          "documentId" SERIAL PRIMARY KEY,
+          "documentName" VARCHAR(255) NOT NULL,
+          "documentType" VARCHAR(50) NOT NULL,
+          "documentPath" TEXT,
+          "folderPath" VARCHAR(255) NOT NULL DEFAULT '/',
+          "uploadedBy" INTEGER NOT NULL,
+          "organizationId" INTEGER NOT NULL,
+          "uploadedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+        )
+      `);
+    } catch (tableError) {
+      console.error("Error creating table:", tableError);
+    }
     
-    const document = documentResult.rows[0];
+    // Create document record using direct SQL without parameterized query
+    const filePath = req.file.path.replace(/\\/g, '/').replace(/'/g, "''"); // Normalize path and escape single quotes
+    const actualDocumentName = (documentName || req.file.originalname).replace(/'/g, "''");
+    const actualDocumentType = (documentType || path.extname(req.file.originalname).substring(1) || 'file').replace(/'/g, "''");
+    const actualFolderPath = (folderPath || '/').replace(/'/g, "''");
     
-    return res.status(201).json(document);
+    // Create direct SQL query without using parameters that might cause issues
+    const query = `
+      INSERT INTO "complianceDocuments" 
+      ("documentName", "documentType", "documentPath", "uploadedBy", "organizationId", "folderPath", "uploadedAt") 
+      VALUES ('${actualDocumentName}', '${actualDocumentType}', '${filePath}', ${validUserId}, ${orgId}, '${actualFolderPath}', NOW()) 
+      RETURNING *
+    `;
+    
+    console.log("Running upload query:", query);
+    const documentResult = await db.execute(query);
+    
+    if (documentResult.rows && documentResult.rows.length > 0) {
+      const document = documentResult.rows[0];
+      return res.status(201).json(document);
+    } else {
+      throw new Error("No document record returned from insert");
+    }
   } catch (error) {
     console.error("Error uploading compliance document:", error);
     
@@ -340,7 +365,10 @@ export const uploadComplianceDocument = async (req: AuthRequest, res: Response) 
       });
     }
     
-    return res.status(500).json({ message: "Failed to upload compliance document" });
+    return res.status(500).json({ 
+      message: "Failed to upload compliance document", 
+      error: (error as Error).message 
+    });
   }
 };
 
@@ -434,14 +462,33 @@ export const createFolder = async (req: AuthRequest, res: Response) => {
       }
     }
     
-    // Create the folder with direct database query
-    const folderResult = await db.execute(
-      `INSERT INTO "complianceDocuments" 
-       ("documentName", "documentType", "documentPath", "uploadedBy", "organizationId", "folderPath", "uploadedAt") 
-       VALUES ($1, 'folder', '', $2, $3, $4, NOW()) 
-       RETURNING *`,
-      [sanitizedFolderName, validUserId, orgId, parentFolder || '/']
-    );
+    // Make sure table exists first
+    try {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS "complianceDocuments" (
+          "documentId" SERIAL PRIMARY KEY,
+          "documentName" VARCHAR(255) NOT NULL,
+          "documentType" VARCHAR(50) NOT NULL,
+          "documentPath" TEXT,
+          "folderPath" VARCHAR(255) NOT NULL DEFAULT '/',
+          "uploadedBy" INTEGER NOT NULL,
+          "organizationId" INTEGER NOT NULL,
+          "uploadedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+        )
+      `);
+    } catch (tableError) {
+      console.error("Error ensuring table exists:", tableError);
+    }
+    
+    // Create the folder with direct database query - use a raw query without placeholders
+    const query = `
+      INSERT INTO "complianceDocuments" 
+      ("documentName", "documentType", "documentPath", "uploadedBy", "organizationId", "folderPath", "uploadedAt") 
+      VALUES ('${sanitizedFolderName}', 'folder', '', ${validUserId}, ${orgId}, '${parentFolder || '/'}', NOW()) 
+      RETURNING *
+    `;
+    console.log("Running query:", query);
+    const folderResult = await db.execute(query);
     
     const folder = folderResult.rows[0];
     
