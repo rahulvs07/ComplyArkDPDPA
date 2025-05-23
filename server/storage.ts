@@ -920,30 +920,88 @@ export class DatabaseStorage implements IStorage {
   
   async listComplianceDocuments(organizationId: number, folderPath: string = '/'): Promise<ComplianceDocument[]> {
     try {
-      // Use raw SQL for more reliable query execution
+      console.log(`Executing SQL to get documents for org: ${organizationId}, path: '${folderPath}'`);
+      
+      // First, check if the table exists to avoid errors
+      const tableExists = await db.execute(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'complianceDocuments'
+        );
+      `);
+      
+      if (!tableExists.rows[0].exists) {
+        console.log("Table 'complianceDocuments' does not exist yet");
+        return [];
+      }
+      
+      // Get the documents
       const { rows } = await db.execute(`
         SELECT * FROM "complianceDocuments" 
         WHERE "organizationId" = $1 AND "folderPath" = $2
-        ORDER BY "documentType" = 'folder' DESC, "uploadedAt" DESC
+        ORDER BY 
+          CASE WHEN "documentType" = 'folder' THEN 0 ELSE 1 END, 
+          "documentName" ASC
       `, [organizationId, folderPath]);
       
       console.log(`SQL query returned ${rows.length} documents for org ${organizationId} in path ${folderPath}`);
       
-      // Map the raw results to our ComplianceDocument type
-      return rows.map(row => ({
-        documentId: row.documentId,
-        documentName: row.documentName,
-        documentType: row.documentType,
-        documentPath: row.documentPath,
-        uploadedBy: row.uploadedBy,
-        uploadedAt: row.uploadedAt,
-        organizationId: row.organizationId,
-        folderPath: row.folderPath
-      }));
+      // If we got no documents, check if we should create default folders
+      if (rows.length === 0 && folderPath === '/') {
+        console.log("Creating default folders for organization");
+        await this.createDefaultFolders(organizationId);
+        
+        // Fetch again after creating defaults
+        const { rows: newRows } = await db.execute(`
+          SELECT * FROM "complianceDocuments" 
+          WHERE "organizationId" = $1 AND "folderPath" = $2
+          ORDER BY "documentName" ASC
+        `, [organizationId, folderPath]);
+        
+        return newRows.map(this.mapRowToComplianceDocument);
+      }
+      
+      return rows.map(this.mapRowToComplianceDocument);
     } catch (error) {
       console.error("Error in listComplianceDocuments:", error);
       return [];
     }
+  }
+  
+  // Helper method to create default folders for an organization
+  private async createDefaultFolders(organizationId: number): Promise<void> {
+    try {
+      const defaultFolders = ['Notices', 'Translated Notices', 'Other Templates'];
+      const currentUser = 999; // System admin ID for default folders
+      
+      for (const folderName of defaultFolders) {
+        await db.execute(`
+          INSERT INTO "complianceDocuments" 
+          ("organizationId", "documentName", "documentType", "documentPath", "folderPath", "uploadedBy", "uploadedAt")
+          VALUES ($1, $2, 'folder', '', '/', $3, NOW())
+          ON CONFLICT DO NOTHING
+        `, [organizationId, folderName, currentUser]);
+      }
+      
+      console.log(`Created default folders for organization ${organizationId}`);
+    } catch (error) {
+      console.error("Error creating default folders:", error);
+    }
+  }
+  
+  // Helper method to map database row to ComplianceDocument type
+  private mapRowToComplianceDocument(row: any): ComplianceDocument {
+    return {
+      documentId: row.documentId,
+      documentName: row.documentName,
+      documentType: row.documentType,
+      documentPath: row.documentPath || '',
+      uploadedBy: row.uploadedBy,
+      uploadedAt: new Date(row.uploadedAt),
+      organizationId: row.organizationId,
+      folderPath: row.folderPath
+    };
   }
   // Get org admin (first admin user in the organization)
   async getOrgAdmin(organizationId: number): Promise<User | undefined> {

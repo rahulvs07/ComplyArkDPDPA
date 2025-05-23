@@ -433,12 +433,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Compliance Document routes
-  app.get('/api/compliance-documents', isAuthenticated, async (req, res) => {
+  app.get('/api/compliance-documents', async (req, res) => {
     try {
+      // Check if user is logged in
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        console.log("User not authenticated for document access");
+        return res.status(401).json({ message: "Unauthorized. Please login to access this resource." });
+      }
+      
       // Get user's organization ID from request
-      const orgId = (req as AuthRequest).user!.organizationId;
+      const orgId = req.user?.organizationId;
       
       if (!orgId) {
+        console.log("No organization ID found in user object:", req.user);
         return res.status(400).json({ message: "Organization ID is required" });
       }
       
