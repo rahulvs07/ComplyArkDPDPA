@@ -17,7 +17,7 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // Configure multer storage
-const storage_config = multer.diskStorage({
+const multerDiskStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
   },
@@ -45,7 +45,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
 
 // Configure multer upload
 export const upload = multer({
-  storage: storage_config,
+  storage: multerDiskStorage, // Fixed variable name to match definition above
   fileFilter: fileFilter,
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB max file size
 });
