@@ -66,8 +66,22 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
       return res.status(200).json([]); // Return empty array rather than error
     }
     
-    // Get folder path from query parameter
-    const folderPath = req.query.folder as string || '/';
+    // Get folder path from query parameter and normalize it
+    let folderPath = req.query.folder as string || '/';
+    
+    // Normalize the folder path to ensure consistent handling
+    if (!folderPath.startsWith('/')) {
+      folderPath = `/${folderPath}`;
+    }
+    
+    if (!folderPath.endsWith('/')) {
+      folderPath = `${folderPath}/`;
+    }
+    
+    // Remove any double slashes that might cause issues
+    while (folderPath.includes('//')) {
+      folderPath = folderPath.replace('//', '/');
+    }
     
     console.log(`Controller fetching documents for org: ${orgId}, path: '${folderPath}'`);
     
@@ -220,7 +234,10 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
       // Direct database query with direct string substitution instead of parameters
       // This avoids parameter binding issues
       const query = `
-        SELECT * FROM "complianceDocuments" 
+        SELECT *, 
+        (SELECT username FROM users WHERE id = "uploadedBy" LIMIT 1) as "uploadedByName",
+        (SELECT LENGTH(CAST("documentPath" AS BYTEA)) FROM "complianceDocuments" doc2 WHERE doc2."documentId" = "complianceDocuments"."documentId") as "fileSize"
+        FROM "complianceDocuments" 
         WHERE "organizationId" = ${orgId} AND "folderPath" = '${folderPath.replace(/'/g, "''")}'
         ORDER BY 
           CASE WHEN "documentType" = 'folder' THEN 0 ELSE 1 END, 
