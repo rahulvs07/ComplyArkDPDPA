@@ -433,33 +433,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Compliance Document routes
-  app.get('/api/compliance-documents', async (req, res) => {
+  app.get('/api/compliance-documents', isAuthenticated, async (req: AuthRequest, res) => {
     try {
-      // Check if user is logged in
-      if (!req.isAuthenticated || !req.isAuthenticated()) {
-        console.log("User not authenticated for document access");
-        return res.status(401).json({ message: "Unauthorized. Please login to access this resource." });
-      }
-      
       // Get user's organization ID from request
-      const orgId = req.user?.organizationId;
-      
-      if (!orgId) {
-        console.log("No organization ID found in user object:", req.user);
-        return res.status(400).json({ message: "Organization ID is required" });
-      }
+      const orgId = req.user!.organizationId;
       
       // Handle folder path parameter
       const folderPath = req.query.folder as string || '/';
       
       console.log(`Fetching compliance documents for org: ${orgId}, path: ${folderPath}`);
       
-      // Add debug SQL logging
-      const documents = await storage.listComplianceDocuments(orgId, folderPath);
-      
-      console.log(`Found ${documents.length} documents`);
-      
-      return res.status(200).json(documents);
+      // Use the controller function directly
+      await complianceDocumentController.getComplianceDocuments(req, res);
     } catch (error) {
       console.error("Error fetching compliance documents:", error);
       return res.status(500).json({ message: "Failed to fetch compliance documents", error: (error as Error).message });
