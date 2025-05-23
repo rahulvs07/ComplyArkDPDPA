@@ -343,14 +343,14 @@ export default function ComplianceDocumentsPage() {
           <div className="flex space-x-2">
             <Button 
               onClick={() => setIsNewFolderDialogOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
               size="sm"
             >
               <Plus className="h-4 w-4 mr-1" /> New Folder
             </Button>
             <Button 
               onClick={() => setIsUploadDialogOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
               size="sm"
             >
               <Upload className="h-4 w-4 mr-1" /> Upload Files
@@ -376,7 +376,12 @@ export default function ComplianceDocumentsPage() {
                   {i > 0 && <span className="mx-1 text-gray-400">/</span>}
                   <button
                     onClick={() => navigateToBreadcrumb(breadcrumb.path)}
-                    className="hover:underline text-blue-600 dark:text-blue-400"
+                    className={cn(
+                      "hover:underline",
+                      currentPath === breadcrumb.path
+                        ? "text-[#2E77AE] dark:text-[#4B93D2] font-medium"
+                        : "text-[#2E77AE] dark:text-blue-400"
+                    )}
                   >
                     {breadcrumb.name}
                   </button>
@@ -488,7 +493,7 @@ export default function ComplianceDocumentsPage() {
                 </Button>
                 <Button 
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
                   disabled={createFolderMutation.isPending}
                 >
                   {createFolderMutation.isPending ? 'Creating...' : 'Create Folder'}
@@ -554,7 +559,7 @@ export default function ComplianceDocumentsPage() {
                 </Button>
                 <Button 
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
                   disabled={uploadFileMutation.isPending}
                 >
                   {uploadFileMutation.isPending ? 'Uploading...' : 'Upload File'}
