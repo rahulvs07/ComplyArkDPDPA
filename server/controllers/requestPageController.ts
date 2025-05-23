@@ -164,6 +164,40 @@ export async function createDPRequest(req: Request, res: Response) {
       .values(requestValues)
       .returning();
     
+    // Send email notification to the requester
+    try {
+      const { sendDPRSubmissionNotification } = await import('../utils/emailService');
+      
+      // Get status name for notification
+      const status = await db.query.requestStatuses.findFirst({
+        where: eq(requestStatuses.statusId, dpRequest.statusId)
+      });
+      
+      // Get assigned user name if available
+      let assignedUser = null;
+      if (dpRequest.assignedToUserId) {
+        assignedUser = await db.query.users.findFirst({
+          where: eq(users.id, dpRequest.assignedToUserId)
+        });
+      }
+      
+      await sendDPRSubmissionNotification({
+        requestId: dpRequest.requestId,
+        requestType: dpRequest.requestType,
+        requesterName: `${dpRequest.firstName} ${dpRequest.lastName}`,
+        requesterEmail: dpRequest.email,
+        organizationName: organization.businessName,
+        statusName: status?.statusName || 'Submitted',
+        assignedTo: assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'System Admin',
+        dueDate: completionDate ? new Date(completionDate).toLocaleDateString() : 'TBD'
+      });
+      
+      console.log(`✅ Email notification sent for DPR request #${dpRequest.requestId}`);
+    } catch (emailError) {
+      console.error('📧 Email notification failed:', emailError);
+      // Don't fail the request creation if email fails
+    }
+    
     // Skip creating history for now - this ensures the request itself is created
     // even if we don't have a proper user ID for history records
     return res.status(201).json({

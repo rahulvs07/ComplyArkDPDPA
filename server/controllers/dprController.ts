@@ -3,6 +3,12 @@ import { AuthRequest } from '../middleware/auth';
 import { storage } from '../storage';
 import { insertDPRequestSchema, insertDPRequestHistorySchema } from '@shared/schema';
 import crypto from 'crypto';
+import { 
+  sendDPRSubmissionNotification, 
+  sendStatusChangeNotification, 
+  sendEscalationNotification,
+  sendAssignmentNotification 
+} from '../utils/emailService';
 
 // Store OTPs temporarily in memory
 const otpStore = new Map<string, { otp: string, expires: number }>();
