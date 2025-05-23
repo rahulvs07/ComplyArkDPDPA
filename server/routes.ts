@@ -433,20 +433,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Compliance Document routes
-  // Temporarily commented out until controller is properly implemented
-  // app.get('/api/organizations/:orgId/compliance-documents', isAuthenticated, isSameOrganization, complianceDocumentController.getComplianceDocuments);
   app.get('/api/compliance-documents', isAuthenticated, async (req, res) => {
     // Get user's organization ID from request
     const orgId = (req as AuthRequest).user!.organizationId;
+    const folderPath = req.query.folder as string | undefined;
     try {
-      const documents = await storage.listComplianceDocuments(orgId);
+      const documents = await storage.listComplianceDocuments(orgId, folderPath);
       return res.status(200).json(documents);
     } catch (error) {
       console.error("Error fetching compliance documents:", error);
       return res.status(500).json({ message: "Failed to fetch compliance documents" });
     }
   });
+  
+  // Create a new folder
+  app.post('/api/organizations/:orgId/folders', isAuthenticated, isSameOrganization, async (req, res) => {
+    const orgId = parseInt(req.params.orgId);
+    const { folderName, parentFolder } = req.body;
+    
+    if (!folderName) {
+      return res.status(400).json({ message: "Folder name is required" });
+    }
+    
+    try {
+      const folder = await complianceDocumentController.createFolder(req as AuthRequest, res);
+      return folder;
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      return res.status(500).json({ message: "Failed to create folder" });
+    }
+  });
+  
   app.post('/api/organizations/:orgId/compliance-documents', isAuthenticated, isSameOrganization, complianceDocumentController.upload.single('document'), complianceDocumentController.uploadComplianceDocument);
+  
   app.delete('/api/compliance-documents/:id', isAuthenticated, complianceDocumentController.deleteComplianceDocument);
   app.post('/api/organizations/:orgId/compliance-folders', isAuthenticated, isSameOrganization, complianceDocumentController.createFolder);
   

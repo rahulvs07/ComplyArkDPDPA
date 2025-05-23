@@ -7,7 +7,7 @@ import NoticeModule from "@/pages/notice";
 import DPRModule from "@/pages/dpr";
 import DPRDetailPage from "@/pages/dpr/DetailPage";
 import GrievancesPage from "@/pages/GrievancesPage";
-import ComplianceDocumentsPage from "@/pages/ComplianceDocumentsPage";
+import ComplianceDocumentsPage from "@/pages/compliance-documents";
 import AdminPanel from "@/pages/admin";
 import AdminOrganizations from "@/pages/admin/organizations";
 import AdminUsers from "@/pages/admin/users";

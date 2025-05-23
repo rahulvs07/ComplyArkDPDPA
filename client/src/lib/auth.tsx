@@ -75,9 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const logout = async () => {
     setIsLoading(true);
     try {
-      await apiRequest("/api/auth/logout", {
-        method: "POST"
-      });
+      await apiRequest("POST", "/api/auth/logout", {});
       setUser(null);
       window.location.href = "/login";
     } catch (error) {

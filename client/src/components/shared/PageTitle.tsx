@@ -1,15 +1,19 @@
 import React from 'react';
 
 interface PageTitleProps {
-  children: React.ReactNode;
+  title: string;
   subtitle?: string;
 }
 
-export function PageTitle({ children, subtitle }: PageTitleProps) {
+export function PageTitle({ title, subtitle }: PageTitleProps) {
   return (
     <div className="mb-6">
-      <h1 className="text-2xl font-bold tracking-tight">{children}</h1>
-      {subtitle && <p className="text-muted-foreground mt-1">{subtitle}</p>}
+      <h1 className="text-2xl font-bold tracking-tight dark:text-white">{title}</h1>
+      {subtitle && (
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
+      )}
     </div>
   );
 }
+
+export default PageTitle;
