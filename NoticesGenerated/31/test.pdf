@@ -1,0 +1,35 @@
+# CUSTOMER DATA REQUEST FORM
+
+## Your Information
+- Full Name: [FULL_NAME]
+- Email Address: [EMAIL]
+- Phone Number: [PHONE]
+- Customer ID (if known): [CUSTOMER_ID]
+
+## Request Type
+Please indicate what you would like us to do:
+- [ ] Provide a copy of my personal data
+- [ ] Update or correct my information
+- [ ] Delete my personal data
+- [ ] Stop using my data for marketing
+- [ ] Export my data in a portable format
+- [ ] Other (please specify)
+
+## Additional Information
+Please provide any additional details about your request:
+[ADDITIONAL_DETAILS]
+
+## Verification
+For security purposes, please answer the following:
+- Date of last purchase (approximate): [LAST_PURCHASE_DATE]
+- Shipping address on file: [SHIPPING_ADDRESS]
+
+## How would you like to receive your information?
+- [ ] Email (encrypted file)
+- [ ] Physical mail
+- [ ] Online account access
+
+We will process your request within 30 days.
+
+Date: _________________________
+Signature: _____________________
