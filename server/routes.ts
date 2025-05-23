@@ -184,9 +184,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Properly type the Request object with storage property
+  interface StorageRequest extends Request {
+    storage: typeof storage;
+  }
+  
   // Add storage to requests
-  app.use((req: any, res, next) => {
-    req.storage = storage;
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    (req as any).storage = storage;
     next();
   });
 
