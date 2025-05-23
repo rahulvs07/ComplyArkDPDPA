@@ -54,16 +54,20 @@ export default function NoticeModule() {
   
   // Handle next from preview
   const handlePreviewNext = (data: any) => {
+    console.log("Preview data received:", data);
     setNoticeData(data);
     
-    // Create notice
-    createNoticeMutation.mutate({
-      noticeName: data.noticeName,
-      noticeBody: data.noticeBody,
-      noticeType: data.noticeType,
-      selectedQuestionnaireData: JSON.stringify(questionnaireData),
+    // Create notice with required fields validation
+    const noticePayload = {
+      noticeName: data.noticeName || "Untitled Notice",
+      noticeBody: data.noticeBody || "No content provided",
+      noticeType: data.noticeType || "General",
+      selectedQuestionnaireData: JSON.stringify(questionnaireData || {}),
       baseTemplateId: data.selectedTemplateId
-    });
+    };
+    
+    console.log("Sending notice payload:", noticePayload);
+    createNoticeMutation.mutate(noticePayload);
   };
   
   // Handle previous navigation
