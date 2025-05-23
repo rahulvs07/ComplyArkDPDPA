@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
 import { PageTitle } from '@/components/shared/PageTitle';
+import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -118,19 +119,25 @@ export default function ComplianceDocumentsPage() {
         formData.append('documentName', data.documentName);
       }
       formData.append('folderPath', currentPath);
+      formData.append('documentType', data.document[0].type.split('/')[1] || 'file');
       
-      const response = await fetch(`/api/organizations/${user?.organizationId}/compliance-documents`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to upload file');
+      try {
+        const response = await fetch(`/api/organizations/${user?.organizationId}/compliance-documents`, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to upload file');
+        }
+        
+        return response.json();
+      } catch (error) {
+        console.error('Upload failed:', error);
+        throw error;
       }
-      
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', currentPath] });
@@ -305,8 +312,10 @@ export default function ComplianceDocumentsPage() {
           for (const folderName of foldersToCreate) {
             try {
               await apiRequest('POST', `/api/organizations/${user.organizationId}/folders`, {
-                folderName,
-                parentFolder: '/'
+                body: JSON.stringify({
+                  folderName,
+                  parentFolder: '/'
+                })
               });
             } catch (error) {
               console.error(`Failed to create default folder ${folderName}:`, error);
