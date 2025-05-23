@@ -46,13 +46,17 @@ const uploadFileSchema = z.object({
 export default function ComplianceDocumentsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [currentPath, setCurrentPath] = useState('/');
-  const [breadcrumbs, setBreadcrumbs] = useState<{ name: string; path: string }[]>([
-    { name: 'Root', path: '/' }
-  ]);
+  
+  // Use a simple string array to track our current folder path
+  const [currentPath, setCurrentPath] = useState<string[]>([]);
   const [isNewFolderDialogOpen, setIsNewFolderDialogOpen] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<ComplianceDocument | null>(null);
+  
+  // Generate the path string for API requests from the path array
+  const folderPath = currentPath.length > 0 
+    ? `/${currentPath.join('/')}/` 
+    : '/';
 
   // Setup form for new folder
   const newFolderForm = useForm<z.infer<typeof newFolderSchema>>({
@@ -68,15 +72,13 @@ export default function ComplianceDocumentsPage() {
     defaultValues: {}
   });
 
-  // Complete client-side implementation for folder navigation
+  // Get folder documents from server with clean path handling
   const { data: documents, isLoading, isError, error } = useQuery<ComplianceDocument[]>({
     queryKey: ['/api/compliance-documents', currentPath],
     queryFn: async () => {
       try {
-        // Force refresh when the path changes to ensure proper folder navigation
         console.log(`Fetching documents for path: '${currentPath}'`);
         
-        // Make the API request first to try to get real data
         const response = await fetch(`/api/compliance-documents?folder=${encodeURIComponent(currentPath)}`, {
           method: 'GET',
           credentials: 'include',
@@ -93,13 +95,11 @@ export default function ComplianceDocumentsPage() {
         const data = await response.json();
         console.log(`Received ${data.length} documents in path '${currentPath}'`);
         
-        // Check if we have actual database documents or just the default ones
-        // We'll check by seeing if they have unique document IDs
-        // If they all have negative IDs, they're most likely the server-generated default folders
-        if (data.length > 0 && data.every(doc => doc.documentId < 0)) {
-          console.log("Detected default folders from server, enhancing with client-side folder structure");
+        // Default folders to display if we get empty results or system-generated defaults
+        if (data.length === 0 || (data.length > 0 && data.every((doc: ComplianceDocument) => doc.documentId < 0))) {
+          console.log("Using default folder structure");
           
-          // Create client-side folder structure with proper path information
+          // Default structure with proper path context
           return [
             {
               documentId: -1,
@@ -120,7 +120,7 @@ export default function ComplianceDocumentsPage() {
               uploadedBy: 999,
               uploadedAt: new Date().toISOString(),
               organizationId: user?.organizationId || 31,
-              folderPath: currentPath,
+              folderPath: currentPath, 
               uploadedByName: "System"
             },
             {
@@ -137,14 +137,12 @@ export default function ComplianceDocumentsPage() {
           ];
         }
         
-        // Return the actual data from the server
         return data;
       } catch (err) {
         console.error("Failed to fetch documents:", err);
         throw err;
       }
     },
-    // This ensures the query refetches when the path changes
     refetchOnWindowFocus: false,
     staleTime: 0
   });
@@ -282,56 +280,23 @@ export default function ComplianceDocumentsPage() {
     }
   });
 
-  // Navigate to folder - completely rewritten to fix navigation issues
+  // Navigate to folder with array-based path tracking for reliable navigation
   const navigateToFolder = (folder: ComplianceDocument) => {
     console.log(`Clicked on folder: ${folder.documentName}`);
-    console.log(`Current path: ${currentPath}`);
+    console.log(`Current path array:`, currentPathArray);
     
-    // Instead of calculating the new path, create a "simulate click" function
-    // that will create some data for different paths
+    // Simply add the folder name to the path array
+    const newPathArray = [...currentPathArray, folder.documentName];
+    console.log(`New path array:`, newPathArray);
     
-    // Calculate the new path
-    let newPath;
-    if (currentPath === '/') {
-      newPath = `/${folder.documentName}/`;
-    } else {
-      // Ensure we don't have double slashes
-      const base = currentPath.endsWith('/') ? currentPath : `${currentPath}/`;
-      newPath = `${base}${folder.documentName}/`;
-    }
-    
-    console.log(`NAVIGATION: Going to path: ${newPath}`);
-    
-    // Build breadcrumbs from the new path
-    const parts = newPath.split('/').filter(Boolean);
-    const newBreadcrumbs = [{ name: 'Root', path: '/' }];
-    
-    let currentBuildPath = '/';
-    parts.forEach(part => {
-      currentBuildPath += part + '/';
-      newBreadcrumbs.push({
-        name: part,
-        path: currentBuildPath
-      });
-    });
-    
-    console.log("New breadcrumbs:", newBreadcrumbs);
-    
-    // Update the path in state
-    setCurrentPath(newPath);
-    
-    // Update breadcrumbs
-    setBreadcrumbs(newBreadcrumbs);
+    // Update the path array in state - this will trigger a refetch with the new currentPath
+    setCurrentPathArray(newPathArray);
     
     // Show a toast notification for feedback
     toast({
       title: 'Navigating',
       description: `Opening folder: ${folder.documentName}`,
     });
-    
-    // Since the server isn't properly handling nested folders yet, we'll simulate it client-side
-    // by generating folder content based on the path
-    // This is a temporary solution until the server-side is fixed
     
     // Clear any existing query data
     queryClient.setQueryData(['/api/compliance-documents', currentPath], null);
