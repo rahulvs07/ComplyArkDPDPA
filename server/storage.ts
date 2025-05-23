@@ -27,6 +27,13 @@ export interface IStorage {
   listUsers(organizationId?: number): Promise<User[]>;
   getOrgAdmin(organizationId: number): Promise<User | undefined>;
   
+  // Notification operations
+  getNotifications(organizationId: number, limit: number, offset: number): Promise<any[]>;
+  getNotificationById(notificationId: number): Promise<any | undefined>;
+  createNotification(notification: any): Promise<any>;
+  markNotificationsAsRead(userId: number, notificationIds?: number[]): Promise<number>;
+  getUnreadNotificationCount(organizationId: number): Promise<number>;
+  
   // Organization operations
   getOrganization(id: number): Promise<Organization | undefined>;
   getOrganizationByToken(token: string): Promise<Organization | undefined>;

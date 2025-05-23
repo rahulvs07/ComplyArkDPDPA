@@ -221,6 +221,31 @@ export const insertComplianceDocumentSchema = createInsertSchema(complianceDocum
   uploadedAt: true 
 });
 
+// Notification Logs Table
+export const notificationLogs = pgTable("notification_logs", {
+  notificationId: serial("notification_id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  module: text("module", { enum: ["DPR", "Grievance", "Notice", "Document", "Admin"] }).notNull(),
+  action: text("action").notNull(),
+  actionType: text("action_type", { 
+    enum: ["created", "reassigned", "updated", "escalated", "translated", "closed", "viewed"] 
+  }).notNull(),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  status: text("status").notNull().default("active"),
+  initiator: text("initiator").notNull().default("user"),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
+  relatedItemId: integer("related_item_id"),
+  relatedItemType: text("related_item_type"),
+});
+
+// Insert schema for notification logs
+export const insertNotificationLogSchema = createInsertSchema(notificationLogs).omit({
+  notificationId: true,
+  timestamp: true
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -257,3 +282,6 @@ export type InsertGrievanceHistory = z.infer<typeof insertGrievanceHistorySchema
 
 export type ComplianceDocument = typeof complianceDocuments.$inferSelect;
 export type InsertComplianceDocument = z.infer<typeof insertComplianceDocumentSchema>;
+
+export type NotificationLog = typeof notificationLogs.$inferSelect;
+export type InsertNotificationLog = z.infer<typeof insertNotificationLogSchema>;
