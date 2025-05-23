@@ -41,7 +41,7 @@ const emailSchema = z.object({
 const otpSchema = z.object({
   otp: z
     .string()
-    .min(4, 'OTP code must be at least 4 characters')
+    .min(1, 'OTP code is required')
     .max(6, 'OTP code must be at most 6 characters'),
 });
 
@@ -472,21 +472,23 @@ export default function OTPVerificationPage() {
                     <FormItem>
                       <FormLabel>Verification Code</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="Enter the 4-6 digit code"
-                          className="text-center text-xl tracking-widest"
-                          maxLength={6}
-                          {...field}
-                        />
+                        <div className="flex">
+                          <Input
+                            placeholder="Enter the 4-6 digit code"
+                            className="text-center text-xl tracking-widest"
+                            maxLength={6}
+                            {...field}
+                          />
+                        </div>
                       </FormControl>
-                      <FormDescription>
+                      <p className="text-sm text-muted-foreground mt-1">
                         Enter the code sent to your email. For testing, you can use "1234".
                         {expiresAt && (
-                          <div className="text-muted-foreground text-xs mt-1">
+                          <span className="block text-xs mt-1">
                             Code expires in 30 minutes.
-                          </div>
+                          </span>
                         )}
-                      </FormDescription>
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
