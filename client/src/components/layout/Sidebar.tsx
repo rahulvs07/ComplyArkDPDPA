@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import Logo from "@/components/Logo";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Logo Area */}
       <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <img src="/images/complyark-full-logo.jpg" alt="ComplyArk Logo" className="h-8" />
+          <Logo size="sm" />
         </div>
         <button 
           className="lg:hidden text-neutral-500 hover:text-neutral-800" 

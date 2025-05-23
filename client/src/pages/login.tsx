@@ -9,6 +9,7 @@ import {
   LayoutDashboardIcon,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import Logo from "@/components/Logo";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -74,7 +75,7 @@ export default function Login() {
       <div className="w-full max-w-md flex flex-col items-center bg-white p-8 rounded-lg">
         {/* Logo */}
         <div className="mb-6 flex flex-col items-center">
-          <img src="/images/complyark-full-logo.jpg" alt="ComplyArk Logo" className="h-16 mb-4" />
+          <Logo size="lg" />
           <p className="text-center text-gray-700 font-medium">
             DPDPA Compliance Management System
           </p>
