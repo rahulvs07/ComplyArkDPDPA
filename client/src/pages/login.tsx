@@ -181,22 +181,22 @@ export default function Login() {
 
       {/* Right side - Geometric Abstract Image */}
       <div className="hidden lg:block lg:w-1/2 bg-[#050b23] relative overflow-hidden">
-        {/* Background image with animation */}
-        <div className="absolute inset-0 bg-center bg-no-repeat bg-cover flex flex-col items-center justify-center" 
-             style={{ 
-               backgroundImage: "url('/hero-compliance-abstract.png')",
-               animation: "pulse 8s ease-in-out infinite alternate"
-             }}>
-          <div className="absolute inset-0" 
-               style={{
-                 background: "radial-gradient(circle at center, transparent 30%, #050b23 90%)"
-               }}>
+        <div className="absolute inset-0 flex flex-col justify-center items-center">
+          {/* Hero image with animation */}
+          <div className="col-lg-6 order-1 order-lg-2 hero-img text-center aos-animate" data-aos="fade-up">
+            <img 
+              src="/assets/img/hero-compliance-abstract.png" 
+              className="img-fluid animated" 
+              alt="Comply Ark - Abstract illustration of data security and compliance"
+              style={{
+                animation: "upAndDown 4s ease-in-out infinite alternate",
+                maxWidth: "80%"
+              }}
+            />
           </div>
-        </div>
-        
-        {/* Tagline with animation */}
-        <div className="absolute inset-0 flex flex-col justify-end items-center pb-20 z-10">
-          <div className="text-center px-8">
+          
+          {/* Tagline with animation */}
+          <div className="mt-8 text-center">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4"
                 style={{ 
                   textShadow: "0 0 15px rgba(46, 119, 174, 0.5), 0 0 30px rgba(46, 119, 174, 0.3)",
@@ -215,18 +215,24 @@ export default function Login() {
         </div>
 
         {/* CSS Animations */}
-        <style jsx>{`
-          @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-          }
-          
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-        `}</style>
+        <style>
+          {`
+            @keyframes upAndDown {
+              0% { transform: translateY(-10px); }
+              50% { transform: translateY(10px); }
+              100% { transform: translateY(-10px); }
+            }
+            
+            @keyframes fadeIn {
+              from { opacity: 0; transform: translateY(20px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+            
+            .img-fluid.animated {
+              filter: drop-shadow(0 0 15px rgba(46, 119, 174, 0.6));
+            }
+          `}
+        </style>
       </div>
     </div>
   );
