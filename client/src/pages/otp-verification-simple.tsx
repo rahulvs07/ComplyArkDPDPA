@@ -459,10 +459,13 @@ export default function OTPVerificationSimplePage() {
                     id="otp-input"
                     type="text"
                     placeholder="Enter the 4-6 digit code"
-                    className="w-full p-2 text-center text-xl tracking-widest border rounded-md"
+                    className="w-full p-2 text-center text-xl tracking-widest border rounded-md focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none"
                     maxLength={6}
                     value={otpValue}
-                    onChange={(e) => setOtpValue(e.target.value)}
+                    onChange={(e) => {
+                      console.log("OTP input changed:", e.target.value);
+                      setOtpValue(e.target.value);
+                    }}
                   />
                   <p className="text-sm text-muted-foreground mt-1">
                     Enter the code sent to your email. For testing, use "1234".
