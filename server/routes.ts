@@ -163,8 +163,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // External Request Page routes (no authentication)
   app.get('/api/request-page/:token', requestPageController.getOrganizationByToken);
-  app.post('/api/dpr/create', requestPageController.createDPRequest);
-  app.post('/api/grievance/create', requestPageController.createGrievance);
+  app.post('/api/dpr/create', async (req, res) => {
+    try {
+      console.log("Creating DPR with data:", req.body);
+      // Skip admin check and proceed with request creation
+      await requestPageController.createDPRequest(req, res);
+    } catch (error) {
+      console.error("Error in DPR creation:", error);
+      res.status(500).json({ message: "Server error processing request" });
+    }
+  });
+  app.post('/api/grievance/create', async (req, res) => {
+    try {
+      console.log("Creating Grievance with data:", req.body);
+      // Skip admin check and proceed with request creation
+      await requestPageController.createGrievance(req, res);
+    } catch (error) {
+      console.error("Error in Grievance creation:", error);
+      res.status(500).json({ message: "Server error processing request" });
+    }
+  });
   
   // Add storage to requests
   app.use((req: any, res, next) => {
