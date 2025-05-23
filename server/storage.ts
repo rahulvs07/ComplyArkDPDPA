@@ -818,16 +818,24 @@ export class DatabaseStorage implements IStorage {
   }
   
   async listComplianceDocuments(organizationId: number, path: string = '/'): Promise<ComplianceDocument[]> {
-    return db
-      .select()
-      .from(complianceDocuments)
-      .where(
-        and(
-          eq(complianceDocuments.organizationId, organizationId),
-          eq(complianceDocuments.folderPath, path)
-        )
-      )
-      .orderBy([complianceDocuments.documentType, complianceDocuments.documentName]);
+    try {
+      // Format the path query parameter to handle both with and without trailing slash
+      const formattedPath = path.endsWith('/') ? path : path + '/';
+      
+      // Execute SQL query directly to avoid Drizzle ORM issues
+      const result = await db.execute(`
+        SELECT * FROM "complianceDocuments"
+        WHERE "organizationId" = $1 AND "folderPath" = $2
+        ORDER BY 
+          CASE WHEN "documentType" = 'folder' THEN 0 ELSE 1 END, 
+          "documentName" ASC
+      `, [organizationId, formattedPath]);
+      
+      return result.rows || [];
+    } catch (error) {
+      console.error('Error fetching compliance documents:', error);
+      return [];
+    }
   }
   
   async deleteComplianceDocument(id: number): Promise<boolean> {

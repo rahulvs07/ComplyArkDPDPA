@@ -90,13 +90,9 @@ export const uploadComplianceDocument = async (req: AuthRequest, res: Response) 
       organizationId: orgId,
       documentName: documentName || req.file.originalname,
       documentType: documentType || path.extname(req.file.originalname).substring(1),
-      filePath: req.file.path,
+      documentPath: req.file.path,
       folderPath: folderPath || '/',
-      fileSize: req.file.size,
-      description: description || null,
-      uploadedBy: req.user!.id,
-      uploadedAt: new Date(),
-      lastUpdatedAt: new Date()
+      uploadedBy: req.user!.id
     });
     
     return res.status(201).json(document);
@@ -184,13 +180,9 @@ export const createFolder = async (req: AuthRequest, res: Response) => {
       organizationId: orgId,
       documentName: sanitizedFolderName,
       documentType: 'folder',
-      filePath: null,
-      folderPath: folderPath,
-      fileSize: 0,
-      description: 'Folder',
-      uploadedBy: req.user!.id,
-      uploadedAt: new Date(),
-      lastUpdatedAt: new Date()
+      documentPath: '',
+      folderPath: parentFolder || '/',
+      uploadedBy: req.user!.id
     });
     
     return res.status(201).json(folder);
