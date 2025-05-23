@@ -527,61 +527,7 @@ export default function ComplianceDocumentsPage() {
             </div>
           </div>
           
-          {/* Breadcrumb navigation */}
-          <div className="flex items-center mt-2">
-            {currentPath.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={goBack}
-                className="mr-2 h-8"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Back
-              </Button>
-            )}
-            
-            <div className="flex items-center space-x-1 text-sm flex-wrap">
-              <Button
-                variant="link"
-                size="sm"
-                className="p-0 h-auto text-blue-500 font-medium"
-                onClick={() => {
-                  setCurrentPath([]);
-                  toast({
-                    title: 'Navigating',
-                    description: 'Going to root folder',
-                  });
-                }}
-              >
-                Root
-              </Button>
-              
-              {currentPath.map((part, index) => (
-                <React.Fragment key={index}>
-                  <span className="text-muted-foreground">/</span>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="p-0 h-auto text-blue-500 font-medium"
-                    onClick={() => {
-                      // Navigate to specific folder in the path
-                      const targetPath = currentPath.slice(0, index + 1);
-                      console.log(`Navigating to path: ${targetPath.join('/')}`);
-                      setCurrentPath(targetPath);
-                      
-                      toast({
-                        title: 'Navigating',
-                        description: `Going to ${part} folder`,
-                      });
-                    }}
-                  >
-                    {part}
-                  </Button>
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
+          {/* Breadcrumb navigation removed to avoid duplication */}
         </CardHeader>
         
         <CardContent className="p-0">
