@@ -199,6 +199,15 @@ export default function TranslationTab({ noticeData, onPrevious, onComplete }: T
                   <span className="material-icons text-sm mr-1">download</span>
                   PDF
                 </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open(`/api/organizations/${user?.organizationId}/notices/${noticeData.noticeId}/download?format=docx`, '_blank')}
+                  className="flex items-center text-[#2E77AE] border-[#2E77AE]/30 hover:bg-[#2E77AE]/10 hover:border-[#2E77AE]"
+                >
+                  <span className="material-icons text-sm mr-1">description</span>
+                  DOCX
+                </Button>
               </div>
             </div>
           </CardContent>
