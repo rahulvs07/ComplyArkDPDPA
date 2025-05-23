@@ -130,12 +130,10 @@ export async function createDPRequest(req: Request, res: Response) {
       return res.status(500).json({ message: "Initial status not found" });
     }
     
-    // Find the organization admin to assign the request
+    // Try to find an admin user to assign the request, but don't require it
     const adminId = await findOrgAdmin(validatedData.organizationId);
     
-    if (!adminId) {
-      return res.status(500).json({ message: "Organization admin not found" });
-    }
+    // We'll allow unassigned requests, so don't fail if no admin found
     
     // Calculate completion date based on SLA
     const completionDate = await calculateCompletionDate(initialStatus.statusId);
@@ -149,9 +147,13 @@ export async function createDPRequest(req: Request, res: Response) {
       requestType: validatedData.requestType as "Access" | "Correction" | "Nomination" | "Erasure",
       requestComment: validatedData.requestComment || "",
       organizationId: validatedData.organizationId,
-      statusId: initialStatus.statusId,
-      assignedToUserId: adminId
+      statusId: initialStatus.statusId
     };
+    
+    // Only assign if an admin was found - otherwise leave unassigned
+    if (adminId) {
+      requestValues.assignedToUserId = adminId;
+    }
     
     // Only add completionDate if it's calculated
     if (completionDate) {
@@ -162,14 +164,20 @@ export async function createDPRequest(req: Request, res: Response) {
       .values(requestValues)
       .returning();
     
-    // Create initial history record
-    await db.insert(dpRequestHistory).values({
+    // Create initial history record - use consistent fallbacks for required fields
+    const historyEntry: any = {
       requestId: dpRequest.requestId,
-      changedByUserId: adminId, // System action, but needs a user ID
+      changedByUserId: adminId || 999, // Use superadmin ID if no admin found
       newStatusId: initialStatus.statusId,
-      newAssignedToUserId: adminId,
       comments: "Request created by data principal"
-    });
+    };
+    
+    // Only include assigned user ID if it exists
+    if (adminId) {
+      historyEntry.newAssignedToUserId = adminId;
+    }
+    
+    await db.insert(dpRequestHistory).values(historyEntry);
     
     return res.status(201).json({
       message: "Data Protection Request created successfully",
@@ -213,12 +221,10 @@ export async function createGrievance(req: Request, res: Response) {
       return res.status(500).json({ message: "Initial status not found" });
     }
     
-    // Find the organization admin to assign the grievance
+    // Try to find an admin user to assign the grievance, but don't require it
     const adminId = await findOrgAdmin(validatedData.organizationId);
     
-    if (!adminId) {
-      return res.status(500).json({ message: "Organization admin not found" });
-    }
+    // We'll allow unassigned grievances, so don't fail if no admin found
     
     // Calculate completion date based on SLA
     const completionDate = await calculateCompletionDate(initialStatus.statusId);
@@ -231,9 +237,13 @@ export async function createGrievance(req: Request, res: Response) {
       phone: validatedData.phone,
       grievanceComment: validatedData.grievanceComment || "",
       organizationId: validatedData.organizationId,
-      statusId: initialStatus.statusId,
-      assignedToUserId: adminId
+      statusId: initialStatus.statusId
     };
+    
+    // Only assign if an admin was found - otherwise leave unassigned
+    if (adminId) {
+      grievanceValues.assignedToUserId = adminId;
+    }
     
     // Only add completionDate if it's calculated
     if (completionDate) {
@@ -244,14 +254,20 @@ export async function createGrievance(req: Request, res: Response) {
       .values(grievanceValues)
       .returning();
     
-    // Create initial history record
-    await db.insert(grievanceHistory).values({
+    // Create initial history record - use consistent fallbacks for required fields
+    const historyEntry: any = {
       grievanceId: grievance.grievanceId,
-      changedByUserId: adminId, // System action, but needs a user ID
+      changedByUserId: adminId || 999, // Use superadmin ID if no admin found
       newStatusId: initialStatus.statusId,
-      newAssignedToUserId: adminId,
       comments: "Grievance created by complainant"
-    });
+    };
+    
+    // Only include assigned user ID if it exists
+    if (adminId) {
+      historyEntry.newAssignedToUserId = adminId;
+    }
+    
+    await db.insert(grievanceHistory).values(historyEntry);
     
     return res.status(201).json({
       message: "Grievance created successfully",
