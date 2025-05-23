@@ -176,6 +176,7 @@ export const createFolder = async (req: AuthRequest, res: Response) => {
       `/${sanitizedFolderName}`;
     
     // Create a placeholder document for the folder
+    // Create the folder with correct path parameters
     const folder = await storage.createComplianceDocument({
       organizationId: orgId,
       documentName: sanitizedFolderName,
