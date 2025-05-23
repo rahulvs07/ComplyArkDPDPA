@@ -199,14 +199,19 @@ export default function ComplianceDocumentsPage() {
     mutationFn: async (data: { folderName: string }) => {
       try {
         console.log(`Creating folder "${data.folderName}" in path "${currentPath}"`);
-        const response = await fetch(`/api/organizations/${user?.organizationId}/compliance-documents/folders`, {
+        // Convert the path array to the string format the server expects
+      const folderPathString = currentPath.length > 0 
+        ? `/${currentPath.join('/')}/` 
+        : '/';
+            
+      const response = await fetch(`/api/organizations/${user?.organizationId}/compliance-documents/folders`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             folderName: data.folderName,
-            parentFolder: currentPath
+            parentFolder: folderPathString
           }),
           credentials: 'include'
         });
@@ -236,7 +241,8 @@ export default function ComplianceDocumentsPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', currentPath] });
+      // Use the consistent folderPath format for query invalidation
+      queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', folderPath] });
       setIsNewFolderDialogOpen(false);
       newFolderForm.reset();
       toast({
@@ -261,7 +267,11 @@ export default function ComplianceDocumentsPage() {
       if (data.documentName) {
         formData.append('documentName', data.documentName);
       }
-      formData.append('folderPath', currentPath);
+      // Convert the path array to a string format the server expects
+      const folderPathString = currentPath.length > 0 
+        ? `/${currentPath.join('/')}/` 
+        : '/';
+      formData.append('folderPath', folderPathString);
       formData.append('documentType', data.document[0].type.split('/')[1] || 'file');
       
       try {
@@ -283,7 +293,8 @@ export default function ComplianceDocumentsPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', currentPath] });
+      // Use the consistent folderPath format for query invalidation
+      queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', folderPath] });
       setIsUploadDialogOpen(false);
       uploadFileForm.reset();
       toast({
@@ -311,7 +322,12 @@ export default function ComplianceDocumentsPage() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', currentPath] });
+      // Generate the server path string for API calls
+      const currentFolderPath = currentPath.length > 0 
+        ? `/${currentPath.join('/')}/` 
+        : '/';
+        
+      queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', currentFolderPath] });
       setSelectedDocument(null);
       toast({
         title: 'Document deleted',
@@ -431,7 +447,7 @@ export default function ComplianceDocumentsPage() {
       if (!user) return;
       
       // Only create default folders at root level
-      if (currentPath !== '/') return;
+      if (currentPath.length > 0) return;
       
       const defaultFolders = ['Notices', 'Translated Notices', 'Other Templates'];
       
@@ -463,7 +479,7 @@ export default function ComplianceDocumentsPage() {
                 credentials: 'include',
                 body: JSON.stringify({
                   folderName,
-                  parentFolder: '/'
+                  parentFolder: '/' // Root folder for default folders
                 })
               });
               console.log(`Created default folder: ${folderName}`);
