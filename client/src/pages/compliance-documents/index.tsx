@@ -506,23 +506,81 @@ export default function ComplianceDocumentsPage() {
       <PageTitle title="Compliance Documents" />
       
       <Card className="shadow-sm dark:shadow-none border dark:border-gray-700">
-        <CardHeader className="bg-primary-50 dark:bg-gray-800 py-4 flex flex-row items-center justify-between">
-          <CardTitle className="text-2xl">Documents</CardTitle>
-          <div className="flex space-x-2">
-            <Button 
-              onClick={() => setIsNewFolderDialogOpen(true)}
-              className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
-              size="sm"
-            >
-              <Plus className="h-4 w-4 mr-1" /> New Folder
-            </Button>
-            <Button 
-              onClick={() => setIsUploadDialogOpen(true)}
-              className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
-              size="sm"
-            >
-              <Upload className="h-4 w-4 mr-1" /> Upload Files
-            </Button>
+        <CardHeader className="bg-primary-50 dark:bg-gray-800 py-4">
+          <div className="flex flex-row items-center justify-between">
+            <CardTitle className="text-2xl">Documents</CardTitle>
+            <div className="flex space-x-2">
+              <Button 
+                onClick={() => setIsNewFolderDialogOpen(true)}
+                className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-1" /> New Folder
+              </Button>
+              <Button 
+                onClick={() => setIsUploadDialogOpen(true)}
+                className="bg-[#2E77AE] hover:bg-[#0F3460] text-white"
+                size="sm"
+              >
+                <Upload className="h-4 w-4 mr-1" /> Upload Files
+              </Button>
+            </div>
+          </div>
+          
+          {/* Breadcrumb navigation */}
+          <div className="flex items-center mt-2">
+            {currentPath.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={goBack}
+                className="mr-2 h-8"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+            )}
+            
+            <div className="flex items-center space-x-1 text-sm flex-wrap">
+              <Button
+                variant="link"
+                size="sm"
+                className="p-0 h-auto text-blue-500 font-medium"
+                onClick={() => {
+                  setCurrentPath([]);
+                  toast({
+                    title: 'Navigating',
+                    description: 'Going to root folder',
+                  });
+                }}
+              >
+                Root
+              </Button>
+              
+              {currentPath.map((part, index) => (
+                <React.Fragment key={index}>
+                  <span className="text-muted-foreground">/</span>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="p-0 h-auto text-blue-500 font-medium"
+                    onClick={() => {
+                      // Navigate to specific folder in the path
+                      const targetPath = currentPath.slice(0, index + 1);
+                      console.log(`Navigating to path: ${targetPath.join('/')}`);
+                      setCurrentPath(targetPath);
+                      
+                      toast({
+                        title: 'Navigating',
+                        description: `Going to ${part} folder`,
+                      });
+                    }}
+                  >
+                    {part}
+                  </Button>
+                </React.Fragment>
+              ))}
+            </div>
           </div>
         </CardHeader>
         
