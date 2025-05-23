@@ -43,7 +43,8 @@ export default function RequestPage() {
         phone: formData.get('phone') as string,
         requestType: formData.get('requestType') as 'Access' | 'Correction' | 'Nomination' | 'Erasure',
         requestComment: formData.get('requestComment') as string,
-        organizationId: organization.id
+        organizationId: organization.id,
+        statusId: 1 // Default to "Submitted" status (statusId 1)
       };
       
       const response = await fetch('/api/dpr/create', {
@@ -92,7 +93,8 @@ export default function RequestPage() {
         email: formData.get('grievanceEmail') as string,
         phone: formData.get('grievancePhone') as string,
         grievanceComment: formData.get('grievanceComments') as string,
-        organizationId: organization.id
+        organizationId: organization.id,
+        statusId: 1 // Default to "Submitted" status (statusId 1)
       };
       
       const response = await fetch('/api/grievance/create', {
