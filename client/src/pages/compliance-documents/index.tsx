@@ -47,16 +47,55 @@ export default function ComplianceDocumentsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Use a simple string array to track our current folder path
+  // Use simple string array to track current folder path (following reference file approach)
   const [currentPath, setCurrentPath] = useState<string[]>([]);
   const [isNewFolderDialogOpen, setIsNewFolderDialogOpen] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<ComplianceDocument | null>(null);
   
-  // Generate the path string for API requests from the path array
+  // Generate the server path string for API calls
   const folderPath = currentPath.length > 0 
     ? `/${currentPath.join('/')}/` 
     : '/';
+    
+  // Default folders structure to use if server returns empty results
+  const defaultFolders: Record<string, ComplianceDocument[]> = {
+    "": [
+      {
+        documentId: -1,
+        documentName: "Notices",
+        documentType: "folder",
+        documentPath: "",
+        uploadedBy: 1,
+        uploadedAt: new Date().toISOString(),
+        organizationId: user?.organizationId || 31,
+        folderPath: "/",
+        uploadedByName: "System"
+      },
+      {
+        documentId: -2,
+        documentName: "Translated Notices",
+        documentType: "folder",
+        documentPath: "",
+        uploadedBy: 1,
+        uploadedAt: new Date().toISOString(),
+        organizationId: user?.organizationId || 31,
+        folderPath: "/",
+        uploadedByName: "System"
+      },
+      {
+        documentId: -3,
+        documentName: "Other Templates",
+        documentType: "folder",
+        documentPath: "",
+        uploadedBy: 1,
+        uploadedAt: new Date().toISOString(),
+        organizationId: user?.organizationId || 31,
+        folderPath: "/",
+        uploadedByName: "System"
+      }
+    ]
+  };
 
   // Setup form for new folder
   const newFolderForm = useForm<z.infer<typeof newFolderSchema>>({
@@ -72,14 +111,14 @@ export default function ComplianceDocumentsPage() {
     defaultValues: {}
   });
 
-  // Get folder documents from server with clean path handling
+  // Get folder documents from server with clean path handling using the path-based approach
   const { data: documents, isLoading, isError, error } = useQuery<ComplianceDocument[]>({
-    queryKey: ['/api/compliance-documents', currentPath],
+    queryKey: ['/api/compliance-documents', folderPath],
     queryFn: async () => {
       try {
-        console.log(`Fetching documents for path: '${currentPath}'`);
+        console.log(`Fetching documents for path: '${folderPath}'`);
         
-        const response = await fetch(`/api/compliance-documents?folder=${encodeURIComponent(currentPath)}`, {
+        const response = await fetch(`/api/compliance-documents?folder=${encodeURIComponent(folderPath)}`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -93,23 +132,31 @@ export default function ComplianceDocumentsPage() {
         }
         
         const data = await response.json();
-        console.log(`Received ${data.length} documents in path '${currentPath}'`);
+        console.log(`Received ${data.length} documents in path '${folderPath}'`);
         
         // Default folders to display if we get empty results or system-generated defaults
         if (data.length === 0 || (data.length > 0 && data.every((doc: ComplianceDocument) => doc.documentId < 0))) {
           console.log("Using default folder structure");
           
-          // Default structure with proper path context
+          // Get the current folder key for the defaultFolders
+          const currentKey = currentPath.length > 0 ? currentPath.join('/') : "";
+          
+          // If we have a predefined structure for this path, use it
+          if (defaultFolders[currentKey]) {
+            return defaultFolders[currentKey];
+          }
+          
+          // Otherwise return the default root folders adjusted for the current path
           return [
             {
               documentId: -1,
               documentName: "Notices",
               documentType: "folder",
               documentPath: "",
-              uploadedBy: 999,
+              uploadedBy: 1,
               uploadedAt: new Date().toISOString(),
               organizationId: user?.organizationId || 31,
-              folderPath: currentPath,
+              folderPath: folderPath,
               uploadedByName: "System"
             },
             {
@@ -117,10 +164,10 @@ export default function ComplianceDocumentsPage() {
               documentName: "Translated Notices",
               documentType: "folder",
               documentPath: "",
-              uploadedBy: 999,
+              uploadedBy: 1,
               uploadedAt: new Date().toISOString(),
               organizationId: user?.organizationId || 31,
-              folderPath: currentPath, 
+              folderPath: folderPath, 
               uploadedByName: "System"
             },
             {
@@ -128,10 +175,10 @@ export default function ComplianceDocumentsPage() {
               documentName: "Other Templates",
               documentType: "folder",
               documentPath: "",
-              uploadedBy: 999,
+              uploadedBy: 1,
               uploadedAt: new Date().toISOString(),
               organizationId: user?.organizationId || 31,
-              folderPath: currentPath,
+              folderPath: folderPath,
               uploadedByName: "System"
             }
           ];
@@ -283,14 +330,14 @@ export default function ComplianceDocumentsPage() {
   // Navigate to folder with array-based path tracking for reliable navigation
   const navigateToFolder = (folder: ComplianceDocument) => {
     console.log(`Clicked on folder: ${folder.documentName}`);
-    console.log(`Current path array:`, currentPathArray);
+    console.log(`Current path array:`, currentPath);
     
-    // Simply add the folder name to the path array
-    const newPathArray = [...currentPathArray, folder.documentName];
+    // Add the folder name to the current path array
+    const newPathArray = [...currentPath, folder.documentName];
     console.log(`New path array:`, newPathArray);
     
-    // Update the path array in state - this will trigger a refetch with the new currentPath
-    setCurrentPathArray(newPathArray);
+    // Update the path array in state - this will trigger a refetch
+    setCurrentPath(newPathArray);
     
     // Show a toast notification for feedback
     toast({
@@ -298,49 +345,34 @@ export default function ComplianceDocumentsPage() {
       description: `Opening folder: ${folder.documentName}`,
     });
     
-    // Clear any existing query data
-    queryClient.setQueryData(['/api/compliance-documents', currentPath], null);
+    // Clear any existing query data to force a refetch
+    const newFolderPath = currentPath.length > 0 
+      ? `/${[...currentPath, folder.documentName].join('/')}/` 
+      : `/${folder.documentName}/`;
+      
+    queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', newFolderPath] });
     
-    // Create data based on path
-    let simulatedData: ComplianceDocument[] = [];
-    
-    // Default folders for simulation in nested paths
-    const defaultFolderNames = ["Notices", "Translated Notices", "Other Templates"];
-    
-    // Create simulated data - each folder will contain the same 3 folders
-    simulatedData = defaultFolderNames.map((name, idx) => ({
-      documentId: -(idx + 1),
-      documentName: name,
-      documentPath: '',
-      documentType: 'folder',
-      uploadedBy: 999,
-      uploadedAt: new Date().toISOString(),
-      organizationId: user?.organizationId || 31,
-      folderPath: newPath,
-      uploadedByName: 'System'
-    }));
-    
-    // Set the simulated data for the new path
-    queryClient.setQueryData(['/api/compliance-documents', newPath], simulatedData);
-    
-    // Force refresh the data 
+    // Force a complete refresh of all document queries
     queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', newPath] });
   };
 
-  // Go back to parent folder
+  // Go back to parent folder using array-based path handling
   const goBack = () => {
-    if (currentPath === '/') return;
+    // If we're at the root, do nothing
+    if (currentPath.length === 0) return;
     
-    const pathParts = currentPath.split('/').filter(Boolean);
-    pathParts.pop();
-    const parentPath = pathParts.length === 0 ? '/' : `/${pathParts.join('/')}/`;
+    // Create a new path array without the last folder
+    const newPathArray = currentPath.slice(0, -1);
+    console.log(`Going back to parent folder:`, newPathArray);
     
-    setCurrentPath(parentPath);
+    // Update the path
+    setCurrentPath(newPathArray);
     
-    // Update breadcrumbs
-    const newBreadcrumbs = breadcrumbs.slice(0, -1);
-    setBreadcrumbs(newBreadcrumbs);
+    // Show a toast notification for feedback
+    toast({
+      title: 'Navigating',
+      description: 'Going back to parent folder',
+    });
   };
 
   // Navigate to specific breadcrumb
