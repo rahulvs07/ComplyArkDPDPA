@@ -86,6 +86,7 @@ export default function ComplianceDocumentsPage() {
   const createFolderMutation = useMutation({
     mutationFn: async (data: { folderName: string }) => {
       try {
+        console.log(`Creating folder "${data.folderName}" in path "${currentPath}"`);
         const response = await fetch(`/api/organizations/${user?.organizationId}/compliance-documents/folders`, {
           method: 'POST',
           headers: {
@@ -99,11 +100,24 @@ export default function ComplianceDocumentsPage() {
         });
         
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to create folder');
+          const errorText = await response.text();
+          console.error('Server response:', errorText);
+          try {
+            const errorData = JSON.parse(errorText);
+            throw new Error(errorData.message || 'Failed to create folder');
+          } catch (parseError) {
+            throw new Error('Failed to create folder: ' + errorText);
+          }
         }
         
-        return await response.json();
+        try {
+          const responseData = await response.json();
+          console.log('Created folder with response:', responseData);
+          return responseData;
+        } catch (jsonError) {
+          console.log('Response was not JSON, returning success anyway');
+          return { success: true };
+        }
       } catch (error) {
         console.error('Create folder failed:', error);
         throw error;
@@ -350,12 +364,19 @@ export default function ComplianceDocumentsPage() {
           // Create the missing default folders
           for (const folderName of foldersToCreate) {
             try {
-              await apiRequest('POST', `/api/organizations/${user.organizationId}/folders`, {
+              // Fixed the endpoint path to match server-side
+              await fetch(`/api/organizations/${user.organizationId}/compliance-documents/folders`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
                 body: JSON.stringify({
                   folderName,
                   parentFolder: '/'
                 })
               });
+              console.log(`Created default folder: ${folderName}`);
             } catch (error) {
               console.error(`Failed to create default folder ${folderName}:`, error);
             }

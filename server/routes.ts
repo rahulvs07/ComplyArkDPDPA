@@ -441,7 +441,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/compliance-documents', isAuthenticated, complianceDocumentController.getComplianceDocuments);
   
   // Create a new folder
-  app.post('/api/organizations/:orgId/folders', isAuthenticated, isSameOrganization, async (req, res) => {
+  app.post('/api/organizations/:orgId/compliance-documents/folders', isAuthenticated, isSameOrganization, async (req, res) => {
+    console.log("Folder creation endpoint called with:", req.body);
     const orgId = parseInt(req.params.orgId);
     const { folderName, parentFolder } = req.body;
     
@@ -450,8 +451,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      const folder = await complianceDocumentController.createFolder(req as AuthRequest, res);
-      return folder;
+      await complianceDocumentController.createFolder(req as AuthRequest, res);
+      // Don't return anything here - the controller will handle the response
     } catch (error) {
       console.error("Error creating folder:", error);
       return res.status(500).json({ message: "Failed to create folder" });
