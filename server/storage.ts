@@ -918,17 +918,32 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async listComplianceDocuments(organizationId: number, folderPath?: string): Promise<ComplianceDocument[]> {
-    let query = db
-      .select()
-      .from(complianceDocuments)
-      .where(eq(complianceDocuments.organizationId, organizationId));
-    
-    if (folderPath) {
-      query = query.where(eq(complianceDocuments.folderPath, folderPath));
+  async listComplianceDocuments(organizationId: number, folderPath: string = '/'): Promise<ComplianceDocument[]> {
+    try {
+      // Use raw SQL for more reliable query execution
+      const { rows } = await db.execute(`
+        SELECT * FROM "complianceDocuments" 
+        WHERE "organizationId" = $1 AND "folderPath" = $2
+        ORDER BY "documentType" = 'folder' DESC, "uploadedAt" DESC
+      `, [organizationId, folderPath]);
+      
+      console.log(`SQL query returned ${rows.length} documents for org ${organizationId} in path ${folderPath}`);
+      
+      // Map the raw results to our ComplianceDocument type
+      return rows.map(row => ({
+        documentId: row.documentId,
+        documentName: row.documentName,
+        documentType: row.documentType,
+        documentPath: row.documentPath,
+        uploadedBy: row.uploadedBy,
+        uploadedAt: row.uploadedAt,
+        organizationId: row.organizationId,
+        folderPath: row.folderPath
+      }));
+    } catch (error) {
+      console.error("Error in listComplianceDocuments:", error);
+      return [];
     }
-    
-    return query.orderBy(desc(complianceDocuments.uploadedAt));
   }
   // Get org admin (first admin user in the organization)
   async getOrgAdmin(organizationId: number): Promise<User | undefined> {

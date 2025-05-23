@@ -437,11 +437,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get user's organization ID from request
       const orgId = (req as AuthRequest).user!.organizationId;
+      
+      if (!orgId) {
+        return res.status(400).json({ message: "Organization ID is required" });
+      }
+      
       // Handle folder path parameter
       const folderPath = req.query.folder as string || '/';
       
       console.log(`Fetching compliance documents for org: ${orgId}, path: ${folderPath}`);
       
+      // Add debug SQL logging
       const documents = await storage.listComplianceDocuments(orgId, folderPath);
       
       console.log(`Found ${documents.length} documents`);
@@ -449,7 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json(documents);
     } catch (error) {
       console.error("Error fetching compliance documents:", error);
-      return res.status(500).json({ message: "Failed to fetch compliance documents" });
+      return res.status(500).json({ message: "Failed to fetch compliance documents", error: (error as Error).message });
     }
   });
   
