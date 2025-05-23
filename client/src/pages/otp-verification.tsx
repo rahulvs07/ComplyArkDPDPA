@@ -469,28 +469,32 @@ export default function OTPVerificationPage() {
                   control={otpForm.control}
                   name="otp"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Verification Code</FormLabel>
-                      <FormControl>
-                        <div className="flex">
-                          <Input
-                            placeholder="Enter the 4-6 digit code"
-                            className="text-center text-xl tracking-widest"
-                            maxLength={6}
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Verification Code
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter the 4-6 digit code"
+                        className="w-full p-2 text-center text-xl tracking-widest border rounded-md"
+                        maxLength={6}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        value={field.value}
+                      />
                       <p className="text-sm text-muted-foreground mt-1">
-                        Enter the code sent to your email. For testing, you can use "1234".
+                        Enter the code sent to your email. For testing, use "1234".
                         {expiresAt && (
                           <span className="block text-xs mt-1">
                             Code expires in 30 minutes.
                           </span>
                         )}
                       </p>
-                      <FormMessage />
-                    </FormItem>
+                      {otpForm.formState.errors.otp && (
+                        <p className="text-sm text-red-500">
+                          {otpForm.formState.errors.otp.message}
+                        </p>
+                      )}
+                    </div>
                   )}
                 />
                 <div className="flex flex-col space-y-2">
