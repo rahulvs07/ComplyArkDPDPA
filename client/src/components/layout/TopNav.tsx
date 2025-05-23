@@ -1,5 +1,5 @@
 import { useAuth } from "@/lib/auth";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Menu, LogOut } from "lucide-react";
 import { 
   DropdownMenu,

@@ -77,9 +77,14 @@ export default function Login() {
           {/* Logo */}
           <div className="mb-8 flex flex-col items-center">
             <div className="mb-4">
-              <img src="/images/complyark-full-logo.jpg" alt="ComplyArk Logo" className="h-16" />
+              <div className="flex items-center">
+                <span className="font-bold text-3xl">
+                  <span className="text-foreground dark:text-white">Comply</span>
+                  <span className="text-[#2E77AE]">Ark</span>
+                </span>
+              </div>
             </div>
-            <p className="text-sm text-[#0F3460]">
+            <p className="text-sm text-foreground dark:text-gray-300">
               DPDPA Compliance Management System
             </p>
           </div>

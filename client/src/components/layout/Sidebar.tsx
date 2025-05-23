@@ -18,14 +18,19 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
     <aside 
       className={cn(
-        "sidebar w-64 bg-white shadow-md flex-shrink-0 h-full z-20 fixed lg:relative transition-all lg:translate-x-0 custom-scrollbar",
+        "sidebar w-64 bg-background dark:bg-background shadow-md flex-shrink-0 h-full z-20 fixed lg:relative transition-all lg:translate-x-0 custom-scrollbar",
         isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}
     >
       {/* Logo Area */}
-      <div className="px-6 py-4 border-b border-neutral-200 flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-border flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <img src="/images/complyark-full-logo.jpg" alt="ComplyArk Logo" className="h-10" />
+          <div className="flex items-center">
+            <span className="font-bold text-xl">
+              <span className="text-foreground">Comply</span>
+              <span className="text-[#2E77AE]">Ark</span>
+            </span>
+          </div>
         </div>
         <button 
           className="lg:hidden text-neutral-500 hover:text-neutral-800" 
