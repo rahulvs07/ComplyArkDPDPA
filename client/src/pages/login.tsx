@@ -179,55 +179,54 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Right side - Banner image */}
-      <div className="hidden lg:block lg:w-1/2 bg-blue-600 relative">
-        <div className="absolute inset-0 p-12 flex flex-col justify-center text-white">
-          <h2 className="text-3xl font-bold mb-4">
-            Streamline Your DPDPA Compliance
-          </h2>
-          <p className="mb-8">
-            Comprehensive tools to manage data protection and privacy policies
-            efficiently.
-          </p>
-
-          <div className="space-y-6">
-            <div className="flex items-start">
-              <div className="flex-shrink-0 bg-white/20 p-2 rounded-full">
-                <LockIcon className="h-5 w-5" />
-              </div>
-              <div className="ml-4">
-                <h3 className="font-semibold">Enhanced Security</h3>
-                <p className="text-sm text-white/80">
-                  Protect sensitive data with robust compliance tools
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start">
-              <div className="flex-shrink-0 bg-white/20 p-2 rounded-full">
-                <BadgeCheckIcon className="h-5 w-5" />
-              </div>
-              <div className="ml-4">
-                <h3 className="font-semibold">Automated Compliance</h3>
-                <p className="text-sm text-white/80">
-                  Simplify compliance processes with automated workflows
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start">
-              <div className="flex-shrink-0 bg-white/20 p-2 rounded-full">
-                <LayoutDashboardIcon className="h-5 w-5" />
-              </div>
-              <div className="ml-4">
-                <h3 className="font-semibold">Comprehensive Tools</h3>
-                <p className="text-sm text-white/80">
-                  All-in-one platform for notice generation and management
-                </p>
-              </div>
-            </div>
+      {/* Right side - Geometric Abstract Image */}
+      <div className="hidden lg:block lg:w-1/2 bg-[#050b23] relative overflow-hidden">
+        {/* Background image with animation */}
+        <div className="absolute inset-0 bg-center bg-no-repeat bg-cover flex flex-col items-center justify-center" 
+             style={{ 
+               backgroundImage: "url('/hero-compliance-abstract.png')",
+               animation: "pulse 8s ease-in-out infinite alternate"
+             }}>
+          <div className="absolute inset-0" 
+               style={{
+                 background: "radial-gradient(circle at center, transparent 30%, #050b23 90%)"
+               }}>
           </div>
         </div>
+        
+        {/* Tagline with animation */}
+        <div className="absolute inset-0 flex flex-col justify-end items-center pb-20 z-10">
+          <div className="text-center px-8">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4"
+                style={{ 
+                  textShadow: "0 0 15px rgba(46, 119, 174, 0.5), 0 0 30px rgba(46, 119, 174, 0.3)",
+                  animation: "fadeIn 2s ease-out"
+                }}>
+              Simplifying Data Protection
+            </h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-white"
+                style={{ 
+                  textShadow: "0 0 15px rgba(46, 119, 174, 0.5), 0 0 30px rgba(46, 119, 174, 0.3)",
+                  animation: "fadeIn 2s ease-out 0.5s both"
+                }}>
+              Compliance
+            </h2>
+          </div>
+        </div>
+
+        {/* CSS Animations */}
+        <style jsx>{`
+          @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+          }
+          
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
       </div>
     </div>
   );
