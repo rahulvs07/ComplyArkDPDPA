@@ -214,6 +214,9 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
         return res.status(200).json(defaultFolders);
       }
       
+      // Log what we're doing
+      console.log(`Fetching documents for org: ${orgId}, folderPath: '${folderPath}'`);
+      
       // Direct database query with direct string substitution instead of parameters
       // This avoids parameter binding issues
       const query = `

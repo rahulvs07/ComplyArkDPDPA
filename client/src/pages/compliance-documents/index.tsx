@@ -203,9 +203,15 @@ export default function ComplianceDocumentsPage() {
 
   // Navigate to folder
   const navigateToFolder = (folder: ComplianceDocument) => {
-    // For clicking on a folder, we need to construct the path to include this folder
-    // If we're at the root path '/' and click a folder named "test",
-    // the new path should be '/test/'
+    // We need to handle folder navigation properly
+    
+    // First, log what we're doing for debugging
+    console.log(`Clicked on folder: ${folder.documentName}`);
+    console.log(`Current path: ${currentPath}`);
+    console.log(`Folder path from DB: ${folder.folderPath}`);
+    
+    // Construct the new path - this is the key fix
+    // When clicking on a folder, the new path should be the current path + folder name
     let newPath;
     if (currentPath === '/') {
       newPath = `/${folder.documentName}/`;
@@ -216,11 +222,12 @@ export default function ComplianceDocumentsPage() {
         : `${currentPath}/${folder.documentName}/`;
     }
     
-    console.log(`Navigating to folder: ${folder.documentName}, new path: ${newPath}`);
+    console.log(`Navigating to new path: ${newPath}`);
     
+    // Set the current path for API requests
     setCurrentPath(newPath);
     
-    // Update breadcrumbs
+    // Update breadcrumbs properly
     const parts = newPath.split('/').filter(Boolean);
     const newBreadcrumbs = [{ name: 'Root', path: '/' }];
     
@@ -233,7 +240,11 @@ export default function ComplianceDocumentsPage() {
       });
     });
     
+    console.log('New breadcrumbs:', newBreadcrumbs);
     setBreadcrumbs(newBreadcrumbs);
+    
+    // Invalidate queries to ensure we get fresh data
+    queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', newPath] });
   };
 
   // Go back to parent folder
