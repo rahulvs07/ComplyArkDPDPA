@@ -254,13 +254,27 @@ export async function createGrievance(req: Request, res: Response) {
       .values(grievanceValues)
       .returning();
     
-    // Create initial history record - use consistent fallbacks for required fields
+    // Create initial history record - make sure we use a valid user ID
+    // First check if superadmin with ID 999 exists in the database
+    const superadmin = await db.query.users.findFirst({
+      where: eq(users.username, "complyarkadmin")
+    });
+    
     const historyEntry: any = {
       grievanceId: grievance.grievanceId,
-      changedByUserId: adminId || 999, // Use superadmin ID if no admin found
+      changedByUserId: adminId || (superadmin ? superadmin.id : null),
       newStatusId: initialStatus.statusId,
       comments: "Grievance created by complainant"
     };
+    
+    // Skip history creation if we don't have a valid user ID
+    if (!historyEntry.changedByUserId) {
+      console.log("Warning: No valid user ID for grievance history, skipping history creation");
+      return res.status(201).json({
+        message: "Grievance created successfully (without history)",
+        grievanceId: grievance.grievanceId
+      });
+    }
     
     // Only include assigned user ID if it exists
     if (adminId) {
