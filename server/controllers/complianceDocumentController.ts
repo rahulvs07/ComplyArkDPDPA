@@ -69,19 +69,28 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
     // Get folder path from query parameter and normalize it
     let folderPath = req.query.folder as string || '/';
     
+    console.log(`Original folder path from request: '${folderPath}'`);
+    
     // Normalize the folder path to ensure consistent handling
     if (!folderPath.startsWith('/')) {
       folderPath = `/${folderPath}`;
+      console.log(`Added leading slash: '${folderPath}'`);
     }
     
     if (!folderPath.endsWith('/')) {
       folderPath = `${folderPath}/`;
+      console.log(`Added trailing slash: '${folderPath}'`);
     }
     
     // Remove any double slashes that might cause issues
     while (folderPath.includes('//')) {
       folderPath = folderPath.replace('//', '/');
+      console.log(`Removed double slash: '${folderPath}'`);
     }
+    
+    // Important: Make sure we decode any URL encoding to get the actual path
+    folderPath = decodeURIComponent(folderPath);
+    console.log(`Decoded and normalized folder path: '${folderPath}'`);
     
     console.log(`Controller fetching documents for org: ${orgId}, path: '${folderPath}'`);
     
@@ -233,6 +242,7 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
       
       // Direct database query with direct string substitution instead of parameters
       // This avoids parameter binding issues
+      // CRITICAL FIX: Look specifically for exact folderPath match to ensure proper folder navigation
       const query = `
         SELECT *, 
         (SELECT username FROM users WHERE id = "uploadedBy" LIMIT 1) as "uploadedByName",
@@ -243,6 +253,8 @@ export const getComplianceDocuments = async (req: Request, res: Response) => {
           CASE WHEN "documentType" = 'folder' THEN 0 ELSE 1 END, 
           "documentName" ASC
       `;
+      
+      console.log(`SQL Query: ${query}`);
       console.log("Running query:", query);
       const result = await db.execute(query);
       

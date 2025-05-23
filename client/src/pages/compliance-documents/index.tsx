@@ -68,18 +68,39 @@ export default function ComplianceDocumentsPage() {
     defaultValues: {}
   });
 
-  // Real connection to the backend
+  // Real connection to the backend - fixed to address folder navigation
   const { data: documents, isLoading, isError, error } = useQuery<ComplianceDocument[]>({
     queryKey: ['/api/compliance-documents', currentPath],
     queryFn: async () => {
       try {
-        const response = await apiRequest('GET', `/api/compliance-documents?folder=${encodeURIComponent(currentPath)}`);
-        return response;
+        // Force refresh when the path changes to ensure proper folder navigation
+        console.log(`Fetching documents for path: '${currentPath}'`);
+        
+        // Use the exact currentPath for the API request - this ensures we get the right folder contents
+        const response = await fetch(`/api/compliance-documents?folder=${encodeURIComponent(currentPath)}`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API error: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log(`Received ${data.length} documents in path '${currentPath}'`);
+        return data;
       } catch (err) {
         console.error("Failed to fetch documents:", err);
         throw err;
       }
-    }
+    },
+    // This ensures the query refetches when the path changes
+    refetchOnWindowFocus: false,
+    staleTime: 0
   });
 
   // Create folder mutation
@@ -215,31 +236,24 @@ export default function ComplianceDocumentsPage() {
     }
   });
 
-  // Navigate to folder
+  // Navigate to folder - completely rewritten to fix navigation issues
   const navigateToFolder = (folder: ComplianceDocument) => {
-    // We're going to fix the folder navigation
-    
-    // First, log what we're doing for debugging
     console.log(`Clicked on folder: ${folder.documentName}`);
     console.log(`Current path: ${currentPath}`);
     
-    // This is the key fix - we'll construct the new path correctly and ensure it's used consistently
+    // Calculate the new path
     let newPath;
     if (currentPath === '/') {
       newPath = `/${folder.documentName}/`;
     } else {
-      // If we're in a subfolder, append the folder name to the current path
-      newPath = currentPath.endsWith('/')
-        ? `${currentPath}${folder.documentName}/`
-        : `${currentPath}/${folder.documentName}/`;
+      // Ensure we don't have double slashes
+      const base = currentPath.endsWith('/') ? currentPath : `${currentPath}/`;
+      newPath = `${base}${folder.documentName}/`;
     }
     
-    console.log(`Navigating to new path: ${newPath}`);
+    console.log(`NAVIGATION: Going to path: ${newPath}`);
     
-    // Don't update the state until we've handled side effects
-    // This is important to prevent race conditions
-    
-    // Update breadcrumbs properly
+    // Build breadcrumbs from the new path
     const parts = newPath.split('/').filter(Boolean);
     const newBreadcrumbs = [{ name: 'Root', path: '/' }];
     
@@ -252,31 +266,27 @@ export default function ComplianceDocumentsPage() {
       });
     });
     
-    // Use a specific function to handle folder navigation as a unit of work
-    const navigateToPath = async () => {
-      try {
-        // First set the path and breadcrumbs
-        setCurrentPath(newPath);
-        setBreadcrumbs(newBreadcrumbs);
-        
-        // Then immediately invalidate the query to force a refresh with the new path
-        await queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents'] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents', newPath] });
-        
-        // Log success
-        console.log(`Successfully navigated to ${newPath}`);
-      } catch (error) {
-        console.error('Error navigating to folder:', error);
-        toast({
-          title: 'Navigation Error',
-          description: 'Failed to navigate to the selected folder.',
-          variant: 'destructive',
-        });
-      }
-    };
+    console.log("New breadcrumbs:", newBreadcrumbs);
     
-    // Execute the navigation
-    navigateToPath();
+    // Instead of trying to do this as an async operation, we'll do it
+    // synchronously to ensure the state is updated before the next render
+    
+    // Update the path in state
+    setCurrentPath(newPath);
+    
+    // Update breadcrumbs
+    setBreadcrumbs(newBreadcrumbs);
+    
+    // Force refresh the data by invalidating the query
+    queryClient.invalidateQueries({ queryKey: ['/api/compliance-documents'] });
+    
+    // Show a toast notification for feedback
+    toast({
+      title: 'Navigating',
+      description: `Opening folder: ${folder.documentName}`,
+    });
+    
+    // The next render will use the new path to fetch data
   };
 
   // Go back to parent folder
