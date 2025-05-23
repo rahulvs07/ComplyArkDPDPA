@@ -375,16 +375,7 @@ export default function ComplianceDocumentsPage() {
     });
   };
 
-  // Navigate to specific breadcrumb
-  const navigateToBreadcrumb = (path: string) => {
-    setCurrentPath(path);
-    
-    // Update breadcrumbs
-    const index = breadcrumbs.findIndex(b => b.path === path);
-    if (index >= 0) {
-      setBreadcrumbs(breadcrumbs.slice(0, index + 1));
-    }
-  };
+  // This function has been replaced by the inline functions in the breadcrumb buttons
 
   // Handle new folder form submission
   const onNewFolderSubmit = (data: z.infer<typeof newFolderSchema>) => {
@@ -523,26 +514,45 @@ export default function ComplianceDocumentsPage() {
               variant="ghost"
               size="sm"
               onClick={goBack}
-              disabled={currentPath === '/'}
+              disabled={currentPath.length === 0}
               className="text-gray-700 dark:text-gray-300"
             >
               <ChevronLeft className="h-4 w-4 mr-1" /> Back
             </Button>
             
             <div className="text-sm flex items-center gap-1 flex-wrap">
-              {breadcrumbs.map((breadcrumb, i) => (
-                <div key={breadcrumb.path} className="flex items-center">
-                  {i > 0 && <span className="mx-1 text-gray-400">/</span>}
+              {/* Root folder */}
+              <div className="flex items-center">
+                <button
+                  onClick={() => setCurrentPath([])}
+                  className={cn(
+                    "hover:underline",
+                    currentPath.length === 0
+                      ? "text-[#2E77AE] dark:text-[#4B93D2] font-medium"
+                      : "text-[#2E77AE] dark:text-blue-400"
+                  )}
+                >
+                  Root
+                </button>
+              </div>
+              
+              {/* Path segments */}
+              {currentPath.map((segment, i) => (
+                <div key={i} className="flex items-center">
+                  <span className="mx-1 text-gray-400">/</span>
                   <button
-                    onClick={() => navigateToBreadcrumb(breadcrumb.path)}
+                    onClick={() => {
+                      // Navigate to this specific level in the path
+                      setCurrentPath(currentPath.slice(0, i + 1));
+                    }}
                     className={cn(
                       "hover:underline",
-                      currentPath === breadcrumb.path
+                      i === currentPath.length - 1
                         ? "text-[#2E77AE] dark:text-[#4B93D2] font-medium"
                         : "text-[#2E77AE] dark:text-blue-400"
                     )}
                   >
-                    {breadcrumb.name}
+                    {segment}
                   </button>
                 </div>
               ))}
