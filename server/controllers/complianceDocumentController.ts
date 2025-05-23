@@ -496,23 +496,30 @@ export const createFolder = async (req: AuthRequest, res: Response) => {
     
     if (!validUserId) {
       // Try to find any valid user in this organization
-      const validUserResult = await db.execute(
-        `SELECT id FROM users WHERE "organizationId" = $1 LIMIT 1`,
-        [orgId]
-      );
-      
-      if (validUserResult.rows && validUserResult.rows.length > 0) {
-        validUserId = validUserResult.rows[0].id;
-      } else {
-        // As a last resort, find any valid user
-        const anyUserResult = await db.execute(`SELECT id FROM users LIMIT 1`);
-        if (anyUserResult.rows && anyUserResult.rows.length > 0) {
-          validUserId = anyUserResult.rows[0].id;
+      try {
+        const validUserResult = await db.execute(`
+          SELECT id FROM users WHERE "organizationId" = ${orgId} LIMIT 1
+        `);
+        
+        if (validUserResult.rows && validUserResult.rows.length > 0) {
+          validUserId = validUserResult.rows[0].id;
+          console.log(`Found valid user ID ${validUserId} for org ${orgId}`);
         } else {
-          return res.status(400).json({ 
-            message: "No valid user found to create folder. Please create a user first." 
-          });
+          // As a last resort, find any valid user
+          const anyUserResult = await db.execute(`SELECT id FROM users LIMIT 1`);
+          if (anyUserResult.rows && anyUserResult.rows.length > 0) {
+            validUserId = anyUserResult.rows[0].id;
+            console.log(`Found any user ID ${validUserId} as fallback`);
+          } else {
+            return res.status(400).json({ 
+              message: "No valid user found to create folder. Please create a user first." 
+            });
+          }
         }
+      } catch (userError) {
+        console.error("Error finding valid user:", userError);
+        // Default to user ID 1 as a last resort
+        validUserId = 1;
       }
     }
     
@@ -530,15 +537,23 @@ export const createFolder = async (req: AuthRequest, res: Response) => {
           "uploadedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
         )
       `);
+      console.log("Ensured complianceDocuments table exists");
     } catch (tableError) {
       console.error("Error ensuring table exists:", tableError);
     }
+    
+    // Clean and sanitize inputs to avoid SQL injection issues
+    const sanitizedParentFolder = (parentFolder || '/').replace(/'/g, "''");
+    
+    // Here's the important change - we're storing the parentFolder directly, not constructing a path
+    // The UI will handle the actual path construction when navigating
+    console.log(`Creating folder "${sanitizedFolderName}" in parent folder "${sanitizedParentFolder}"`);
     
     // Create the folder with direct database query - use a raw query without placeholders
     const query = `
       INSERT INTO "complianceDocuments" 
       ("documentName", "documentType", "documentPath", "uploadedBy", "organizationId", "folderPath", "uploadedAt") 
-      VALUES ('${sanitizedFolderName}', 'folder', '', ${validUserId}, ${orgId}, '${parentFolder || '/'}', NOW()) 
+      VALUES ('${sanitizedFolderName}', 'folder', '', ${validUserId}, ${orgId}, '${sanitizedParentFolder}', NOW()) 
       RETURNING *
     `;
     console.log("Running query:", query);

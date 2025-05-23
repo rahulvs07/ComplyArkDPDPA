@@ -187,9 +187,20 @@ export default function ComplianceDocumentsPage() {
 
   // Navigate to folder
   const navigateToFolder = (folder: ComplianceDocument) => {
-    const newPath = folder.folderPath.endsWith('/')
-      ? folder.folderPath
-      : `${folder.folderPath}/`;
+    // For clicking on a folder, we need to construct the path to include this folder
+    // If we're at the root path '/' and click a folder named "test",
+    // the new path should be '/test/'
+    let newPath;
+    if (currentPath === '/') {
+      newPath = `/${folder.documentName}/`;
+    } else {
+      // If we're in a subfolder, append the folder name to the current path
+      newPath = currentPath.endsWith('/')
+        ? `${currentPath}${folder.documentName}/`
+        : `${currentPath}/${folder.documentName}/`;
+    }
+    
+    console.log(`Navigating to folder: ${folder.documentName}, new path: ${newPath}`);
     
     setCurrentPath(newPath);
     
