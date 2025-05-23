@@ -1,6 +1,6 @@
 import { useAuth } from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { Menu, LogOut } from "lucide-react";
+import { Menu, LogOut, HelpCircle } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { NotificationBell } from "@/components/ui/notification-bell";
 
 interface TopNavProps {
   title: string;
@@ -56,16 +57,13 @@ export default function TopNav({ title, onMenuClick }: TopNavProps) {
         {/* Theme Toggle */}
         <ThemeToggle />
         
-        <div className="relative">
-          <button className="p-2 rounded-full hover:bg-muted text-muted-foreground flex items-center justify-center">
-            <span className="material-icons">notifications</span>
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
-          </button>
-        </div>
+        {/* Notification Bell */}
+        <NotificationBell />
         
+        {/* Help Button */}
         <div className="relative">
           <button className="p-2 rounded-full hover:bg-muted text-muted-foreground flex items-center justify-center">
-            <span className="material-icons">help_outline</span>
+            <HelpCircle className="h-5 w-5" />
           </button>
         </div>
         

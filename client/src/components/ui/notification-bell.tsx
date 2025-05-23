@@ -58,7 +58,7 @@ export function NotificationBell() {
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationIds?: number[]) => {
       const res = await apiRequest('PUT', '/api/notifications/mark-as-read', { 
-        notificationIds 
+        body: JSON.stringify({ notificationIds })
       });
       return await res.json();
     },
@@ -78,9 +78,9 @@ export function NotificationBell() {
   // Mark all as read when the popover opens
   useEffect(() => {
     if (open && notifications && notifications.some(n => !n.isRead)) {
-      markAsReadMutation.mutate();
+      markAsReadMutation.mutate(undefined);
     }
-  }, [open, notifications]);
+  }, [open, notifications, markAsReadMutation]);
 
   const formatTimeAgo = (minutes: number) => {
     if (minutes < 1) return 'Just now';
