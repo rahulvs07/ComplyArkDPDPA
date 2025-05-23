@@ -68,81 +68,17 @@ export default function ComplianceDocumentsPage() {
     defaultValues: {}
   });
 
-  // Generate test documents to demonstrate functionality while backend is fixed
-  const generateTestDocuments = (): ComplianceDocument[] => {
-    const rootFolders = [
-      {
-        documentId: 1,
-        documentName: 'Compliance Policies',
-        documentPath: '',
-        documentType: 'folder',
-        uploadedBy: user?.id || 0,
-        uploadedAt: new Date().toISOString(),
-        organizationId: user?.organizationId || 0,
-        folderPath: '/',
-      },
-      {
-        documentId: 2,
-        documentName: 'Privacy Notices',
-        documentPath: '',
-        documentType: 'folder',
-        uploadedBy: user?.id || 0,
-        uploadedAt: new Date().toISOString(),
-        organizationId: user?.organizationId || 0,
-        folderPath: '/',
-      },
-      {
-        documentId: 3,
-        documentName: 'DPDPA Handbook.pdf',
-        documentPath: '/uploads/test.pdf',
-        documentType: 'file',
-        uploadedBy: user?.id || 0,
-        uploadedAt: new Date().toISOString(),
-        organizationId: user?.organizationId || 0,
-        folderPath: '/',
-      }
-    ];
-    
-    const compliancePoliciesDocs = [
-      {
-        documentId: 4,
-        documentName: 'Data Protection Policy.pdf',
-        documentPath: '/uploads/test.pdf',
-        documentType: 'file',
-        uploadedBy: user?.id || 0,
-        uploadedAt: new Date().toISOString(),
-        organizationId: user?.organizationId || 0,
-        folderPath: '/Compliance Policies',
-      },
-      {
-        documentId: 5,
-        documentName: 'Security Policy',
-        documentPath: '',
-        documentType: 'folder',
-        uploadedBy: user?.id || 0,
-        uploadedAt: new Date().toISOString(),
-        organizationId: user?.organizationId || 0,
-        folderPath: '/Compliance Policies',
-      }
-    ];
-    
-    // Return documents based on current path
-    if (currentPath === '/') {
-      return rootFolders;
-    } else if (currentPath === '/Compliance Policies' || currentPath === '/Compliance Policies/') {
-      return compliancePoliciesDocs;
-    }
-    
-    return [];
-  };
-  
-  // Use local data for demonstration until backend is fully fixed
+  // Real connection to the backend
   const { data: documents, isLoading, isError, error } = useQuery<ComplianceDocument[]>({
     queryKey: ['/api/compliance-documents', currentPath],
     queryFn: async () => {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return generateTestDocuments();
+      try {
+        const response = await apiRequest('GET', `/api/compliance-documents?folder=${encodeURIComponent(currentPath)}`);
+        return response;
+      } catch (err) {
+        console.error("Failed to fetch documents:", err);
+        throw err;
+      }
     }
   });
 

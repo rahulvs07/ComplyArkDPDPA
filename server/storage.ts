@@ -819,48 +819,87 @@ export class DatabaseStorage implements IStorage {
   
   async listComplianceDocuments(organizationId: number, folderPath: string = '/'): Promise<ComplianceDocument[]> {
     try {
-      // Pre-process the folder path
+      // Normalize folder path
       if (!folderPath) folderPath = '/';
       
-      // Add console logs for debugging
-      console.log(`Listing documents for organizationId=${organizationId}, folderPath=${folderPath}`);
+      console.log(`Fetching documents for organizationId=${organizationId}, folderPath=${folderPath}`);
       
-      // Let's create a few default test documents for now
-      const testDocuments: ComplianceDocument[] = [
-        {
-          documentId: 1,
-          documentName: 'Compliance Policies',
-          documentPath: '',
-          documentType: 'folder',
-          uploadedBy: organizationId,
-          organizationId: organizationId,
-          uploadedAt: new Date(),
-          folderPath: '/'
-        },
-        {
-          documentId: 2,
-          documentName: 'Privacy Notices',
-          documentPath: '',
-          documentType: 'folder',
-          uploadedBy: organizationId,
-          organizationId: organizationId,
-          uploadedAt: new Date(),
-          folderPath: '/'
-        },
-        {
-          documentId: 3,
-          documentName: 'DPDPA Handbook.pdf',
-          documentPath: '/uploads/DPDPA_Handbook.pdf',
-          documentType: 'file',
-          uploadedBy: organizationId,
-          organizationId: organizationId,
-          uploadedAt: new Date(),
-          folderPath: '/'
+      // First, check if we have any documents
+      const existing = await db
+        .select()
+        .from(complianceDocuments)
+        .where(
+          and(
+            eq(complianceDocuments.organizationId, organizationId),
+            eq(complianceDocuments.folderPath, folderPath)
+          )
+        );
+      
+      console.log(`Found ${existing.length} documents in the database`);
+      
+      // If we're at the root and no documents exist, create default folders
+      if (folderPath === '/' && existing.length === 0) {
+        console.log('Creating default folders');
+        
+        const defaultFolders = [
+          {
+            documentName: 'Notices',
+            documentType: 'folder',
+            documentPath: '',
+            folderPath: '/',
+            organizationId,
+            uploadedBy: 1, // System user
+            uploadedAt: new Date()
+          },
+          {
+            documentName: 'Translated Notices',
+            documentType: 'folder',
+            documentPath: '',
+            folderPath: '/',
+            organizationId,
+            uploadedBy: 1, // System user
+            uploadedAt: new Date()
+          },
+          {
+            documentName: 'Other Templates',
+            documentType: 'folder',
+            documentPath: '',
+            folderPath: '/',
+            organizationId,
+            uploadedBy: 1, // System user
+            uploadedAt: new Date()
+          }
+        ];
+        
+        for (const folder of defaultFolders) {
+          await db.insert(complianceDocuments).values(folder);
         }
-      ];
+        
+        // Fetch again after creating default folders
+        return db
+          .select()
+          .from(complianceDocuments)
+          .where(
+            and(
+              eq(complianceDocuments.organizationId, organizationId),
+              eq(complianceDocuments.folderPath, folderPath)
+            )
+          )
+          .orderBy(
+            sql`CASE WHEN ${complianceDocuments.documentType} = 'folder' THEN 1 ELSE 0 END DESC`,
+            complianceDocuments.documentName
+          );
+      }
       
-      // Return only the documents that match the current folder path
-      return testDocuments.filter(doc => doc.folderPath === folderPath);
+      // Return documents sorted with folders first
+      return existing.sort((a, b) => {
+        // Folders come first
+        if (a.documentType === 'folder' && b.documentType !== 'folder') return -1;
+        if (a.documentType !== 'folder' && b.documentType === 'folder') return 1;
+        
+        // Then sort alphabetically by name
+        return a.documentName.localeCompare(b.documentName);
+      });
     } catch (error) {
       console.error('Error fetching compliance documents:', error);
       return [];
