@@ -228,8 +228,8 @@ const TranslationTab = ({ noticeId, noticeContent }: TranslationTabProps) => {
           <CardContent className="p-4">
             <div className="mb-1 text-sm font-medium">English</div>
             <div className="max-h-24 overflow-y-auto text-sm border p-2 rounded bg-white">
-              {noticeContent.substring(0, 300)}
-              {noticeContent.length > 300 && '...'}
+              {noticeContent ? noticeContent.substring(0, 300) : 'No content available'}
+              {noticeContent && noticeContent.length > 300 && '...'}
             </div>
           </CardContent>
         </Card>
