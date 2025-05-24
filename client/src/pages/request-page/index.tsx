@@ -41,21 +41,29 @@ export default function RequestPage() {
     setShowOtpVerification(false);
     
     try {
+      console.log('Submitting DPR request with data:', pendingRequestData);
+      
       // Now submit the request with verified email
       const response = await fetch('/api/dpr/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(pendingRequestData)
+        body: JSON.stringify({
+          ...pendingRequestData,
+          // Ensure email is updated to the verified one
+          email: verifiedEmail
+        })
       });
       
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Error response:', errorData);
         throw new Error(errorData.message || 'Failed to submit request');
       }
       
       const data = await response.json();
+      console.log('DPR creation success:', data);
       setSubmitSuccess({
         message: data.message || 'Your data protection request has been submitted successfully.',
         id: data.requestId,
