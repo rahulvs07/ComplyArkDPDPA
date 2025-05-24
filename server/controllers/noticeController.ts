@@ -15,32 +15,209 @@ const NOTICES_DIR = path.join(process.cwd(), 'NoticesGenerated');
 const TRANSLATED_NOTICES_DIR = path.join(process.cwd(), 'NoticesTranslated');
 
 // Helper function to generate DOCX document from notice content
-async function generateDocxNotice(noticeContent: string, outputPath: string): Promise<void> {
+async function generateDocxNotice(noticeContent: string, outputPath: string, noticeName: string = "Privacy Notice", organizationName: string = "ComplyArk"): Promise<void> {
   try {
-    // Create a new document
+    // Get current date for footer
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    // Generate a unique document ID
+    const documentId = `CA-${Math.floor(Math.random() * 10000)}-${new Date().getFullYear()}`;
+    
+    // Create a new document with professional styling
     const doc = new Document({
+      styles: {
+        paragraphStyles: [
+          {
+            id: "Normal",
+            name: "Normal",
+            run: {
+              font: "Calibri",
+              size: 24, // 12pt
+              color: "333333"
+            },
+            paragraph: {
+              spacing: {
+                line: 360, // 1.5 line spacing
+                before: 120, // 6pt before
+                after: 120 // 6pt after
+              }
+            }
+          },
+          {
+            id: "Heading1",
+            name: "Heading 1",
+            basedOn: "Normal",
+            next: "Normal",
+            run: {
+              font: "Calibri",
+              size: 32, // 16pt
+              bold: true,
+              color: "1E5B8D"
+            },
+            paragraph: {
+              spacing: {
+                before: 240, // 12pt before
+                after: 120 // 6pt after
+              }
+            }
+          },
+          {
+            id: "Heading2",
+            name: "Heading 2",
+            basedOn: "Normal",
+            next: "Normal",
+            run: {
+              font: "Calibri",
+              size: 26, // 13pt
+              bold: true,
+              color: "2E77AE"
+            },
+            paragraph: {
+              spacing: {
+                before: 240, // 12pt before
+                after: 120 // 6pt after
+              }
+            }
+          },
+          {
+            id: "Header",
+            name: "Header",
+            basedOn: "Normal",
+            run: {
+              font: "Calibri",
+              size: 20, // 10pt
+              color: "FFFFFF"
+            }
+          },
+          {
+            id: "Footer",
+            name: "Footer",
+            basedOn: "Normal",
+            run: {
+              font: "Calibri",
+              size: 18, // 9pt
+              color: "666666"
+            },
+            paragraph: {
+              alignment: "center"
+            }
+          }
+        ]
+      },
       sections: [{
-        properties: {},
-        children: [
-          new Paragraph({
-            heading: HeadingLevel.HEADING_1,
+        properties: {
+          page: {
+            margin: {
+              top: 1440, // 1 inch
+              right: 1440, // 1 inch
+              bottom: 1440, // 1 inch
+              left: 1440, // 1 inch
+            },
+          },
+        },
+        headers: {
+          default: {
             children: [
-              new TextRun({
-                text: "Privacy Notice",
-                bold: true,
-                size: 36
+              new Paragraph({
+                style: "Header",
+                alignment: "center",
+                children: [
+                  new TextRun({
+                    text: organizationName,
+                    bold: true,
+                    size: 24, // 12pt
+                    color: "FFFFFF"
+                  }),
+                ],
+                shading: {
+                  type: "solid",
+                  color: "2E77AE",
+                },
+                border: {
+                  bottom: {
+                    color: "EEEEEE",
+                    size: 6,
+                    style: "single",
+                  },
+                },
+                spacing: {
+                  after: 200,
+                },
+              }),
+              new Paragraph({
+                style: "Header",
+                alignment: "right",
+                children: [
+                  new TextRun({
+                    text: `Document ID: ${documentId}`,
+                    size: 16, // 8pt
+                    color: "AAAAAA"
+                  }),
+                ],
               }),
             ],
+          },
+        },
+        footers: {
+          default: {
+            children: [
+              new Paragraph({
+                style: "Footer",
+                alignment: "center",
+                children: [
+                  new TextRun({
+                    text: `© ${new Date().getFullYear()} ${organizationName}. All rights reserved.`,
+                  }),
+                ],
+              }),
+              new Paragraph({
+                style: "Footer",
+                alignment: "center",
+                children: [
+                  new TextRun({
+                    text: `Last updated: ${currentDate}`,
+                  }),
+                ],
+              }),
+              new Paragraph({
+                style: "Footer",
+                alignment: "center",
+                children: [
+                  new TextRun({
+                    text: "This document is generated and managed by ComplyArk Compliance Management System.",
+                    size: 16, // 8pt
+                  }),
+                ],
+              }),
+            ],
+          },
+        },
+        children: [
+          new Paragraph({
+            style: "Heading1",
+            alignment: "center",
+            children: [
+              new TextRun({
+                text: noticeName,
+                bold: true,
+                size: 36, // 18pt
+                color: "2E77AE"
+              }),
+            ],
+            spacing: {
+              before: 240,
+              after: 240,
+            }
           }),
           new Paragraph({
             text: ""
           }),
-          // Process notice content by paragraphs
-          ...noticeContent.split('\n').map(line => 
-            new Paragraph({
-              children: [new TextRun({ text: line })]
-            })
-          )
+          // Process notice content by paragraphs with section formatting
+          ...processNoticeContent(noticeContent)
         ],
       }],
     });
@@ -53,6 +230,152 @@ async function generateDocxNotice(noticeContent: string, outputPath: string): Pr
     // Create a simple text file as fallback
     fs.writeFileSync(outputPath, noticeContent);
   }
+}
+
+// Helper function to process notice content into properly formatted paragraphs
+function processNoticeContent(content: string): Paragraph[] {
+  const paragraphs: Paragraph[] = [];
+  const lines = content.split('\n');
+  
+  let inList = false;
+  let listItems: string[] = [];
+  
+  lines.forEach((line, index) => {
+    // Check if line is a heading (e.g., starts with a number and period like "1. INFORMATION WE COLLECT")
+    if (/^\d+\.?\s+[A-Z\s]+$/.test(line.trim())) {
+      // If we were processing a list, add it before the new heading
+      if (inList && listItems.length > 0) {
+        // Add the list
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: "" })
+            ],
+            spacing: { before: 120, after: 120 }
+          })
+        );
+        
+        listItems.forEach(item => {
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: "• " + item.trim() })
+              ],
+              indent: { left: 720 }, // 0.5 inch indent
+              spacing: { before: 60, after: 60 }
+            })
+          );
+        });
+        
+        inList = false;
+        listItems = [];
+      }
+      
+      // Add the heading
+      paragraphs.push(
+        new Paragraph({
+          style: "Heading2",
+          children: [
+            new TextRun({
+              text: line.trim(),
+              bold: true,
+            }),
+          ],
+          spacing: { before: 240, after: 120 }
+        })
+      );
+    }
+    // Check if line is a list item (starts with - or *)
+    else if (/^\s*[-•*]\s+/.test(line)) {
+      if (!inList) {
+        inList = true;
+        listItems = [];
+      }
+      
+      // Extract the text without the bullet
+      const itemText = line.replace(/^\s*[-•*]\s+/, '');
+      listItems.push(itemText);
+    }
+    // Regular paragraph
+    else {
+      // If we were processing a list, add it before the new paragraph
+      if (inList && listItems.length > 0 && line.trim() !== '') {
+        // Add the list
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: "" })
+            ],
+            spacing: { before: 120, after: 120 }
+          })
+        );
+        
+        listItems.forEach(item => {
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: "• " + item.trim() })
+              ],
+              indent: { left: 720 }, // 0.5 inch indent
+              spacing: { before: 60, after: 60 }
+            })
+          );
+        });
+        
+        inList = false;
+        listItems = [];
+      }
+      
+      // Skip empty lines
+      if (line.trim() === '') {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: "" })
+            ],
+            spacing: { before: 120, after: 120 }
+          })
+        );
+      } else {
+        // Add the paragraph
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: line.trim() })
+            ],
+            spacing: { before: 60, after: 60 }
+          })
+        );
+      }
+    }
+  });
+  
+  // If we end with a list, add it
+  if (inList && listItems.length > 0) {
+    // Add the list
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: "" })
+        ],
+        spacing: { before: 120, after: 120 }
+      })
+    );
+    
+    listItems.forEach(item => {
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: "• " + item.trim() })
+          ],
+          indent: { left: 720 }, // 0.5 inch indent
+          spacing: { before: 60, after: 60 }
+        })
+      );
+    });
+  }
+  
+  return paragraphs;
 }
 
 // Ensure directories exist

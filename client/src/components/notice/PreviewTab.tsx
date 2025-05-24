@@ -132,25 +132,179 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
   
   // Generate preview
   const handlePreview = () => {
-    // Simple preview - open a new window with the content
+    // Get the current date for the footer
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    // Format the notice body to preserve line breaks and styling
+    const formattedNoticeBody = noticeBody
+      .replace(/\n/g, '<br>')
+      .replace(/\s{2,}/g, match => '&nbsp;'.repeat(match.length));
+      
+    // Enhanced preview with professional styling
     const previewWindow = window.open("", "_blank");
     if (previewWindow) {
       previewWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Notice Preview</title>
+          <title>${noticeName || "Privacy Notice"} - ComplyArk</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            h1 { color: #1565C0; }
-            .container { max-width: 800px; margin: 0 auto; }
+            @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap');
+            
+            body {
+              font-family: 'Open Sans', Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              margin: 0;
+              padding: 0;
+              background-color: #f9f9f9;
+            }
+            
+            .page {
+              background-color: white;
+              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+              max-width: 850px;
+              margin: 40px auto;
+              padding: 0;
+              position: relative;
+            }
+            
+            .header {
+              padding: 25px 40px;
+              border-bottom: 1px solid #e0e0e0;
+              background: linear-gradient(135deg, #2E77AE 0%, #1E5B8D 100%);
+              color: white;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            
+            .logo {
+              font-weight: 700;
+              font-size: 24px;
+              margin: 0;
+            }
+            
+            .document-title {
+              margin-top: 10px;
+              font-size: 28px;
+              font-weight: 600;
+            }
+            
+            .content {
+              padding: 40px;
+              font-size: 14px;
+            }
+            
+            .section {
+              margin-bottom: 20px;
+            }
+            
+            .section-title {
+              font-size: 18px;
+              font-weight: 600;
+              color: #1E5B8D;
+              margin-bottom: 10px;
+              border-bottom: 1px solid #e0e0e0;
+              padding-bottom: 5px;
+            }
+            
+            .footer {
+              padding: 20px 40px;
+              border-top: 1px solid #e0e0e0;
+              font-size: 12px;
+              color: #666;
+              text-align: center;
+              background-color: #f5f5f5;
+            }
+            
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+            }
+            
+            th, td {
+              border: 1px solid #ddd;
+              padding: 8px;
+              text-align: left;
+            }
+            
+            th {
+              background-color: #f2f2f2;
+            }
+            
+            ul, ol {
+              margin-left: 20px;
+              padding-left: 0;
+            }
+            
+            .metadata {
+              margin-top: 5px;
+              color: #666;
+              font-size: 12px;
+            }
+            
+            .document-id {
+              font-size: 12px;
+              color: rgba(255, 255, 255, 0.7);
+            }
+            
+            @media print {
+              body {
+                background-color: white;
+              }
+              
+              .page {
+                box-shadow: none;
+                margin: 0;
+                max-width: 100%;
+              }
+            }
           </style>
         </head>
         <body>
-          <div class="container">
-            <h1>${noticeName || "Privacy Notice"}</h1>
-            <div>${noticeBody}</div>
+          <div class="page">
+            <div class="header">
+              <div>
+                <div class="logo">ComplyArk</div>
+                <div class="document-id">Document ID: CA-${Math.floor(Math.random() * 10000)}-${new Date().getFullYear()}</div>
+              </div>
+              <div class="document-title">${noticeName || "Privacy Notice"}</div>
+            </div>
+            
+            <div class="content">
+              ${formattedNoticeBody}
+            </div>
+            
+            <div class="footer">
+              <div>© ${new Date().getFullYear()} ComplyArk Systems. All rights reserved.</div>
+              <div>Last updated: ${currentDate}</div>
+              <div>This document is generated and managed by ComplyArk Compliance Management System.</div>
+            </div>
           </div>
+          
+          <script>
+            // Add print button
+            const printButton = document.createElement('button');
+            printButton.innerHTML = '🖨️ Print';
+            printButton.style.position = 'fixed';
+            printButton.style.bottom = '20px';
+            printButton.style.right = '20px';
+            printButton.style.padding = '10px 15px';
+            printButton.style.backgroundColor = '#2E77AE';
+            printButton.style.color = 'white';
+            printButton.style.border = 'none';
+            printButton.style.borderRadius = '4px';
+            printButton.style.cursor = 'pointer';
+            printButton.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+            printButton.onclick = () => { window.print(); };
+            document.body.appendChild(printButton);
+          </script>
         </body>
         </html>
       `);
