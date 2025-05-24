@@ -1,5 +1,5 @@
-import { useState } from "react";
-import MainLayout from "@/components/layouts/MainLayout";
+import { useState, useEffect } from "react";
+import AdminLayout from "@/components/layouts/AdminLayout";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { 
   Card, 
@@ -43,17 +43,6 @@ export default function EmailSettingsPage() {
     message: "This is a test email from ComplyArk."
   });
 
-  const { data: settings, isLoading } = useQuery<EmailSettings>({
-    queryKey: ["/api/email/settings"],
-    onError: (error) => {
-      toast({
-        title: "Error fetching email settings",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
-
   const [formData, setFormData] = useState<EmailSettings>({
     host: "",
     port: 587,
@@ -66,17 +55,13 @@ export default function EmailSettingsPage() {
     enableNotifications: true
   });
 
-  // Update form data when settings load
-  useState(() => {
-    if (settings) {
-      setFormData(settings);
-    }
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["/api/email/settings"]
   });
 
   const saveSettingsMutation = useMutation({
-    mutationFn: async (data: EmailSettings) => {
-      const response = await apiRequest("POST", "/api/email/settings", data);
-      return response.json();
+    mutationFn: (data: EmailSettings) => {
+      return apiRequest("POST", "/api/email/settings", data);
     },
     onSuccess: () => {
       toast({
@@ -85,7 +70,7 @@ export default function EmailSettingsPage() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/email/settings"] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Failed to save settings",
         description: error.message,
@@ -95,9 +80,8 @@ export default function EmailSettingsPage() {
   });
 
   const testEmailMutation = useMutation({
-    mutationFn: async (data: TestEmailParams) => {
-      const response = await apiRequest("POST", "/api/email/test", data);
-      return response.json();
+    mutationFn: (data: TestEmailParams) => {
+      return apiRequest("POST", "/api/email/test", data);
     },
     onSuccess: () => {
       toast({
@@ -105,7 +89,7 @@ export default function EmailSettingsPage() {
         description: "Check your inbox for the test email.",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Failed to send test email",
         description: error.message,
@@ -119,13 +103,15 @@ export default function EmailSettingsPage() {
     
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
-      setFormData({
-        ...formData,
-        [parent]: {
-          ...formData[parent as keyof EmailSettings],
-          [child]: value
-        }
-      });
+      if (parent === 'auth') {
+        setFormData({
+          ...formData,
+          auth: {
+            ...formData.auth,
+            [child]: value
+          }
+        });
+      }
     } else if (type === 'checkbox') {
       setFormData({
         ...formData,

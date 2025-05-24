@@ -1,62 +1,84 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-}
-
-export async function apiRequest(
-  method: string,
-  url: string,
-  options?: RequestInit,
-): Promise<any> {
-  // Set default headers for JSON content
-  const headers = (options?.body || method !== 'GET')
-    ? { 'Content-Type': 'application/json', ...options?.headers }
-    : options?.headers || {};
-    
-  const res = await fetch(url, {
-    method,
-    ...options,
-    headers,
-    credentials: "include",
+const defaultQueryFn = async ({ queryKey }: { queryKey: string[] }) => {
+  const response = await fetch(queryKey[0], {
+    credentials: 'include'
   });
-
-  await throwIfResNotOk(res);
-  return res.json().catch(() => res);
-}
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
-
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "An error occurred");
+  }
+  
+  return response.json();
+};
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
+      queryFn: defaultQueryFn,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
-    },
-    mutations: {
-      retry: false,
+      retry: false
     },
   },
 });
+
+export const getQueryFn = (options?: { on401: "returnNull" | "throwError" }) => {
+  return async ({ queryKey }: { queryKey: string[] }) => {
+    const response = await fetch(queryKey[0], {
+      credentials: 'include'
+    });
+    
+    if (response.status === 401 && options?.on401 === "returnNull") {
+      return null;
+    }
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: "An error occurred" }));
+      throw new Error(error.message || `Error ${response.status}: ${response.statusText}`);
+    }
+    
+    return response.json();
+  };
+};
+
+export const apiRequest = async (
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
+  url: string,
+  data?: any
+) => {
+  const options: RequestInit = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: 'include',
+  };
+
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
+
+  const response = await fetch(url, options);
+
+  if (!response.ok) {
+    let errorMessage = `Error ${response.status}: ${response.statusText}`;
+    
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+    } catch (e) {
+      // If the response is not JSON, use the default error message
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  // For DELETE requests or other cases where there's no response body
+  if (response.status === 204) {
+    return response;
+  }
+
+  // Otherwise, attempt to parse the JSON
+  return response;
+};
