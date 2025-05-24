@@ -22,9 +22,8 @@ const SMTP_PASSWORD = process.env.SMTP_PASSWORD || '';
 const DEFAULT_FROM_EMAIL = process.env.DEFAULT_FROM_EMAIL || 'noreply@complyark.com';
 const DEFAULT_FROM_NAME = process.env.DEFAULT_FROM_NAME || 'ComplyArk Notifications';
 
-// Configuration flags
-const EMAIL_ENABLED = true; // Force enable email sending
-const EMAIL_TEST_MODE = false; // Force disable test mode to ensure emails are sent
+// Email is always enabled and test mode is completely removed
+const EMAIL_ENABLED = true;
 
 // Create nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -63,41 +62,66 @@ interface NotificationData {
  * Send an email using Nodemailer with fallback to console logging in test mode
  */
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  // Default sender address with name
-  const from = options.from || `"${DEFAULT_FROM_NAME}" <${DEFAULT_FROM_EMAIL}>`;
-  
   try {
-    // If email is disabled or in test mode, just log to console
-    if (!EMAIL_ENABLED || EMAIL_TEST_MODE) {
-      // Log the email details to the console for development
-      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`📧 EMAIL NOTIFICATION ${EMAIL_ENABLED ? 'SENT' : 'DISABLED'} (${EMAIL_TEST_MODE ? 'TEST MODE' : 'PRODUCTION MODE'})`);
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`📤 From: ${from}`);
-      console.log(`📬 To: ${options.to}`);
-      console.log(`📝 Subject: ${options.subject}`);
-      console.log(`🏢 Organization: ${options.organizationName || 'N/A'}`);
-      console.log(`⏰ Sent at: ${new Date().toLocaleString()}`);
-      
-      if (options.text) {
-        console.log('\n📄 Text Content:');
-        console.log('─'.repeat(60));
-        console.log(options.text);
-        console.log('─'.repeat(60));
-      }
-      
-      if (options.html) {
-        console.log('\n🌐 HTML Content Preview:');
-        console.log('─'.repeat(60));
-        console.log(options.html.replace(/<[^>]*>/g, '').substring(0, 200) + '...');
-        console.log('─'.repeat(60));
-      }
-      
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-      
-      // Return success in test mode
-      return true;
+    // Get email settings from database instead of using environment variables
+    const { db } = require('../db');
+    const { emailSettings } = require('@shared/schema');
+    
+    // Get the settings from the database
+    const settings = await db.select().from(emailSettings).limit(1);
+    if (!settings || settings.length === 0) {
+      console.error('No email settings found in database');
+      return false;
     }
+    
+    const config = settings[0];
+    
+    // Create a configured transporter using database settings
+    const transportOptions = {
+      host: config.smtpHost || SMTP_HOST,
+      port: Number(config.smtpPort) || SMTP_PORT,
+      secure: Number(config.smtpPort) === 465,
+      auth: {
+        user: config.smtpUsername || SMTP_USER,
+        pass: config.smtpPassword || SMTP_PASSWORD,
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    };
+    
+    // Create a new transporter with the settings from the database
+    const emailTransporter = nodemailer.createTransport(transportOptions as any);
+    
+    // Use database-configured from address if available
+    const from = options.from || 
+                `"${config.fromName || DEFAULT_FROM_NAME}" <${config.fromEmail || DEFAULT_FROM_EMAIL}>`;
+    
+    // Log email information
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`📧 EMAIL NOTIFICATION SENDING`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`📤 From: ${from}`);
+    console.log(`📬 To: ${options.to}`);
+    console.log(`📝 Subject: ${options.subject}`);
+    console.log(`🏢 Organization: ${options.organizationName || 'N/A'}`);
+    console.log(`⏰ Sent at: ${new Date().toLocaleString()}`);
+    
+    if (options.text) {
+      console.log('\n📄 Text Content Preview:');
+      console.log('─'.repeat(60));
+      console.log(options.text.substring(0, 200) + '...');
+      console.log('─'.repeat(60));
+    }
+    
+    if (options.html) {
+      console.log('\n🌐 HTML Content Preview:');
+      console.log('─'.repeat(60));
+      console.log(options.html.replace(/<[^>]*>/g, '').substring(0, 200) + '...');
+      console.log('─'.repeat(60));
+    }
+    
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     
     // Prepare email with both plain text and HTML versions
     const mailOptions = {
