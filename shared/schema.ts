@@ -285,3 +285,51 @@ export type InsertComplianceDocument = z.infer<typeof insertComplianceDocumentSc
 
 export type NotificationLog = typeof notificationLogs.$inferSelect;
 export type InsertNotificationLog = z.infer<typeof insertNotificationLogSchema>;
+
+// Email Settings Table
+export const emailSettings = pgTable("emailSettings", {
+  id: serial("id").primaryKey(),
+  provider: text("provider", { enum: ["smtp", "sendgrid"] }).notNull().default("smtp"),
+  fromEmail: text("fromEmail").notNull(),
+  fromName: text("fromName").notNull(),
+  // SMTP-specific fields
+  smtpHost: text("smtpHost"),
+  smtpPort: integer("smtpPort"),
+  smtpUsername: text("smtpUsername"),
+  smtpPassword: text("smtpPassword"),
+  useTLS: boolean("useTLS").default(true),
+  // SendGrid-specific fields
+  sendgridApiKey: text("sendgridApiKey"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+});
+
+// Email Templates Table
+export const emailTemplates = pgTable("emailTemplates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+});
+
+// Insert schemas for email
+export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+// Types for email
+export type EmailSetting = typeof emailSettings.$inferSelect;
+export type InsertEmailSetting = z.infer<typeof insertEmailSettingsSchema>;
+
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;

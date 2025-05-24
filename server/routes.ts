@@ -237,6 +237,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Email settings and templates routes
+  app.get('/api/email/settings', isAuthenticated, isSuperAdmin, emailController.getEmailSettings);
+  app.post('/api/email/settings', isAuthenticated, isSuperAdmin, emailController.updateEmailSettings);
+  app.post('/api/email/test', isAuthenticated, isSuperAdmin, emailController.sendTestEmail);
+  app.get('/api/email/templates', isAuthenticated, isSuperAdmin, emailController.getEmailTemplates);
+  app.post('/api/email/templates', isAuthenticated, isSuperAdmin, emailController.saveEmailTemplate);
+  app.delete('/api/email/templates/:id', isAuthenticated, isSuperAdmin, emailController.deleteEmailTemplate);
+  
+  // OTP authentication routes for the enhanced email-based verification
+  app.post('/api/auth/otp/send', otpAuthController.sendOtp);
+  app.post('/api/auth/otp/verify', otpAuthController.verifyOtp);
+  
   // Simple OTP test endpoint that always works with "1234"
   app.post('/api/otp/generate', (req, res) => {
     console.log('OTP generate request:', req.body);

@@ -1,7 +1,7 @@
 import { 
   users, industries, organizations, templates, notices, translatedNotices,
   requestStatuses, dpRequests, dpRequestHistory, grievances, grievanceHistory, complianceDocuments,
-  notificationLogs,
+  notificationLogs, emailSettings, emailTemplates,
   type User, type InsertUser, 
   type Industry, type InsertIndustry,
   type Organization, type InsertOrganization,
@@ -14,7 +14,9 @@ import {
   type Grievance, type InsertGrievance,
   type GrievanceHistory, type InsertGrievanceHistory,
   type ComplianceDocument, type InsertComplianceDocument,
-  type NotificationLog, type InsertNotificationLog
+  type NotificationLog, type InsertNotificationLog,
+  type EmailSetting, type InsertEmailSetting,
+  type EmailTemplate, type InsertEmailTemplate
 } from "@shared/schema";
 import crypto from 'crypto';
 
@@ -150,6 +152,18 @@ export interface IStorage {
   getDashboardStats(organizationId: number): Promise<any>;
   getRecentActivities(organizationId: number): Promise<any[]>;
   getRecentRequests(organizationId: number): Promise<any[]>;
+  
+  // Email Settings operations
+  getEmailSettings(): Promise<EmailSetting | undefined>;
+  updateEmailSettings(settings: InsertEmailSetting): Promise<EmailSetting>;
+  
+  // Email Template operations
+  getEmailTemplate(id: number): Promise<EmailTemplate | undefined>;
+  getEmailTemplateByName(name: string): Promise<EmailTemplate | undefined>;
+  createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate>;
+  updateEmailTemplate(id: number, template: Partial<InsertEmailTemplate>): Promise<EmailTemplate | undefined>;
+  deleteEmailTemplate(id: number): Promise<boolean>;
+  listEmailTemplates(): Promise<EmailTemplate[]>;
 }
 
 export // This is the memory storage implementation
