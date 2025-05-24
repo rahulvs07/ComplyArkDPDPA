@@ -40,20 +40,39 @@ export async function sendDirectEmail(
     }
     
     // Always use SMTP configuration as requested
+    // Clean up password - remove any trailing commas or spaces that might cause auth issues
+    let cleanPassword = '';
+    if (config.smtpPassword) {
+      cleanPassword = config.smtpPassword.trim();
+      console.log(`DIRECT EMAIL: Original password length: ${config.smtpPassword.length}, Cleaned password length: ${cleanPassword.length}`);
+    }
+    
+    // Check if using Gmail SMTP
+    const isGmail = (config.smtpHost || '').includes('gmail.com');
+    
     transportOptions = {
       host: config.smtpHost || 'smtp.gmail.com',
       port: Number(config.smtpPort) || 587,
-      secure: false, // Use TLS
+      secure: Number(config.smtpPort) === 465, // Use SSL if port is 465, otherwise use STARTTLS
       auth: {
         user: config.smtpUsername || 'automatikgarage@gmail.com',
-        pass: config.smtpPassword || '',
+        pass: cleanPassword || '',
       },
       tls: {
-        rejectUnauthorized: false // Accept self-signed certificates
+        // Gmail requires proper certificates
+        rejectUnauthorized: isGmail ? true : false,
+        // For Gmail, we need to add these options
+        ...(isGmail && {
+          minVersion: 'TLSv1.2'
+        })
       },
       debug: true, // Enable debug output for detailed logs
       logger: true  // Log information into the console
     };
+    
+    console.log(`DIRECT EMAIL: Using ${isGmail ? 'Gmail' : 'Standard'} SMTP configuration`);
+    console.log(`DIRECT EMAIL: Secure mode: ${transportOptions.secure ? 'SSL (Port 465)' : 'STARTTLS (Port 587)'}`);
+    
     
     console.log('DIRECT EMAIL: Transport options:', JSON.stringify(transportOptions, (key, value) => 
       key === 'pass' ? '******' : value, 2));
@@ -120,30 +139,94 @@ export async function sendDirectEmail(
 
 /**
  * Specialized function for sending OTP verification emails
+ * with enhanced branding and professional design
  */
 export async function sendOtpEmail(
   to: string,
   otp: string,
   organizationName: string = 'ComplyArk'
 ): Promise<{ success: boolean; error?: string; messageId?: string }> {
-  console.log(`SENDING OTP EMAIL TO: ${to}`);
-  console.log(`OTP: ${otp}`);
-  
-  const subject = `Your Verification Code for ${organizationName}`;
-  const plainText = `Your verification code is: ${otp}. This code will expire in 15 minutes.`;
-  const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <div style="background-color: #4F46E5; color: white; padding: 20px; text-align: center;">
-        <h2>${organizationName} Verification</h2>
-      </div>
-      <div style="padding: 20px; background-color: #f9f9f9;">
-        <p>Hello,</p>
-        <p>Your verification code for ${organizationName} is:</p>
-        <div style="font-size: 24px; font-weight: bold; background-color: #eaeaea; padding: 10px; text-align: center; margin: 20px 0; letter-spacing: 5px;">${otp}</div>
-        <p>This code will expire in 15 minutes.</p>
-      </div>
-    </div>
-  `;
-  
-  return await sendDirectEmail(to, subject, htmlContent, plainText);
+  try {
+    console.log(`SENDING OTP EMAIL TO: ${to}`);
+    console.log(`OTP: ${otp}`);
+    console.log(`Organization: ${organizationName}`);
+    
+    // Create a more professional email subject
+    const subject = `${otp} is your verification code for ${organizationName}`;
+    
+    // Create a simple plain text version for email clients that don't support HTML
+    const plainText = `
+Your verification code is: ${otp}
+
+This code will expire in 15 minutes.
+
+Please enter this code on the verification page to continue.
+
+This is an automated message, please do not reply.
+
+© ${new Date().getFullYear()} ${organizationName}
+    `;
+    
+    // Create a professional HTML email with better branding and design
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verification Code</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);">
+    <tr>
+      <td style="padding: 30px 0; background-color: #4F46E5; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">${organizationName}</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 40px 30px;">
+        <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.5; color: #333333;">Hello,</p>
+        <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.5; color: #333333;">Please use the following verification code to complete your request:</p>
+        
+        <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 20px; margin: 30px 0; text-align: center;">
+          <p style="font-size: 32px; font-weight: bold; margin: 0; letter-spacing: 5px; color: #4F46E5;">${otp}</p>
+        </div>
+        
+        <p style="margin: 0 0 10px; font-size: 16px; line-height: 1.5; color: #333333;">This code will expire in 15 minutes.</p>
+        <p style="margin: 0 0 10px; font-size: 16px; line-height: 1.5; color: #333333;">If you did not request this code, please ignore this email.</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 20px 30px; background-color: #f8f9fa; text-align: center; border-top: 1px solid #e9ecef;">
+        <p style="margin: 0; font-size: 14px; color: #6c757d;">This is an automated message, please do not reply.</p>
+        <p style="margin: 10px 0 0; font-size: 14px; color: #6c757d;">© ${new Date().getFullYear()} ${organizationName}</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
+    
+    // Attempt to send email with detailed logging
+    console.log('DIRECT EMAIL: Starting OTP email sending process...');
+    const result = await sendDirectEmail(to, subject, htmlContent, plainText);
+    
+    if (result.success) {
+      console.log('DIRECT EMAIL: OTP email sent successfully');
+      console.log('DIRECT EMAIL: Message ID:', result.messageId);
+    } else {
+      console.error('DIRECT EMAIL: OTP email sending failed:', result.error);
+      // Log additional diagnostic information
+      console.error('DIRECT EMAIL: Recipient:', to);
+      console.error('DIRECT EMAIL: Subject:', subject);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('DIRECT EMAIL: Unexpected error in sendOtpEmail function:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error in OTP email function'
+    };
+  }
 }
