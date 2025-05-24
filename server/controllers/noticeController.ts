@@ -129,15 +129,25 @@ async function generateDocxNotice(
         headers: {
           default: {
             children: [
+              // Header with organization name on left and date on right
               new Paragraph({
                 style: "Header",
-                alignment: "center",
                 children: [
                   new TextRun({
                     text: organizationName,
                     bold: true,
                     size: 24, // 12pt
                     color: "FFFFFF"
+                  }),
+                  new TextRun({
+                    text: "        ",
+                    color: "FFFFFF"
+                  }),
+                  new TextRun({
+                    text: currentDate,
+                    size: 20, // 10pt
+                    color: "FFFFFF",
+                    alignment: "right"
                   }),
                 ],
                 shading: {
@@ -147,19 +157,19 @@ async function generateDocxNotice(
                 border: {
                   bottom: {
                     color: "EEEEEE",
-                    size: 6,
+                    size: 3,
                     style: "single",
                   },
                 },
                 spacing: {
-                  after: 120,
+                  after: 60,
                 },
               }),
               // Add organization address right below the organization name
               ...(organizationAddress ? [
                 new Paragraph({
                   style: "Header",
-                  alignment: "center",
+                  alignment: "left",
                   children: [
                     new TextRun({
                       text: organizationAddress,
