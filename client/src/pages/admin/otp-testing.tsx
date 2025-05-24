@@ -64,6 +64,13 @@ function OtpTestingPage() {
         setRequestStatus('success');
         setOtpToken(data.token);
         setOtpExpiryTime(new Date(data.expiresAt));
+        
+        // Display test OTP if available
+        if (data.testInfo && data.testInfo.testOtp) {
+          setErrorMessage(`FOR TESTING ONLY: Use OTP code ${data.testInfo.testOtp}`);
+          setOtp(data.testInfo.testOtp);
+        }
+        
         toast({
           title: "Success",
           description: "OTP sent successfully",

@@ -120,14 +120,21 @@ export const sendOtp = async (req: Request, res: Response) => {
       expiresAt: expiryTime
     };
     
-    // In development, include the OTP in response for easier testing
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('DEV MODE: Including OTP in response for testing:', otp);
-      responseData.devInfo = {
-        otp,
-        emailStatus: emailResult.success ? 'sent' : 'failed',
-        emailError: emailResult.error
-      };
+    // Always include test information for admin testing
+    console.log('********************************************');
+    console.log('*** TEST OTP: ' + otp + ' ***');
+    console.log('*** USE THIS CODE FOR VERIFICATION ***');
+    console.log('********************************************');
+    
+    // Include the OTP directly in the response for easier testing
+    responseData.testInfo = {
+      testOtp: otp,
+      emailStatus: emailResult.success ? 'sent' : 'failed'
+    };
+    
+    // Include error details if email failed
+    if (!emailResult.success && emailResult.error) {
+      responseData.testInfo.emailError = emailResult.error;
     }
     
     console.log('OTP process completed successfully');
