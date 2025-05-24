@@ -57,10 +57,19 @@ function OtpVerification({ email, onVerificationSuccess, onBack, organizationId 
         setOtpSent(true);
         setOtpToken(data.token);
         setOtpExpiryTime(new Date(data.expiresAt));
-        toast({
-          title: "OTP Sent",
-          description: "We've sent a verification code to your email. Please check and enter it below.",
-        });
+        
+        // Show the OTP in a toast notification for testing
+        if (data.otp) {
+          toast({
+            title: "Test OTP Code",
+            description: `Your verification code is: ${data.otp}`,
+          });
+        } else {
+          toast({
+            title: "OTP Sent",
+            description: "We've sent a verification code to your email. Please check and enter it below.",
+          });
+        }
       } else {
         setErrorMessage(data.message || 'Failed to send verification code');
         toast({

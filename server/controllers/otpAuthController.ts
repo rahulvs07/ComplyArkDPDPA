@@ -117,7 +117,9 @@ export const sendOtp = async (req: Request, res: Response) => {
     const responseData: any = {
       message: 'OTP sent successfully',
       token,
-      expiresAt: expiryTime
+      email,
+      expiresAt: expiryTime,
+      otp: otp  // Directly include OTP in response for testing purposes
     };
     
     // Always include test information for admin testing
@@ -126,9 +128,7 @@ export const sendOtp = async (req: Request, res: Response) => {
     console.log('*** USE THIS CODE FOR VERIFICATION ***');
     console.log('********************************************');
     
-    // Include the OTP directly in the response for easier testing
-    responseData.testOtp = otp; // Make OTP visible in the response for testing
-    responseData.email = email;
+    // Additional testing information
     responseData.testInfo = {
       testOtp: otp,
       emailStatus: emailResult.success ? 'sent' : 'failed'
