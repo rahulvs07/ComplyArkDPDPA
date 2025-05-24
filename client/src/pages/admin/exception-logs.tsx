@@ -238,7 +238,7 @@ const ExceptionLogs = () => {
   };
 
   return (
-    <MainLayout>
+    <div>
       <div className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Exception Logs</h1>
@@ -540,7 +540,7 @@ const ExceptionLogs = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </MainLayout>
+    </div>
   );
 };
 
