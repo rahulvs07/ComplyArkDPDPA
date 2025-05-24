@@ -38,14 +38,16 @@ function OtpVerification({ email, onVerificationSuccess, onBack, organizationId 
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/auth/send-otp', {
+      // Use the correct API endpoint for OTP generation
+      const response = await fetch('/api/otp/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
           email,
-          organizationId: organizationId || null
+          organizationId: organizationId || null,
+          organizationName: 'ComplyArk Systems' // Add organization name for email context
         }),
       });
 
@@ -96,7 +98,8 @@ function OtpVerification({ email, onVerificationSuccess, onBack, organizationId 
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/auth/verify-otp', {
+      // Use the correct API endpoint for OTP verification
+      const response = await fetch('/api/otp/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
