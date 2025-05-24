@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import { sendEmail, sendEmailWithTemplate } from './emailController';
 import { storage } from '../storage';
 import crypto from 'crypto';
+import nodemailer from 'nodemailer';
+import { db } from '../db';
+import { emailSettings } from '@shared/schema';
 
 // Generate OTP
 function generateOTP(): string {
@@ -92,8 +95,67 @@ export const sendOtp = async (req: Request, res: Response) => {
     let directEmailResult;
     
     try {
-      directEmailResult = await sendEmail(email, subject, plainText, htmlContent);
-      console.log('Direct email sending result:', directEmailResult);
+      // Call sendEmail with detailed logging
+      console.log('Email parameters:');
+      console.log('- To:', email);
+      console.log('- Subject:', subject);
+      console.log('- Plain text length:', plainText.length);
+      console.log('- HTML content length:', htmlContent.length);
+      
+      // Try sending with direct SMTP test approach
+      const settings = await db.select().from(emailSettings).limit(1);
+      if (settings.length > 0) {
+        console.log('Using found email settings - SMTP details:');
+        console.log('- SMTP Host:', settings[0].smtpHost);
+        console.log('- SMTP Port:', settings[0].smtpPort);
+        console.log('- SMTP Username:', settings[0].smtpUsername);
+        console.log('- From Email:', settings[0].fromEmail);
+        
+        // Use the same direct SMTP approach that works for test emails
+        const transportOptions = {
+          host: settings[0].smtpHost,
+          port: Number(settings[0].smtpPort) || 587,
+          secure: false,
+          auth: {
+            user: settings[0].smtpUsername || '',
+            pass: settings[0].smtpPassword || '',
+          },
+          tls: {
+            rejectUnauthorized: false
+          }
+        };
+        
+        try {
+          console.log('Creating SMTP transport with these options');
+          const transporter = nodemailer.createTransport(transportOptions);
+          
+          console.log('Verifying SMTP connection...');
+          await transporter.verify();
+          console.log('SMTP connection verified successfully for OTP email');
+          
+          console.log('Sending OTP email directly via SMTP...');
+          const result = await transporter.sendMail({
+            from: `"${settings[0].fromName}" <${settings[0].fromEmail}>`,
+            to: email,
+            subject: subject,
+            text: plainText,
+            html: htmlContent,
+          });
+          
+          console.log(`OTP email sent successfully to ${email}, message ID: ${result.messageId}`);
+          directEmailResult = { success: true };
+        } catch (smtpError) {
+          console.error('SMTP error when sending OTP:', smtpError);
+          
+          // Fall back to the regular email function if direct SMTP fails
+          directEmailResult = await sendEmail(email, subject, plainText, htmlContent);
+          console.log('Fallback email sending result:', directEmailResult);
+        }
+      } else {
+        // No settings found, use regular function
+        directEmailResult = await sendEmail(email, subject, plainText, htmlContent);
+        console.log('Regular email sending result:', directEmailResult);
+      }
     } catch (emailError) {
       console.error('Error during email sending process:', emailError);
       directEmailResult = { 
