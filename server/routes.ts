@@ -798,11 +798,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Email Templates API routes
-  app.get('/api/email-templates', isAuthenticated, isAdmin, emailTemplateController.getAllEmailTemplates);
-  app.get('/api/email-templates/:id', isAuthenticated, isAdmin, emailTemplateController.getEmailTemplateById);
-  app.post('/api/email-templates', isAuthenticated, isAdmin, emailTemplateController.createEmailTemplate);
-  app.put('/api/email-templates/:id', isAuthenticated, isAdmin, emailTemplateController.updateEmailTemplate);
-  app.delete('/api/email-templates/:id', isAuthenticated, isAdmin, emailTemplateController.deleteEmailTemplate);
+  app.get('/api/admin/email-templates', isAuthenticated, isAdmin, emailTemplateController.getAllEmailTemplates);
+  app.get('/api/admin/email-templates/:id', isAuthenticated, isAdmin, emailTemplateController.getEmailTemplateById);
+  app.post('/api/admin/email-templates', isAuthenticated, isAdmin, emailTemplateController.createEmailTemplate);
+  app.put('/api/admin/email-templates/:id', isAuthenticated, isAdmin, emailTemplateController.updateEmailTemplate);
+  app.delete('/api/admin/email-templates/:id', isAuthenticated, isAdmin, emailTemplateController.deleteEmailTemplate);
 
   // Notification Email API routes
   app.post('/api/notifications/dpr/confirmation/:requestId', isAuthenticated, canManageRequests, notificationEmailController.sendDprConfirmationEmail);
