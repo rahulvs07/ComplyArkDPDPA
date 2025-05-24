@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ShieldAlert, AlertCircle, AlertTriangle, Moon, Sun } from 'lucide-react';
 import { useTheme } from "@/components/theme/ThemeProvider";
+import OtpVerification from '@/components/request/OtpVerification';
 
 interface RequestPageProps {}
 
@@ -24,37 +25,28 @@ export default function RequestPage() {
   const [activeTab, setActiveTab] = useState('dpr');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<{message: string, id: number, type: string} | null>(null);
+  const [showOtpVerification, setShowOtpVerification] = useState(false);
+  const [pendingRequestData, setPendingRequestData] = useState<any>(null);
+  const [userEmail, setUserEmail] = useState("");
   const { token } = useParams<{ token: string }>();
   const [, navigate] = useLocation();
   const { theme, toggleTheme } = useTheme();
   
-  // Form submission handlers
-  const handleDPRequestSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!organization) return;
+  // Handle successful OTP verification
+  const handleVerificationSuccess = async (verifiedEmail: string) => {
+    if (!pendingRequestData) return;
     
     setIsSubmitting(true);
-    setSubmitSuccess(null);
+    setShowOtpVerification(false);
     
     try {
-      const formData = new FormData(e.currentTarget);
-      const requestData = {
-        firstName: formData.get('firstName') as string,
-        lastName: formData.get('lastName') as string,
-        email: formData.get('email') as string,
-        phone: formData.get('phone') as string,
-        requestType: formData.get('requestType') as 'Access' | 'Correction' | 'Nomination' | 'Erasure',
-        requestComment: formData.get('requestComment') as string,
-        organizationId: organization.id,
-        statusId: 1 // Default to "Submitted" status (statusId 1)
-      };
-      
+      // Now submit the request with verified email
       const response = await fetch('/api/dpr/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestData)
+        body: JSON.stringify(pendingRequestData)
       });
       
       if (!response.ok) {
@@ -68,6 +60,41 @@ export default function RequestPage() {
         id: data.requestId,
         type: 'dpr'
       });
+    } catch (error) {
+      console.error('Error submitting request after OTP verification:', error);
+      setError(error instanceof Error ? error.message : 'Failed to submit request');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Form submission handlers
+  const handleDPRequestSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!organization) return;
+    
+    setIsSubmitting(true);
+    setSubmitSuccess(null);
+    
+    try {
+      const formData = new FormData(e.currentTarget);
+      const email = formData.get('email') as string;
+      const requestData = {
+        firstName: formData.get('firstName') as string,
+        lastName: formData.get('lastName') as string,
+        email: email,
+        phone: formData.get('phone') as string,
+        requestType: formData.get('requestType') as 'Access' | 'Correction' | 'Nomination' | 'Erasure',
+        requestComment: formData.get('requestComment') as string,
+        organizationId: organization.id,
+        statusId: 1 // Default to "Submitted" status (statusId 1)
+      };
+      
+      // Store email and request data for OTP verification step
+      setUserEmail(email);
+      setPendingRequestData(requestData);
+      setShowOtpVerification(true);
+      setIsSubmitting(false);
       
       // Form reset is not needed since the component will re-render 
       // and hide this form when showing the success message
