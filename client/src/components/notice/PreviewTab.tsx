@@ -166,7 +166,7 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
     });
     
     // Generate a unique document ID
-    const documentId = `CA-${Math.floor(Math.random() * 10000)}-${new Date().getFullYear()}`;
+    const documentId = `PN-${Math.floor(10000 + Math.random() * 90000)}-${new Date().getFullYear()}`;
     
     // Format the notice body to preserve line breaks and styling
     let formattedNoticeBody = noticeBody
@@ -216,10 +216,13 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
             }
             
             .header {
-              padding: 25px 40px;
+              padding: 15px 40px;
               border-bottom: 1px solid #e0e0e0;
               background: linear-gradient(135deg, #2E77AE 0%, #1E5B8D 100%);
               color: white;
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
             }
             
             .logo {
@@ -234,12 +237,30 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
               opacity: 0.9;
             }
             
+            .header-left {
+              flex: 1;
+            }
+            
+            .header-right {
+              text-align: right;
+            }
+            
+            .document-date {
+              font-size: 14px;
+              color: #FFFFFF;
+              opacity: 0.9;
+            }
+            
+            .document-title-container {
+              width: 100%;
+              text-align: center;
+              margin-top: 10px;
+            }
+            
             .document-title {
               font-size: 28px;
               font-weight: 600;
-              text-align: center;
-              margin-top: 25px;
-              margin-bottom: 5px;
+              display: inline-block;
             }
             
             .document-id {
@@ -326,14 +347,19 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
         <body>
           <div class="page">
             <div class="header">
-              <div>
+              <div class="header-left">
                 <div class="logo">${organizationInfo.businessName}</div>
                 <div class="company-address">
                   ${organizationInfo.businessAddress.replace(/\n/g, '<br>')}
                 </div>
                 <div class="document-id">Document ID: ${documentId}</div>
               </div>
-              <div class="document-title">${noticeName || "Privacy Notice"}</div>
+              <div class="header-right">
+                <div class="document-date">${currentDate}</div>
+              </div>
+              <div class="document-title-container">
+                <div class="document-title">${noticeName || "Privacy Notice"}</div>
+              </div>
             </div>
             
             <div class="content">

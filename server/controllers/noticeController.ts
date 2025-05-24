@@ -32,7 +32,7 @@ async function generateDocxNotice(
     });
     
     // Generate a unique document ID
-    const documentId = `CA-${Math.floor(Math.random() * 10000)}-${new Date().getFullYear()}`;
+    const documentId = `PN-${Math.floor(10000 + Math.random() * 90000)}-${new Date().getFullYear()}`;
     
     // Create a new document with professional styling
     const doc = new Document({
