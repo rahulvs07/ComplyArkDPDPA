@@ -531,7 +531,8 @@ async function sendSmtpEmail(
   to: string,
   subject: string,
   text: string,
-  html?: string
+  html?: string,
+  cc?: string[]
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!config.smtpHost || !config.smtpPort) {
@@ -568,6 +569,7 @@ async function sendSmtpEmail(
     const result = await transporter.sendMail({
       from: `"${config.fromName}" <${config.fromEmail}>`,
       to,
+      cc: cc && cc.length > 0 ? cc : undefined,
       subject,
       text,
       html: html || undefined,
@@ -596,7 +598,8 @@ async function sendSendgridEmail(
   to: string,
   subject: string,
   text: string,
-  html?: string
+  html?: string,
+  cc?: string[]
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!config.sendgridApiKey) {
@@ -618,6 +621,7 @@ async function sendSendgridEmail(
         name: config.fromName,
       },
       to,
+      cc: cc && cc.length > 0 ? cc : undefined,
       subject,
       text,
       html: html || undefined,
