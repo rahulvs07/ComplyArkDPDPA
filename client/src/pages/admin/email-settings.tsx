@@ -1,822 +1,455 @@
-import { useState, useEffect } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, CheckCircle, Mail, InfoIcon } from 'lucide-react';
 
-// Email settings schema
-const emailSettingsSchema = z.object({
-  provider: z.enum(["smtp", "sendgrid"]),
-  fromEmail: z.string().email("Invalid email format"),
-  fromName: z.string().min(1, "Sender name is required"),
-  
-  // SMTP specific fields
-  smtpHost: z.string().optional(),
-  smtpPort: z.string().optional(),
-  smtpUsername: z.string().optional(),
-  smtpPassword: z.string().optional(),
-  useTLS: z.boolean().default(true),
-  
-  // SendGrid specific fields
-  sendgridApiKey: z.string().optional(),
-});
-
-// Test email schema
-const testEmailSchema = z.object({
-  recipient: z.string().email("Invalid email format"),
-  subject: z.string().min(1, "Subject is required"),
-  message: z.string().min(1, "Message is required"),
-});
-
-// Template schema
-const templateSchema = z.object({
-  name: z.string().min(1, "Template name is required"),
-  subject: z.string().min(1, "Subject is required"),
-  body: z.string().min(1, "Template body is required"),
-});
-
-// OTP test schema
-const otpTestSchema = z.object({
-  email: z.string().email("Invalid email format"),
-  organizationId: z.string().min(1, "Organization ID is required"),
-});
-
-// OTP verification schema
-const otpVerificationSchema = z.object({
-  otp: z.string().min(4, "OTP must be at least 4 characters"),
-  token: z.string(),
-});
-
-type EmailSettings = z.infer<typeof emailSettingsSchema>;
-type TestEmailParams = z.infer<typeof testEmailSchema>;
-type TemplateValues = z.infer<typeof templateSchema>;
-type OtpTestValues = z.infer<typeof otpTestSchema>;
-type OtpVerificationValues = z.infer<typeof otpVerificationSchema>;
-
-export default function EmailSettingsPage() {
+const EmailSettings = () => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("settings");
-  const [otpToken, setOtpToken] = useState("");
-
+  const [provider, setProvider] = useState<'smtp' | 'sendgrid'>('smtp');
+  const [fromEmail, setFromEmail] = useState('');
+  const [fromName, setFromName] = useState('');
+  const [smtpHost, setSmtpHost] = useState('');
+  const [smtpPort, setSmtpPort] = useState('');
+  const [smtpUsername, setSmtpUsername] = useState('');
+  const [smtpPassword, setSmtpPassword] = useState('');
+  const [useTLS, setUseTLS] = useState(true);
+  const [sendgridApiKey, setSendgridApiKey] = useState('');
+  
+  // Test email
+  const [testRecipient, setTestRecipient] = useState('');
+  const [testSubject, setTestSubject] = useState('ComplyArk Test Email');
+  const [testMessage, setTestMessage] = useState('This is a test email from ComplyArk.');
+  const [testSending, setTestSending] = useState(false);
+  
+  // Email templates
+  const [templates, setTemplates] = useState<any[]>([]);
+  
   // Fetch email settings
   const { data: emailSettings, isLoading: isLoadingSettings } = useQuery({
-    queryKey: ["/api/email/settings"],
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to load email settings",
-        variant: "destructive",
-      });
-    }
+    queryKey: ['/api/admin/email-settings'],
+    onSuccess: (data) => {
+      if (data) {
+        setProvider(data.provider || 'smtp');
+        setFromEmail(data.fromEmail || '');
+        setFromName(data.fromName || '');
+        setSmtpHost(data.smtpHost || '');
+        setSmtpPort(data.smtpPort?.toString() || '');
+        setSmtpUsername(data.smtpUsername || '');
+        // Password is not displayed for security
+        setUseTLS(data.useTLS !== undefined ? data.useTLS : true);
+        // API key is not displayed for security
+      }
+    },
   });
-
+  
   // Fetch email templates
-  const { data: templates = [], isLoading: isLoadingTemplates } = useQuery({
-    queryKey: ["/api/email/templates"],
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to load email templates",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Fetch organizations for dropdown
-  const { data: organizations = [] } = useQuery({
-    queryKey: ["/api/organizations"],
-  });
-
-  // Email settings form
-  const emailForm = useForm<EmailSettings>({
-    resolver: zodResolver(emailSettingsSchema),
-    defaultValues: {
-      provider: "smtp",
-      fromEmail: "",
-      fromName: "",
-      smtpHost: "",
-      smtpPort: "",
-      smtpUsername: "",
-      smtpPassword: "",
-      useTLS: true,
-      sendgridApiKey: "",
-    }
+  const { data: emailTemplates, isLoading: isLoadingTemplates } = useQuery({
+    queryKey: ['/api/admin/email-templates'],
+    onSuccess: (data) => {
+      if (data && Array.isArray(data)) {
+        setTemplates(data);
+      }
+    },
   });
   
-  // State to track the selected provider
-  const [selectedProvider, setSelectedProvider] = useState<"smtp" | "sendgrid">("smtp");
-  
-  // Update the provider state when the form field changes
-  const watchProvider = emailForm.watch("provider");
-  useEffect(() => {
-    if (watchProvider) {
-      setSelectedProvider(watchProvider as "smtp" | "sendgrid");
-    }
-  }, [watchProvider]);
-
-  // Populate email settings form when data is loaded
-  useEffect(() => {
-    if (emailSettings) {
-      emailForm.reset({
-        provider: emailSettings.provider || "smtp",
-        fromEmail: emailSettings.fromEmail || "",
-        fromName: emailSettings.fromName || "",
-        smtpHost: emailSettings.smtpHost || "",
-        smtpPort: emailSettings.smtpPort ? emailSettings.smtpPort.toString() : "",
-        smtpUsername: emailSettings.smtpUsername || "",
-        smtpPassword: emailSettings.smtpPassword || "",
-        useTLS: emailSettings.useTLS !== undefined ? emailSettings.useTLS : true,
-        sendgridApiKey: emailSettings.sendgridApiKey || "",
+  // Save email settings
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (settings: any) => {
+      const response = await fetch('/api/admin/email-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings),
       });
       
-      // Set the provider in the state
-      if (emailSettings.provider) {
-        setSelectedProvider(emailSettings.provider as "smtp" | "sendgrid");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to save email settings');
       }
-    }
-  }, [emailSettings, emailForm]);
-
-  // Test email form
-  const testEmailForm = useForm<TestEmailParams>({
-    resolver: zodResolver(testEmailSchema),
-    defaultValues: {
-      recipient: "",
-      subject: "Test Email from ComplyArk",
-      message: "This is a test email from the ComplyArk platform. If you received this email, the email configuration is working correctly.",
-    }
-  });
-
-  // Template form
-  const templateForm = useForm<TemplateValues>({
-    resolver: zodResolver(templateSchema),
-    defaultValues: {
-      name: "",
-      subject: "",
-      body: "",
-    }
-  });
-
-  // OTP test form
-  const otpTestForm = useForm<OtpTestValues>({
-    resolver: zodResolver(otpTestSchema),
-    defaultValues: {
-      email: "",
-      organizationId: "",
-    }
-  });
-
-  // OTP verification form
-  const otpVerificationForm = useForm<OtpVerificationValues>({
-    resolver: zodResolver(otpVerificationSchema),
-    defaultValues: {
-      otp: "",
-      token: "",
-    }
-  });
-
-  // Update email settings mutation
-  const updateSettingsMutation = useMutation({
-    mutationFn: (data: EmailSettings) => apiRequest("POST", "/api/email/settings", data),
+      
+      return response.json();
+    },
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Email settings saved successfully",
+        title: 'Success',
+        description: 'Email settings have been saved successfully',
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/email/settings"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/email-settings'] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: `Failed to save email settings: ${error.message}`,
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to save email settings',
+        variant: 'destructive',
       });
-    }
+    },
   });
-
-  // Send test email mutation
+  
+  // Send test email
   const sendTestEmailMutation = useMutation({
-    mutationFn: (data: TestEmailParams) => apiRequest("POST", "/api/email/test", data),
+    mutationFn: async (emailData: any) => {
+      setTestSending(true);
+      const response = await fetch('/api/admin/email-test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailData),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send test email');
+      }
+      
+      return response.json();
+    },
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Test email sent successfully",
+        title: 'Success',
+        description: `Test email sent successfully to ${testRecipient}`,
       });
-      testEmailForm.reset({
-        recipient: "",
-        subject: "Test Email from ComplyArk",
-        message: "This is a test email from the ComplyArk platform. If you received this email, the email configuration is working correctly.",
-      });
+      setTestSending(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: `Failed to send test email: ${error.message}`,
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to send test email',
+        variant: 'destructive',
       });
-    }
-  });
-
-  // Create/update template mutation
-  const saveTemplateMutation = useMutation({
-    mutationFn: (data: TemplateValues) => apiRequest("POST", "/api/email/templates", data),
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Email template saved successfully",
-      });
-      templateForm.reset({
-        name: "",
-        subject: "",
-        body: "",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/email/templates"] });
+      setTestSending(false);
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to save template: ${error.message}`,
-        variant: "destructive",
-      });
-    }
   });
-
-  // Send OTP mutation
-  const sendOtpMutation = useMutation({
-    mutationFn: (data: OtpTestValues) => apiRequest("POST", "/api/auth/otp/send", data),
-    onSuccess: (data) => {
+  
+  const handleSaveSettings = () => {
+    const settings = {
+      provider,
+      fromEmail,
+      fromName,
+      useTLS,
+      ...(provider === 'smtp' && {
+        smtpHost,
+        smtpPort: smtpPort ? parseInt(smtpPort) : undefined,
+        smtpUsername,
+        ...(smtpPassword && { smtpPassword }),
+      }),
+      ...(provider === 'sendgrid' && {
+        ...(sendgridApiKey && { sendgridApiKey }),
+      }),
+    };
+    
+    saveSettingsMutation.mutate(settings);
+  };
+  
+  const handleSendTestEmail = () => {
+    if (!testRecipient) {
       toast({
-        title: "Success",
-        description: "OTP sent successfully",
+        title: 'Error',
+        description: 'Please enter a recipient email address',
+        variant: 'destructive',
       });
-      // Save the token for verification
-      setOtpToken(data.token);
-      otpVerificationForm.setValue("token", data.token);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to send OTP: ${error.message}`,
-        variant: "destructive",
-      });
+      return;
     }
-  });
-
-  // Verify OTP mutation
-  const verifyOtpMutation = useMutation({
-    mutationFn: (data: OtpVerificationValues) => apiRequest("POST", "/api/auth/otp/verify", data),
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "OTP verified successfully",
-      });
-      otpVerificationForm.reset({
-        otp: "",
-        token: "",
-      });
-      setOtpToken("");
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to verify OTP: ${error.message}`,
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Handle email settings form submission
-  const onSubmitEmailSettings = (data: EmailSettings) => {
-    updateSettingsMutation.mutate(data);
-  };
-
-  // Handle test email form submission
-  const onSubmitTestEmail = (data: TestEmailParams) => {
-    sendTestEmailMutation.mutate(data);
-  };
-
-  // Handle template form submission
-  const onSubmitTemplate = (data: TemplateValues) => {
-    saveTemplateMutation.mutate(data);
-  };
-
-  // Handle OTP test form submission
-  const onSubmitOtpTest = (data: OtpTestValues) => {
-    sendOtpMutation.mutate(data);
-  };
-
-  // Handle OTP verification form submission
-  const onSubmitOtpVerification = (data: OtpVerificationValues) => {
-    verifyOtpMutation.mutate(data);
-  };
-
-  // Select template for editing
-  const editTemplate = (template: any) => {
-    templateForm.reset({
-      name: template.name,
-      subject: template.subject,
-      body: template.body,
+    
+    sendTestEmailMutation.mutate({
+      subject: testSubject,
+      message: testMessage,
+      recipient: testRecipient,
     });
-    setActiveTab("templates");
   };
-
+  
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6 border border-neutral-200 dark:bg-gray-800 dark:border-gray-700">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-display font-semibold text-neutral-800 dark:text-white">Email Settings</h1>
-            <p className="text-neutral-600 mt-1 dark:text-gray-300">Configure email notifications, templates, and test OTP functionality.</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-4 lg:w-[600px]">
-          <TabsTrigger value="settings">Email Settings</TabsTrigger>
-          <TabsTrigger value="templates">Email Templates</TabsTrigger>
+    <div className="container mx-auto py-6">
+      <h1 className="text-2xl font-bold mb-6">Email Settings</h1>
+      
+      <Tabs defaultValue="general">
+        <TabsList className="mb-6">
+          <TabsTrigger value="general">General Settings</TabsTrigger>
           <TabsTrigger value="test">Test Email</TabsTrigger>
-          <TabsTrigger value="otp">OTP Testing</TabsTrigger>
+          <TabsTrigger value="templates">Email Templates</TabsTrigger>
         </TabsList>
-
-        {/* Email Settings Tab */}
-        <TabsContent value="settings" className="space-y-4">
+        
+        <TabsContent value="general">
           <Card>
             <CardHeader>
-              <CardTitle>SMTP Configuration</CardTitle>
-              <CardDescription>Configure your email server settings for sending notifications.</CardDescription>
+              <CardTitle>Email Configuration</CardTitle>
+              <CardDescription>
+                Configure your email provider settings for sending notifications and OTP verification emails.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...emailForm}>
-                <form onSubmit={emailForm.handleSubmit(onSubmitEmailSettings)} className="space-y-4">
-                  <div className="space-y-6">
-                    {/* Provider Selection */}
-                    <FormField
-                      control={emailForm.control}
-                      name="provider"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormLabel>Email Provider</FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex flex-col space-y-1"
-                            >
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="smtp" id="smtp" />
-                                <Label htmlFor="smtp">SMTP Server</Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="sendgrid" id="sendgrid" />
-                                <Label htmlFor="sendgrid">SendGrid API</Label>
-                              </div>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Common Fields */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={emailForm.control}
-                        name="fromEmail"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>From Email</FormLabel>
-                            <FormControl>
-                              <Input placeholder="noreply@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={emailForm.control}
-                        name="fromName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>From Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="ComplyArk Notifications" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+              {isLoadingSettings ? (
+                <div className="flex justify-center items-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="provider">Email Provider</Label>
+                      <Select 
+                        value={provider} 
+                        onValueChange={(value) => setProvider(value as 'smtp' | 'sendgrid')}
+                      >
+                        <SelectTrigger id="provider">
+                          <SelectValue placeholder="Select email provider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="smtp">SMTP Server</SelectItem>
+                          <SelectItem value="sendgrid">SendGrid</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="fromEmail">From Email Address</Label>
+                      <Input
+                        id="fromEmail"
+                        placeholder="noreply@yourcompany.com"
+                        value={fromEmail}
+                        onChange={(e) => setFromEmail(e.target.value)}
                       />
                     </div>
-
-                    {/* SMTP Server Fields */}
-                    {selectedProvider === "smtp" && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md bg-gray-50 dark:bg-gray-800">
-                        <div className="md:col-span-2">
-                          <h3 className="text-sm font-medium mb-2">SMTP Server Settings</h3>
-                        </div>
-                        
-                        <FormField
-                          control={emailForm.control}
-                          name="smtpHost"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>SMTP Host</FormLabel>
-                              <FormControl>
-                                <Input placeholder="smtp.example.com" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={emailForm.control}
-                          name="smtpPort"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>SMTP Port</FormLabel>
-                              <FormControl>
-                                <Input placeholder="587" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={emailForm.control}
-                          name="smtpUsername"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>SMTP Username</FormLabel>
-                              <FormControl>
-                                <Input placeholder="username" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={emailForm.control}
-                          name="smtpPassword"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>SMTP Password</FormLabel>
-                              <FormControl>
-                                <Input type="password" placeholder="password" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={emailForm.control}
-                          name="useTLS"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between space-x-2 space-y-0 rounded-md border p-4">
-                              <div>
-                                <FormLabel>Use TLS/SSL</FormLabel>
-                                <p className="text-sm text-muted-foreground">
-                                  Enable secure connection (TLS/SSL)
-                                </p>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="fromName">From Name</Label>
+                      <Input
+                        id="fromName"
+                        placeholder="ComplyArk"
+                        value={fromName}
+                        onChange={(e) => setFromName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  {provider === 'smtp' && (
+                    <div className="space-y-4">
+                      <Separator />
+                      <h3 className="text-lg font-medium">SMTP Configuration</h3>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="smtpHost">SMTP Host</Label>
+                        <Input
+                          id="smtpHost"
+                          placeholder="smtp.example.com"
+                          value={smtpHost}
+                          onChange={(e) => setSmtpHost(e.target.value)}
                         />
                       </div>
-                    )}
-
-                    {/* SendGrid Fields */}
-                    {selectedProvider === "sendgrid" && (
-                      <div className="border p-4 rounded-md bg-gray-50 dark:bg-gray-800">
-                        <div className="mb-4">
-                          <h3 className="text-sm font-medium mb-2">SendGrid API Settings</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Enter your SendGrid API key to enable email sending through SendGrid.
-                          </p>
-                        </div>
-                        
-                        <FormField
-                          control={emailForm.control}
-                          name="sendgridApiKey"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>SendGrid API Key</FormLabel>
-                              <FormControl>
-                                <Input type="password" placeholder="SG.xxxxxxxxxxxxxxxxxxxx" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="smtpPort">SMTP Port</Label>
+                        <Input
+                          id="smtpPort"
+                          placeholder="587"
+                          value={smtpPort}
+                          onChange={(e) => setSmtpPort(e.target.value)}
+                          type="number"
+                        />
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Common ports: 25, 465 (SSL), 587 (TLS), 2525
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="smtpUsername">SMTP Username</Label>
+                        <Input
+                          id="smtpUsername"
+                          placeholder="username or email"
+                          value={smtpUsername}
+                          onChange={(e) => setSmtpUsername(e.target.value)}
                         />
                       </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="smtpPassword">SMTP Password</Label>
+                        <Input
+                          id="smtpPassword"
+                          type="password"
+                          placeholder="••••••••••••"
+                          value={smtpPassword}
+                          onChange={(e) => setSmtpPassword(e.target.value)}
+                        />
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {emailSettings?.smtpPassword ? 
+                            "Password is stored securely. Enter a new password only if you want to change it." : 
+                            "Enter your SMTP password to authenticate with the server."
+                          }
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="useTLS"
+                          checked={useTLS}
+                          onCheckedChange={setUseTLS}
+                        />
+                        <Label htmlFor="useTLS">Use TLS/SSL</Label>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {provider === 'sendgrid' && (
+                    <div className="space-y-4">
+                      <Separator />
+                      <h3 className="text-lg font-medium">SendGrid Configuration</h3>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="sendgridApiKey">SendGrid API Key</Label>
+                        <Input
+                          id="sendgridApiKey"
+                          type="password"
+                          placeholder="••••••••••••"
+                          value={sendgridApiKey}
+                          onChange={(e) => setSendgridApiKey(e.target.value)}
+                        />
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {emailSettings?.sendgridApiKey ? 
+                            "API key is stored securely. Enter a new key only if you want to change it." : 
+                            "Enter your SendGrid API key to authenticate with the service."
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <Button 
+                    onClick={handleSaveSettings}
+                    disabled={saveSettingsMutation.isPending}
+                    className="w-full"
+                  >
+                    {saveSettingsMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>Save Email Settings</>
                     )}
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      disabled={updateSettingsMutation.isPending}
-                    >
-                      {updateSettingsMutation.isPending ? "Saving..." : "Save Settings"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Email Templates Tab */}
-        <TabsContent value="templates" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Email Templates</CardTitle>
-              <CardDescription>Create and manage email templates for different notifications.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {templates && templates.map((template: any, index: number) => (
-                  <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => editTemplate(template)}>
-                    <CardHeader className="p-4">
-                      <CardTitle className="text-base">{template.name}</CardTitle>
-                      <CardDescription className="text-xs truncate">{template.subject}</CardDescription>
-                    </CardHeader>
-                  </Card>
-                ))}
-              </div>
-
-              <Form {...templateForm}>
-                <form onSubmit={templateForm.handleSubmit(onSubmitTemplate)} className="space-y-4">
-                  <FormField
-                    control={templateForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Template Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., OTP Verification, Request Confirmation" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={templateForm.control}
-                    name="subject"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Subject</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Your OTP Verification Code" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={templateForm.control}
-                    name="body"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Body</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="You can use {variables} for dynamic content, e.g., {otp}, {name}, {organization}"
-                            className="min-h-[200px]"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      disabled={saveTemplateMutation.isPending}
-                    >
-                      {saveTemplateMutation.isPending ? "Saving..." : "Save Template"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Test Email Tab */}
-        <TabsContent value="test" className="space-y-4">
+        
+        <TabsContent value="test">
           <Card>
             <CardHeader>
               <CardTitle>Send Test Email</CardTitle>
-              <CardDescription>Test your email configuration by sending a test message.</CardDescription>
+              <CardDescription>
+                Send a test email to verify your email configuration.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...testEmailForm}>
-                <form onSubmit={testEmailForm.handleSubmit(onSubmitTestEmail)} className="space-y-4">
-                  <FormField
-                    control={testEmailForm.control}
-                    name="recipient"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Recipient Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="recipient@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+              <Alert className="mb-6">
+                <InfoIcon className="h-4 w-4" />
+                <AlertTitle>Before sending a test email</AlertTitle>
+                <AlertDescription>
+                  Make sure you have saved your email settings in the General Settings tab.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="testRecipient">Recipient Email</Label>
+                  <Input
+                    id="testRecipient"
+                    placeholder="recipient@example.com"
+                    value={testRecipient}
+                    onChange={(e) => setTestRecipient(e.target.value)}
                   />
-
-                  <FormField
-                    control={testEmailForm.control}
-                    name="subject"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Subject</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Test Email Subject" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="testSubject">Subject</Label>
+                  <Input
+                    id="testSubject"
+                    placeholder="Test Email Subject"
+                    value={testSubject}
+                    onChange={(e) => setTestSubject(e.target.value)}
                   />
-
-                  <FormField
-                    control={testEmailForm.control}
-                    name="message"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Message</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Enter your test message"
-                            className="min-h-[150px]"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="testMessage">Message</Label>
+                  <textarea
+                    id="testMessage"
+                    className="w-full min-h-[120px] px-3 py-2 text-sm rounded-md border border-input bg-transparent"
+                    placeholder="Enter your test message here..."
+                    value={testMessage}
+                    onChange={(e) => setTestMessage(e.target.value)}
                   />
-
-                  <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      disabled={sendTestEmailMutation.isPending}
-                    >
-                      {sendTestEmailMutation.isPending ? "Sending..." : "Send Test Email"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
+                </div>
+                
+                <Button
+                  onClick={handleSendTestEmail}
+                  disabled={testSending || !testRecipient}
+                  className="w-full"
+                >
+                  {testSending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending Test Email...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Send Test Email
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* OTP Testing Tab */}
-        <TabsContent value="otp" className="space-y-4">
+        
+        <TabsContent value="templates">
           <Card>
             <CardHeader>
-              <CardTitle>OTP Testing Interface</CardTitle>
-              <CardDescription>Test the OTP verification system by sending and verifying OTP codes.</CardDescription>
+              <CardTitle>Email Templates</CardTitle>
+              <CardDescription>
+                View and manage email templates used for notifications.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Send OTP Form */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Step 1: Send OTP</h3>
-                  <Form {...otpTestForm}>
-                    <form onSubmit={otpTestForm.handleSubmit(onSubmitOtpTest)} className="space-y-4">
-                      <FormField
-                        control={otpTestForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email Address</FormLabel>
-                            <FormControl>
-                              <Input placeholder="user@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={otpTestForm.control}
-                        name="organizationId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Organization</FormLabel>
-                            <select
-                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                              onChange={(e) => field.onChange(e.target.value)}
-                              value={field.value}
-                            >
-                              <option value="">Select Organization</option>
-                              {organizations.map((org: any) => (
-                                <option key={org.id} value={org.id}>
-                                  {org.businessName}
-                                </option>
-                              ))}
-                            </select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <Button
-                        type="submit"
-                        disabled={sendOtpMutation.isPending}
-                        className="w-full"
-                      >
-                        {sendOtpMutation.isPending ? "Sending OTP..." : "Send OTP"}
-                      </Button>
-                    </form>
-                  </Form>
+              {isLoadingTemplates ? (
+                <div className="flex justify-center items-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-
-                {/* Verify OTP Form */}
+              ) : templates && templates.length > 0 ? (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Step 2: Verify OTP</h3>
-                  
-                  {otpToken ? (
-                    <Alert className="mb-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>OTP Sent</AlertTitle>
-                      <AlertDescription>
-                        An OTP has been sent to the email address. Check your inbox and enter the code below.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <Alert className="mb-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Generate OTP First</AlertTitle>
-                      <AlertDescription>
-                        Please complete Step 1 to generate and send an OTP.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <Form {...otpVerificationForm}>
-                    <form onSubmit={otpVerificationForm.handleSubmit(onSubmitOtpVerification)} className="space-y-4">
-                      <FormField
-                        control={otpVerificationForm.control}
-                        name="otp"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Enter OTP</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter the OTP code" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <Button
-                        type="submit"
-                        disabled={verifyOtpMutation.isPending || !otpToken}
-                        className="w-full"
-                      >
-                        {verifyOtpMutation.isPending ? "Verifying..." : "Verify OTP"}
-                      </Button>
-                    </form>
-                  </Form>
+                  {templates.map((template, index) => (
+                    <div key={index} className="border rounded-md p-4">
+                      <h3 className="font-medium">{template.name}</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Subject: {template.subject}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-gray-500 dark:text-gray-400">No email templates found.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
   );
-}
+};
+
+export default EmailSettings;

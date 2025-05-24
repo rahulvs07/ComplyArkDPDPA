@@ -13,6 +13,8 @@ import AdminOrganizations from "@/pages/admin/organizations";
 import AdminUsers from "@/pages/admin/users";
 import AdminIndustries from "@/pages/admin/industries";
 import AdminTemplates from "@/pages/admin/templates";
+import EmailSettings from "@/pages/admin/email-settings";
+import OtpTestingPage from "@/pages/admin/otp-testing";
 import UserSettings from "@/pages/user/settings";
 import WelcomePage from "@/pages/welcome";
 import RequestPage from "@/pages/RequestPage";
@@ -132,6 +134,18 @@ function Router() {
       <Route path="/admin/templates">
         <AppLayout>
           <ProtectedRoute component={AdminTemplates} superAdminOnly={true} />
+        </AppLayout>
+      </Route>
+      
+      <Route path="/admin/email-settings">
+        <AppLayout>
+          <ProtectedRoute component={EmailSettings} adminOnly={true} />
+        </AppLayout>
+      </Route>
+      
+      <Route path="/admin/otp-testing">
+        <AppLayout>
+          <ProtectedRoute component={OtpTestingPage} adminOnly={true} />
         </AppLayout>
       </Route>
       

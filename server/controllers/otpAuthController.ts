@@ -1,18 +1,7 @@
 import { Request, Response } from 'express';
-import { db } from '../db';
 import { sendEmail, sendTemplateEmail } from './emailController';
-import { sql } from 'drizzle-orm';
+import { storage } from '../storage';
 import crypto from 'crypto';
-
-// Store OTPs in memory (for development only - in production, these should be stored in a database)
-interface OtpRecord {
-  otp: string;
-  email: string;
-  organizationId: number;
-  expires: Date;
-}
-
-const otpStore: Record<string, OtpRecord> = {};
 
 // Generate OTP
 function generateOTP(): string {
@@ -40,13 +29,29 @@ export const sendOtp = async (req: Request, res: Response) => {
     const expiryTime = new Date();
     expiryTime.setMinutes(expiryTime.getMinutes() + 15); // OTP valid for 15 minutes
     
-    // Store OTP data
-    otpStore[token] = {
-      otp,
-      email,
-      organizationId,
-      expires: expiryTime
-    };
+    // Store OTP data in database
+    try {
+      await storage.createOtpVerification({
+        token,
+        otp,
+        email,
+        organizationId: organizationId || null,
+        expiresAt: expiryTime
+      });
+    } catch (dbError) {
+      console.error('Error storing OTP in database:', dbError);
+      return res.status(500).json({ message: 'Failed to process OTP request' });
+    }
+    
+    // Clean up expired OTPs
+    try {
+      const deletedCount = await storage.cleanupExpiredOtps();
+      if (deletedCount > 0) {
+        console.log(`Cleaned up ${deletedCount} expired OTPs`);
+      }
+    } catch (cleanupError) {
+      console.warn('Failed to clean up expired OTPs:', cleanupError);
+    }
     
     // Try to send via template first
     let emailSent = false;
@@ -102,16 +107,20 @@ export const verifyOtp = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'OTP and token are required' });
     }
     
-    // Retrieve stored OTP data
-    const storedData = otpStore[token];
+    // Retrieve stored OTP data from database
+    const storedData = await storage.getOtpVerificationByToken(token);
     
     if (!storedData) {
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
     
+    // Check if OTP has already been verified
+    if (storedData.verified) {
+      return res.status(400).json({ message: 'This OTP has already been used' });
+    }
+    
     // Check if OTP has expired
-    if (new Date() > storedData.expires) {
-      delete otpStore[token]; // Clean up expired token
+    if (new Date() > storedData.expiresAt) {
       return res.status(400).json({ message: 'OTP has expired' });
     }
     
@@ -120,8 +129,8 @@ export const verifyOtp = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid OTP' });
     }
     
-    // OTP verified successfully, clean up
-    delete otpStore[token];
+    // Mark OTP as verified in database
+    await storage.markOtpAsVerified(token);
     
     // Update session if available
     if (req.session) {

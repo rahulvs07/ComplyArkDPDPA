@@ -1,7 +1,7 @@
 import { 
   users, industries, organizations, templates, notices, translatedNotices,
   requestStatuses, dpRequests, dpRequestHistory, grievances, grievanceHistory, complianceDocuments,
-  notificationLogs, emailSettings, emailTemplates,
+  notificationLogs, emailSettings, emailTemplates, otpVerifications,
   type User, type InsertUser, 
   type Industry, type InsertIndustry,
   type Organization, type InsertOrganization,
@@ -16,7 +16,8 @@ import {
   type ComplianceDocument, type InsertComplianceDocument,
   type NotificationLog, type InsertNotificationLog,
   type EmailSetting, type InsertEmailSetting,
-  type EmailTemplate, type InsertEmailTemplate
+  type EmailTemplate, type InsertEmailTemplate,
+  type OtpVerification, type InsertOtpVerification
 } from "@shared/schema";
 import crypto from 'crypto';
 
