@@ -287,9 +287,9 @@ export type NotificationLog = typeof notificationLogs.$inferSelect;
 export type InsertNotificationLog = z.infer<typeof insertNotificationLogSchema>;
 
 // Email Settings Table
-export const emailSettings = pgTable("email_settings", {
+export const emailSettings = pgTable("emailSettings", {
   id: serial("id").primaryKey(),
-  provider: text("provider", { enum: ["smtp", "sendgrid", "test"] }).notNull().default("test"),
+  provider: text("provider", { enum: ["smtp", "sendgrid"] }).notNull().default("smtp"),
   fromEmail: text("fromEmail").notNull(),
   fromName: text("fromName").notNull(),
   // SMTP-specific fields
@@ -300,18 +300,18 @@ export const emailSettings = pgTable("email_settings", {
   useTLS: boolean("useTLS").default(true),
   // SendGrid-specific fields
   sendgridApiKey: text("sendgridApiKey"),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
 });
 
 // Email Templates Table
-export const emailTemplates = pgTable("email_templates", {
+export const emailTemplates = pgTable("emailTemplates", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
   subject: text("subject").notNull(),
   body: text("body").notNull(),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
 });
 
 // Insert schemas for email

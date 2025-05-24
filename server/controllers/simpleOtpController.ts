@@ -44,19 +44,6 @@ export const sendOtp = async (req: Request, res: Response) => {
         expiresAt: expiryTime
       });
       console.log('OTP verification stored successfully');
-      
-      // Send OTP email using our email service
-      if (!testMode) {
-        try {
-          const emailSent = await sendOtpEmail(email, otp);
-          console.log(`OTP email ${emailSent ? 'sent successfully' : 'failed to send'}`);
-        } catch (emailError) {
-          console.error('Error sending OTP email:', emailError);
-          // We continue even if email fails - the OTP is stored in DB
-        }
-      } else {
-        console.log('Test mode active - OTP email not sent');
-      }
     } catch (dbError) {
       console.error('Error storing OTP in database:', dbError);
       return res.status(500).json({ 
