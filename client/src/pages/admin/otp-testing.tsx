@@ -337,7 +337,8 @@ function OtpTestingContent() {
   );
 }
 
-export default function OtpTestingRoute() {
+// This is the main component exported from this page
+export default function OtpTestingPage() {
   return (
     <MainLayout>
       <OtpTestingContent />
