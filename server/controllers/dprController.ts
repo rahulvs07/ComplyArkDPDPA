@@ -225,6 +225,46 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
         }
         
         historyEntry.comments = closureComments;
+        
+        // Send closure email notification
+        try {
+          // Import the notification service
+          const { sendRequestClosureNotification } = require('../services/requestNotificationService');
+          
+          // Get organization info
+          const organization = await storage.getOrganization(request.organizationId);
+          
+          // Get assigned staff info (for CC)
+          let assignedStaffEmail = null;
+          if (assignedToUserId || request.assignedToUserId) {
+            const staffUserId = assignedToUserId !== undefined ? assignedToUserId : request.assignedToUserId;
+            if (staffUserId) {
+              const assignedUser = await storage.getUser(staffUserId);
+              if (assignedUser) {
+                assignedStaffEmail = assignedUser.email;
+              }
+            }
+          }
+          
+          // Send notification
+          await sendRequestClosureNotification(
+            'dpr',
+            requestId,
+            {
+              firstName: request.firstName,
+              lastName: request.lastName,
+              email: request.email,
+              organizationName: organization ? organization.businessName : 'Our Organization',
+              requestType: request.requestType,
+              closureComment: closureComments || 'Your request has been processed and is now closed.',
+              assignedStaffEmail
+            }
+          );
+          console.log(`✅ Closure notification email sent for DPR #${requestId}`);
+        } catch (emailError) {
+          console.error(`📧 DPR closure email notification failed:`, emailError);
+          // Don't fail the request update if email fails
+        }
       }
     }
     
@@ -431,6 +471,28 @@ export const createPublicDPRequest = async (req: Request, res: Response) => {
       newStatusId: submittedStatus.statusId,
       comments: `Request submitted by ${email}. Status: Submitted.`
     });
+    
+    // Send email notification for request creation
+    try {
+      // Import the notification service
+      const { sendRequestCreationNotification } = require('../services/requestNotificationService');
+      
+      // Send notification
+      await sendRequestCreationNotification(
+        'dpr',
+        request.requestId,
+        {
+          firstName,
+          lastName,
+          email,
+          organizationName: organization.businessName,
+          requestType: requestType
+        }
+      );
+    } catch (emailError) {
+      console.error("Failed to send creation notification email:", emailError);
+      // Don't fail the request creation if email fails
+    }
     
     return res.status(201).json({
       requestId: request.requestId,
