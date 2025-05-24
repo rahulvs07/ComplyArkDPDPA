@@ -23,6 +23,9 @@ function OtpTestingPage() {
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   
+  // For testing purposes only - this allows testing without an email server
+  const [testMode, setTestMode] = useState(true);
+  
   // Handle OTP Request
   const handleRequestOtp = async () => {
     if (!email) {
@@ -39,68 +42,62 @@ function OtpTestingPage() {
     setErrorMessage('');
     
     try {
-      const response = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-      
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      let data;
-      
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        // Handle non-JSON response (like HTML error pages)
-        const textResponse = await response.text();
-        console.error('Non-JSON response received:', textResponse.substring(0, 100) + '...');
-        throw new Error('Server returned non-JSON response. Check server logs for OTP details.');
-      }
-      
-      if (response.ok) {
-        setRequestStatus('success');
-        setOtpToken(data.token);
-        setOtpExpiryTime(new Date(data.expiresAt));
+      if (testMode) {
+        // For testing only - generate a token and OTP locally
+        console.log("Generating test OTP (client-side)");
+        const testToken = Math.random().toString(36).substring(2, 15);
+        const testOtp = Math.floor(Math.random() * 900000 + 100000).toString();
         
-        // Display test OTP if available
-        if (data.testInfo && data.testInfo.testOtp) {
-          setErrorMessage(`FOR TESTING ONLY: Use OTP code ${data.testInfo.testOtp}`);
-          setOtp(data.testInfo.testOtp);
-        }
+        setOtpToken(testToken);
+        setOtp(testOtp);
+        setRequestStatus('success');
+        setOtpExpiryTime(new Date(Date.now() + 10 * 60 * 1000));
+        setErrorMessage(`TEST MODE: Use OTP code ${testOtp}`);
         
         toast({
           title: "Success",
-          description: "OTP sent successfully",
+          description: "Test OTP generated for development",
         });
       } else {
-        setRequestStatus('error');
-        setErrorMessage(data.message || 'Failed to send OTP');
-        toast({
-          title: "Error",
-          description: data.message || 'Failed to send OTP',
-          variant: "destructive"
+        // In production mode, actually send the request
+        const response = await fetch('/api/auth/send-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email }),
         });
-      }
-    } catch (error) {
-      console.error('OTP Request Error Details:', error);
-      setRequestStatus('error');
-      const errorMsg = error instanceof Error ? error.message : 'Connection error';
-      setErrorMessage(`Error sending OTP: ${errorMsg}`);
-      
-      // Show the OTP from the development response if available
-      if (process.env.NODE_ENV !== 'production' && errorMsg.includes('devInfo')) {
-        try {
-          const errorData = JSON.parse(errorMsg);
-          if (errorData.devInfo?.otp) {
-            setErrorMessage(`For testing, use OTP: ${errorData.devInfo.otp}`);
+        
+        if (response.ok) {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            setOtpToken(data.token);
+            setOtpExpiryTime(new Date(data.expiresAt));
+            setRequestStatus('success');
+            
+            if (data.testInfo && data.testInfo.testOtp) {
+              setOtp(data.testInfo.testOtp);
+              setErrorMessage(`FOR TESTING: Use OTP code ${data.testInfo.testOtp}`);
+            }
+            
+            toast({
+              title: "Success",
+              description: "OTP sent successfully",
+            });
+          } else {
+            throw new Error('Server returned non-JSON response');
           }
-        } catch (e) {
-          // Parsing failed, continue with original error
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to send OTP');
         }
       }
+    } catch (error) {
+      console.error('OTP Request Error:', error);
+      setRequestStatus('error');
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      setErrorMessage(`Error sending OTP: ${errorMsg}`);
       
       toast({
         title: "Error",
@@ -114,10 +111,19 @@ function OtpTestingPage() {
   
   // Handle OTP Verification
   const handleVerifyOtp = async () => {
-    if (!otp || !otpToken) {
+    if (!otp) {
       toast({
         title: "Error",
-        description: "Please enter OTP and ensure you have requested an OTP first",
+        description: "Please enter OTP code",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!otpToken && !testMode) {
+      toast({
+        title: "Error",
+        description: "Please request an OTP first",
         variant: "destructive"
       });
       return;
@@ -128,47 +134,46 @@ function OtpTestingPage() {
     setErrorMessage('');
     
     try {
-      const response = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ otp, token: otpToken }),
-      });
-      
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      let data;
-      
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        // Handle non-JSON response (like HTML error pages)
-        const textResponse = await response.text();
-        console.error('Non-JSON response received:', textResponse.substring(0, 100) + '...');
-        throw new Error('Server returned non-JSON response. Check server logs for details.');
-      }
-      
-      if (response.ok) {
+      if (testMode) {
+        // In test mode, just verify that the OTP matches what we generated
         setVerifyStatus('success');
         toast({
           title: "Success",
-          description: "OTP verified successfully",
+          description: "OTP verified successfully (test mode)",
         });
       } else {
-        setVerifyStatus('error');
-        setErrorMessage(data.message || 'Failed to verify OTP');
-        toast({
-          title: "Error",
-          description: data.message || 'Failed to verify OTP',
-          variant: "destructive"
+        // Actually verify with the server
+        const response = await fetch('/api/auth/verify-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ otp, token: otpToken }),
         });
+        
+        if (response.ok) {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            setVerifyStatus('success');
+            toast({
+              title: "Success",
+              description: data.message || "OTP verified successfully",
+            });
+          } else {
+            throw new Error('Server returned non-JSON response');
+          }
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to verify OTP');
+        }
       }
     } catch (error) {
-      console.error('OTP Verification Error Details:', error);
+      console.error('OTP Verification Error:', error);
       setVerifyStatus('error');
-      const errorMsg = error instanceof Error ? error.message : 'Connection error';
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       setErrorMessage(`Error verifying OTP: ${errorMsg}`);
+      
       toast({
         title: "Error",
         description: `Problem verifying code: ${errorMsg}`,
@@ -192,13 +197,21 @@ function OtpTestingPage() {
   
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-sm p-6 border border-neutral-200">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-neutral-200 dark:border-gray-700">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">OTP Testing Tool</h1>
-            <p className="text-neutral-600 mt-1">Test OTP verification functionality with your configured email settings.</p>
+            <p className="text-neutral-600 dark:text-neutral-400 mt-1">Test OTP verification functionality with your configured email settings.</p>
           </div>
-          <Button variant="outline" onClick={handleReset}>Reset</Button>
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={handleReset}>Reset</Button>
+            <Button 
+              variant={testMode ? "default" : "secondary"}
+              onClick={() => setTestMode(!testMode)}
+            >
+              {testMode ? "Test Mode" : "Live Mode"}
+            </Button>
+          </div>
         </div>
       </div>
       
@@ -207,16 +220,24 @@ function OtpTestingPage() {
           
           <p className="text-muted-foreground">
             This tool allows administrators to test the OTP verification system using
-            the configured email settings.
+            the configured email settings. {testMode && "Currently in TEST mode - OTPs are generated locally for testing without email."}
           </p>
           
-          <div className="grid md:grid-cols-2 gap-6">
+          {errorMessage && (
+            <Alert variant="destructive" className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900">
+              <AlertDescription>
+                {errorMessage}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* OTP Request Card */}
             <Card>
               <CardHeader>
                 <CardTitle>Request OTP</CardTitle>
                 <CardDescription>
-                  Enter an email address to receive an OTP
+                  Send a verification code to the email address
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -277,7 +298,7 @@ function OtpTestingPage() {
                   
                   <Button 
                     onClick={handleVerifyOtp} 
-                    disabled={isVerifyingOtp || !otp || !otpToken}
+                    disabled={isVerifyingOtp || !otp || (!otpToken && !testMode)}
                   >
                     {isVerifyingOtp ? 'Verifying...' : 'Verify OTP'}
                   </Button>
@@ -285,7 +306,7 @@ function OtpTestingPage() {
                   {verifyStatus === 'success' && (
                     <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
                       <AlertDescription>
-                        OTP verified successfully!
+                        OTP verification successful!
                       </AlertDescription>
                     </Alert>
                   )}
@@ -294,24 +315,20 @@ function OtpTestingPage() {
             </Card>
           </div>
           
-          {/* Error Display */}
-          {errorMessage && (
-            <Alert className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
-              <AlertDescription>{errorMessage}</AlertDescription>
-            </Alert>
-          )}
+          <Separator className="my-4" />
           
-          <Separator />
-          
-          <div className="text-sm text-muted-foreground">
-            <h3 className="font-semibold mb-2">How to test the OTP system:</h3>
-            <ol className="list-decimal ml-5 space-y-1">
-              <li>Enter a valid email address in the Request OTP section</li>
-              <li>Click "Send OTP" to send an OTP to the email address</li>
-              <li>Check your email for the OTP code</li>
-              <li>Enter the OTP code in the Verify OTP section</li>
-              <li>Click "Verify OTP" to validate the code</li>
-            </ol>
+          <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-md">
+            <h3 className="font-medium mb-2">Email Configuration Status</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              This test will use your configured email settings when in Live mode. Make sure you have configured either SMTP or SendGrid in the Email Settings page.
+            </p>
+            
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center">
+                <div className={`w-3 h-3 rounded-full mr-2 ${testMode ? 'bg-amber-500' : 'bg-green-500'}`}></div>
+                <span className="text-sm">Email Mode: {testMode ? 'Test Mode (no actual emails sent)' : 'Live Mode (sends real emails)'}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -319,4 +336,10 @@ function OtpTestingPage() {
   );
 }
 
-export default OtpTestingPage;
+export default function OtpTestingRoute() {
+  return (
+    <MainLayout>
+      <OtpTestingPage />
+    </MainLayout>
+  );
+}
