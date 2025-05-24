@@ -20,6 +20,7 @@ import * as complianceDocumentController from './controllers/complianceDocumentC
 import { requestStatusController } from './controllers/requestStatusController';
 import * as dashboardController from './controllers/dashboardController';
 import * as otpAuthController from './controllers/otpAuthController';
+import * as emailController from './controllers/emailController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session

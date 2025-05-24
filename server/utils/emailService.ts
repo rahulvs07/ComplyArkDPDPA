@@ -8,7 +8,34 @@
  * - Escalation notifications
  * - Assignment notifications
  * - Reminder emails
+ * 
+ * Email delivery is handled by Nodemailer with SMTP transport
  */
+
+import nodemailer from 'nodemailer';
+
+// Email configuration
+const SMTP_HOST = process.env.SMTP_HOST || 'smtp.example.com';
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
+const SMTP_USER = process.env.SMTP_USER || '';
+const SMTP_PASSWORD = process.env.SMTP_PASSWORD || '';
+const DEFAULT_FROM_EMAIL = process.env.DEFAULT_FROM_EMAIL || 'noreply@complyark.com';
+const DEFAULT_FROM_NAME = process.env.DEFAULT_FROM_NAME || 'ComplyArk Notifications';
+
+// Configuration flags
+const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true';
+const EMAIL_TEST_MODE = process.env.NODE_ENV === 'development' || process.env.EMAIL_TEST_MODE === 'true';
+
+// Create nodemailer transporter
+const transporter = nodemailer.createTransport({
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: SMTP_PORT === 465, // true for 465, false for other ports
+  auth: {
+    user: SMTP_USER,
+    pass: SMTP_PASSWORD,
+  },
+});
 
 interface EmailOptions {
   to: string;
@@ -33,39 +60,58 @@ interface NotificationData {
 }
 
 /**
- * Send an email (development version - logs to console)
+ * Send an email using Nodemailer with fallback to console logging in test mode
  */
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  // Default sender address with name
+  const from = options.from || `"${DEFAULT_FROM_NAME}" <${DEFAULT_FROM_EMAIL}>`;
+  
   try {
-    // Default sender address
-    const from = options.from || 'noreply@complyark.com';
-    
-    // Log the email details to the console for development
-    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('📧 EMAIL NOTIFICATION SENT');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`📤 From: ${from}`);
-    console.log(`📬 To: ${options.to}`);
-    console.log(`📝 Subject: ${options.subject}`);
-    console.log(`🏢 Organization: ${options.organizationName || 'N/A'}`);
-    console.log(`⏰ Sent at: ${new Date().toLocaleString()}`);
-    
-    if (options.text) {
-      console.log('\n📄 Text Content:');
-      console.log('─'.repeat(60));
-      console.log(options.text);
-      console.log('─'.repeat(60));
+    // If email is disabled or in test mode, just log to console
+    if (!EMAIL_ENABLED || EMAIL_TEST_MODE) {
+      // Log the email details to the console for development
+      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(`📧 EMAIL NOTIFICATION ${EMAIL_ENABLED ? 'SENT' : 'DISABLED'} (${EMAIL_TEST_MODE ? 'TEST MODE' : 'PRODUCTION MODE'})`);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(`📤 From: ${from}`);
+      console.log(`📬 To: ${options.to}`);
+      console.log(`📝 Subject: ${options.subject}`);
+      console.log(`🏢 Organization: ${options.organizationName || 'N/A'}`);
+      console.log(`⏰ Sent at: ${new Date().toLocaleString()}`);
+      
+      if (options.text) {
+        console.log('\n📄 Text Content:');
+        console.log('─'.repeat(60));
+        console.log(options.text);
+        console.log('─'.repeat(60));
+      }
+      
+      if (options.html) {
+        console.log('\n🌐 HTML Content Preview:');
+        console.log('─'.repeat(60));
+        console.log(options.html.replace(/<[^>]*>/g, '').substring(0, 200) + '...');
+        console.log('─'.repeat(60));
+      }
+      
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+      
+      // Return success in test mode
+      return true;
     }
     
-    if (options.html) {
-      console.log('\n🌐 HTML Content:');
-      console.log('─'.repeat(60));
-      console.log(options.html.replace(/<[^>]*>/g, '').substring(0, 200) + '...');
-      console.log('─'.repeat(60));
-    }
+    // Prepare email with both plain text and HTML versions
+    const mailOptions = {
+      from,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html
+    };
     
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    // Send email using nodemailer
+    const info = await transporter.sendMail(mailOptions);
     
+    console.log(`📧 Email sent successfully: ${info.messageId}`);
     return true;
   } catch (error) {
     console.error('❌ Error sending email:', error);
