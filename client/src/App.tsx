@@ -119,7 +119,7 @@ function Router() {
       
       <Route path="/admin/users">
         <AppLayout>
-          <ProtectedRoute component={AdminUsers} superAdminOnly={true} />
+          <ProtectedRoute component={AdminUsers} adminOnly={true} />
         </AppLayout>
       </Route>
       
