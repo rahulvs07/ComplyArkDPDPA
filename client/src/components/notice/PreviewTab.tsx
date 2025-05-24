@@ -23,6 +23,15 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
   const [noticeBody, setNoticeBody] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [organizationInfo, setOrganizationInfo] = useState<{
+    businessName: string;
+    businessAddress: string;
+    requestPageUrlToken: string | null;
+  }>({
+    businessName: "ComplyArk",
+    businessAddress: "",
+    requestPageUrlToken: null
+  });
   
   // Format selected data for display
   const formatSelectedData = useMemo(() => {
@@ -71,6 +80,23 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
   const { data: templates = [] } = useQuery({
     queryKey: ["/api/templates"],
   });
+  
+  // Fetch organization information
+  const { data: organizationData } = useQuery({
+    queryKey: [`/api/organizations/${user?.organizationId}`],
+    enabled: !!user?.organizationId,
+  });
+  
+  // Update organization info when data is loaded
+  useEffect(() => {
+    if (organizationData) {
+      setOrganizationInfo({
+        businessName: organizationData.businessName || "ComplyArk",
+        businessAddress: organizationData.businessAddress || "",
+        requestPageUrlToken: organizationData.requestPageUrlToken
+      });
+    }
+  }, [organizationData]);
   
   // Set Simple Privacy Notice as default when templates are loaded
   useEffect(() => {
@@ -139,10 +165,26 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
       day: 'numeric'
     });
     
+    // Generate a unique document ID
+    const documentId = `CA-${Math.floor(Math.random() * 10000)}-${new Date().getFullYear()}`;
+    
     // Format the notice body to preserve line breaks and styling
-    const formattedNoticeBody = noticeBody
+    let formattedNoticeBody = noticeBody
       .replace(/\n/g, '<br>')
       .replace(/\s{2,}/g, match => '&nbsp;'.repeat(match.length));
+    
+    // Add request URL information at the bottom if available
+    if (organizationInfo.requestPageUrlToken) {
+      const requestUrl = `${window.location.origin}/request/${organizationInfo.requestPageUrlToken}`;
+      formattedNoticeBody += `
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px dashed #ccc;">
+          <p style="font-weight: bold;">Submit Your Data Protection Requests</p>
+          <p>You can submit data protection requests through our dedicated portal at:</p>
+          <p><a href="${requestUrl}" style="color: #2E77AE; text-decoration: underline;">${requestUrl}</a></p>
+          <p>Use this portal to exercise your rights regarding your personal data, including access, correction, or erasure requests.</p>
+        </div>
+      `;
+    }
       
     // Enhanced preview with professional styling
     const previewWindow = window.open("", "_blank");
@@ -151,7 +193,7 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
         <!DOCTYPE html>
         <html>
         <head>
-          <title>${noticeName || "Privacy Notice"} - ComplyArk</title>
+          <title>${noticeName || "Privacy Notice"} - ${organizationInfo.businessName}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap');
             
@@ -178,9 +220,13 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
               border-bottom: 1px solid #e0e0e0;
               background: linear-gradient(135deg, #2E77AE 0%, #1E5B8D 100%);
               color: white;
+            }
+            
+            .header-top {
               display: flex;
               justify-content: space-between;
-              align-items: center;
+              align-items: flex-start;
+              margin-bottom: 15px;
             }
             
             .logo {
@@ -189,10 +235,25 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
               margin: 0;
             }
             
+            .company-address {
+              font-size: 12px;
+              margin-top: 5px;
+              max-width: 250px;
+              text-align: right;
+              opacity: 0.9;
+            }
+            
             .document-title {
-              margin-top: 10px;
               font-size: 28px;
               font-weight: 600;
+              text-align: center;
+              margin-top: 15px;
+            }
+            
+            .document-id {
+              font-size: 12px;
+              color: rgba(255, 255, 255, 0.7);
+              margin-top: 5px;
             }
             
             .content {
@@ -249,9 +310,12 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
               font-size: 12px;
             }
             
-            .document-id {
-              font-size: 12px;
-              color: rgba(255, 255, 255, 0.7);
+            .request-url-section {
+              margin-top: 30px;
+              padding: 15px;
+              background-color: #f5f7fa;
+              border: 1px solid #e0e0e0;
+              border-radius: 4px;
             }
             
             @media print {
@@ -270,9 +334,14 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
         <body>
           <div class="page">
             <div class="header">
-              <div>
-                <div class="logo">ComplyArk</div>
-                <div class="document-id">Document ID: CA-${Math.floor(Math.random() * 10000)}-${new Date().getFullYear()}</div>
+              <div class="header-top">
+                <div>
+                  <div class="logo">${organizationInfo.businessName}</div>
+                  <div class="document-id">Document ID: ${documentId}</div>
+                </div>
+                <div class="company-address">
+                  ${organizationInfo.businessAddress.replace(/\n/g, '<br>')}
+                </div>
               </div>
               <div class="document-title">${noticeName || "Privacy Notice"}</div>
             </div>
@@ -282,7 +351,7 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
             </div>
             
             <div class="footer">
-              <div>© ${new Date().getFullYear()} ComplyArk Systems. All rights reserved.</div>
+              <div>© ${new Date().getFullYear()} ${organizationInfo.businessName}. All rights reserved.</div>
               <div>Last updated: ${currentDate}</div>
               <div>This document is generated and managed by ComplyArk Compliance Management System.</div>
             </div>

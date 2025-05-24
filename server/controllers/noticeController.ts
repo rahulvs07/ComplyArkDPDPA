@@ -582,7 +582,20 @@ export const downloadNotice = async (req: AuthRequest, res: Response) => {
     if (format === 'docx') {
       // Generate DOCX version of the notice
       const docxFilePath = path.join(NOTICES_DIR, `notice_${noticeId}_${Date.now()}.docx`);
-      await generateDocxNotice(notice.noticeBody, docxFilePath);
+      
+      // Get organization info for the notice
+      const organization = await storage.getOrganization(notice.organizationId);
+      const orgName = organization ? organization.businessName : "ComplyArk";
+      const orgAddress = organization ? organization.businessAddress : "";
+      
+      await generateDocxNotice(
+        notice.noticeBody, 
+        docxFilePath, 
+        notice.noticeName, 
+        orgName,
+        orgAddress,
+        organization?.requestPageUrlToken
+      );
       
       const fileContent = fs.readFileSync(docxFilePath);
       const fileName = `${notice.noticeName.replace(/\s+/g, '_')}.docx`;
