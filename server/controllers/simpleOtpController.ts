@@ -17,7 +17,7 @@ function generateToken(): string {
 export const sendOtp = async (req: Request, res: Response) => {
   try {
     console.log('OTP generate request:', req.body);
-    const { email, organizationId, organizationName } = req.body;
+    const { email, organizationId, organizationName, testMode } = req.body;
     
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
@@ -60,7 +60,33 @@ export const sendOtp = async (req: Request, res: Response) => {
       console.warn('Failed to clean up expired OTPs:', cleanupError);
     }
     
-    // Send OTP email using our direct email sender
+    // Check if we're in test mode or development environment
+    const isTestMode = testMode === true;
+    console.log('═════════════════════════════════════════');
+    console.log('TEST MODE STATUS:', isTestMode ? 'ENABLED' : 'DISABLED');
+    
+    // If test mode is enabled, skip actual email sending
+    if (isTestMode) {
+      console.log('╔═══════════════════════════════════════╗');
+      console.log('║           TEST MODE ACTIVE            ║');
+      console.log('║  No actual email will be sent         ║');
+      console.log('╠═══════════════════════════════════════╣');
+      console.log('║  OTP CODE: ' + otp.padEnd(24, ' ') + '║');
+      console.log('║  Email: ' + email.substring(0, 22).padEnd(24, ' ') + '║');
+      console.log('╚═══════════════════════════════════════╝');
+      
+      // Always include the OTP in the response for test mode
+      return res.status(200).json({
+        message: 'OTP generated in test mode',
+        email,
+        token,
+        otpForTesting: otp,
+        expiresAt: expiryTime,
+        emailSent: true
+      });
+    }
+    
+    // Regular mode - send OTP email using our direct email sender
     console.log('Sending OTP email using direct sender');
     const orgName = organizationName || 'ComplyArk';
     
@@ -73,41 +99,21 @@ export const sendOtp = async (req: Request, res: Response) => {
         console.error('Failed to send OTP email:', emailResult.error);
       }
       
-      // In development mode, include the OTP in the response for testing
-      if (process.env.NODE_ENV === 'development') {
-        return res.status(200).json({
-          message: 'OTP sent successfully',
-          email,
-          token,
-          otpForTesting: otp,
-          emailSent: emailResult.success
-        });
-      }
-      
       return res.status(200).json({
         message: 'OTP sent successfully',
         email,
         token,
+        expiresAt: expiryTime,
         emailSent: emailResult.success
       });
     } catch (emailError) {
       console.error('Error in OTP email sending:', emailError);
       
-      // Return success in development mode with the OTP for testing
-      if (process.env.NODE_ENV === 'development') {
-        return res.status(200).json({
-          message: 'OTP generated (email failed)',
-          email,
-          token,
-          otpForTesting: otp,
-          emailSent: false
-        });
-      }
-      
       return res.status(200).json({
         message: 'OTP generated (email failed)',
         email,
         token,
+        expiresAt: expiryTime,
         emailSent: false
       });
     }
