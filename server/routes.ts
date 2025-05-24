@@ -22,6 +22,7 @@ import * as dashboardController from './controllers/dashboardController';
 import * as otpAuthController from './controllers/simpleOtpController';
 import * as emailController from './controllers/emailController';
 import { logException, getExceptionLogs, getExceptionLogById, updateExceptionLogStatus, deleteExceptionLog } from './controllers/exceptionLogController';
+import { getSupportedLanguages, checkModelAvailability, downloadModels, translateNotice, getNoticeTranslations } from './controllers/translationController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session
@@ -650,6 +651,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/exceptions/:id', isAuthenticated, getExceptionLogById);
   app.patch('/api/exceptions/:id/status', isAuthenticated, updateExceptionLogStatus);
   app.delete('/api/exceptions/:id', isAuthenticated, isSuperAdmin, deleteExceptionLog);
+  
+  // Translation routes
+  app.get('/api/translations/languages', getSupportedLanguages);
+  app.get('/api/translations/model-status', checkModelAvailability);
+  app.post('/api/translations/download-models', isAuthenticated, downloadModels);
+  app.post('/api/translations/translate', isAuthenticated, translateNotice);
+  app.get('/api/translations/notice/:noticeId', isAuthenticated, getNoticeTranslations);
   
   const httpServer = createServer(app);
 
