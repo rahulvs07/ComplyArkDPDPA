@@ -67,11 +67,26 @@ function OtpTestingPage() {
         });
       }
     } catch (error) {
+      console.error('OTP Request Error Details:', error);
       setRequestStatus('error');
-      setErrorMessage('An unexpected error occurred');
+      const errorMsg = error instanceof Error ? error.message : 'Connection error';
+      setErrorMessage(`Error sending OTP: ${errorMsg}`);
+      
+      // Show the OTP from the development response if available
+      if (process.env.NODE_ENV !== 'production' && errorMsg.includes('devInfo')) {
+        try {
+          const errorData = JSON.parse(errorMsg);
+          if (errorData.devInfo?.otp) {
+            setErrorMessage(`For testing, use OTP: ${errorData.devInfo.otp}`);
+          }
+        } catch (e) {
+          // Parsing failed, continue with original error
+        }
+      }
+      
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: `Problem sending verification code: ${errorMsg}`,
         variant: "destructive"
       });
     } finally {
@@ -121,11 +136,13 @@ function OtpTestingPage() {
         });
       }
     } catch (error) {
+      console.error('OTP Verification Error Details:', error);
       setVerifyStatus('error');
-      setErrorMessage('An unexpected error occurred');
+      const errorMsg = error instanceof Error ? error.message : 'Connection error';
+      setErrorMessage(`Error verifying OTP: ${errorMsg}`);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: `Problem verifying code: ${errorMsg}`,
         variant: "destructive"
       });
     } finally {
