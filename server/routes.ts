@@ -692,6 +692,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/dashboard/escalated-requests', isAuthenticated, dashboardController.getEscalatedRequests);
   app.get('/api/dashboard/upcoming-due-requests', isAuthenticated, dashboardController.getUpcomingDueRequests);
   
+  // Direct email routes that bypass test mode
+  app.post('/api/send-email', fixedEmailController.sendNotification);
+  app.post('/api/send-dpr-notification', fixedEmailController.sendDPRNotification);
+  
   const httpServer = createServer(app);
 
   return httpServer;
