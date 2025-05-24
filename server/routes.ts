@@ -547,6 +547,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create history entry
       if (req.body.statusId !== undefined || req.body.assignedToUserId !== undefined) {
+        // Check if this is a closure (status changed to Closed)
+        if (req.body.statusId !== undefined && req.body.statusId !== grievance.statusId) {
+          const newStatus = await storage.getRequestStatus(req.body.statusId);
+          
+          // If status is being changed to "Closed", send closure notification
+          if (newStatus && newStatus.statusName === 'Closed') {
+            try {
+              // Import the notification service
+              const { sendRequestClosureNotification } = require('./services/requestNotificationService');
+              
+              // Get organization info
+              const organization = await storage.getOrganization(grievance.organizationId);
+              
+              // Get assigned staff info (for CC)
+              let assignedStaffEmail = null;
+              if (req.body.assignedToUserId || grievance.assignedToUserId) {
+                const staffUserId = req.body.assignedToUserId !== undefined ? 
+                  req.body.assignedToUserId : grievance.assignedToUserId;
+                if (staffUserId) {
+                  const assignedUser = await storage.getUser(staffUserId);
+                  if (assignedUser) {
+                    assignedStaffEmail = assignedUser.email;
+                  }
+                }
+              }
+              
+              // Send notification
+              await sendRequestClosureNotification(
+                'grievance',
+                id,
+                {
+                  firstName: grievance.firstName,
+                  lastName: grievance.lastName,
+                  email: grievance.email,
+                  organizationName: organization ? organization.businessName : 'Our Organization',
+                  requestType: 'Grievance',
+                  closureComment: req.body.comments || 'Your grievance has been processed and is now closed.',
+                  assignedStaffEmail
+                }
+              );
+              console.log(`✅ Closure notification email sent for Grievance #${id}`);
+            } catch (emailError) {
+              console.error(`📧 Grievance closure email notification failed:`, emailError);
+              // Don't fail the request update if email fails
+            }
+          }
+        }
+        
         await storage.createGrievanceHistory({
           grievanceId: id,
           changedByUserId: (req as AuthRequest).user?.id || null,

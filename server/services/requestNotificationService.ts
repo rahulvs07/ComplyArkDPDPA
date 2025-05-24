@@ -5,10 +5,18 @@
  * For both Data Protection Requests and Grievances
  */
 
-import { db } from '../db';
-import { emailTemplates } from '@shared/schema';
-import { eq } from 'drizzle-orm';
-import { sendEmail } from '../controllers/emailController';
+import { storage } from '../storage';
+import { getTemplateByName, processTemplate, sendEmailWithTemplate } from '../controllers/emailController';
+
+interface RequestNotificationData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  organizationName: string;
+  requestType: string;
+  closureComment?: string;
+  assignedStaffEmail?: string | null;
+}
 
 /**
  * Send a notification email when a new request is created
@@ -16,62 +24,39 @@ import { sendEmail } from '../controllers/emailController';
 export async function sendRequestCreationNotification(
   requestType: 'dpr' | 'grievance',
   requestId: number,
-  requestData: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    organizationName: string;
-    requestType?: string;
-  }
+  data: RequestNotificationData
 ): Promise<boolean> {
   try {
-    // Get email template for request creation
-    const templateName = 'Request Creation Notification';
-    const template = await db.select().from(emailTemplates)
-      .where(eq(emailTemplates.name, templateName))
-      .limit(1);
-    
-    if (template.length === 0) {
-      console.error(`Email template '${templateName}' not found`);
+    // Get email template
+    const template = await getTemplateByName('Request Creation Notification');
+    if (!template) {
+      console.error('Request creation email template not found');
       return false;
     }
-    
-    const fullName = `${requestData.firstName} ${requestData.lastName}`;
-    const requestTypeDisplay = requestType === 'dpr' 
-      ? `Data Protection Request (${requestData.requestType || 'General'})`
-      : 'Grievance';
-    
-    // Replace template variables
-    let subject = template[0].subject
-      .replace('{requestType}', requestTypeDisplay)
-      .replace('{requestId}', requestId.toString());
-    
-    let htmlContent = template[0].body
-      .replace(/{requestId}/g, requestId.toString())
-      .replace(/{requestType}/g, requestTypeDisplay)
-      .replace(/{name}/g, fullName)
-      .replace(/{organizationName}/g, requestData.organizationName);
-    
-    // Create plain text version by stripping HTML
-    const textContent = htmlContent.replace(/<[^>]*>/g, '');
-    
+
+    // Prepare template variables
+    const variables = {
+      name: `${data.firstName} ${data.lastName}`,
+      requestId: requestId.toString(),
+      requestType: data.requestType,
+      organizationName: data.organizationName,
+      date: new Date().toLocaleDateString()
+    };
+
+    // Process the template
+    const processedSubject = processTemplate(template.subject, variables);
+    const processedBody = processTemplate(template.body, variables);
+
     // Send the email
-    const result = await sendEmail(
-      requestData.email,
-      subject,
-      textContent,
-      htmlContent
-    );
-    
-    if (result.success) {
-      console.log(`✅ Creation notification email sent successfully for ${requestType} #${requestId}`);
-      return true;
-    } else {
-      console.error(`❌ Failed to send creation notification email for ${requestType} #${requestId}:`, result.error);
-      return false;
-    }
+    const success = await sendEmailWithTemplate({
+      to: data.email,
+      subject: processedSubject,
+      html: processedBody
+    });
+
+    return success;
   } catch (error) {
-    console.error(`Error sending creation notification for ${requestType} #${requestId}:`, error);
+    console.error('Error sending request creation notification:', error);
     return false;
   }
 }
@@ -82,70 +67,48 @@ export async function sendRequestCreationNotification(
 export async function sendRequestClosureNotification(
   requestType: 'dpr' | 'grievance',
   requestId: number,
-  requestData: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    organizationName: string;
-    requestType?: string;
-    closureComment: string;
-    assignedStaffEmail?: string;
-  }
+  data: RequestNotificationData
 ): Promise<boolean> {
   try {
-    // Get email template for request closure
-    const templateName = 'Request Closure Notification';
-    const template = await db.select().from(emailTemplates)
-      .where(eq(emailTemplates.name, templateName))
-      .limit(1);
-    
-    if (template.length === 0) {
-      console.error(`Email template '${templateName}' not found`);
+    // Get email template
+    const template = await getTemplateByName('Request Closure Notification');
+    if (!template) {
+      console.error('Request closure email template not found');
       return false;
     }
-    
-    const fullName = `${requestData.firstName} ${requestData.lastName}`;
-    const requestTypeDisplay = requestType === 'dpr' 
-      ? `Data Protection Request (${requestData.requestType || 'General'})`
-      : 'Grievance';
-    
-    // Replace template variables
-    let subject = template[0].subject
-      .replace('{requestType}', requestTypeDisplay)
-      .replace('{requestId}', requestId.toString());
-    
-    let htmlContent = template[0].body
-      .replace(/{requestId}/g, requestId.toString())
-      .replace(/{requestType}/g, requestTypeDisplay)
-      .replace(/{name}/g, fullName)
-      .replace(/{organizationName}/g, requestData.organizationName)
-      .replace(/{closureComment}/g, requestData.closureComment || 'No comments provided');
-    
-    // Create plain text version by stripping HTML
-    const textContent = htmlContent.replace(/<[^>]*>/g, '');
-    
-    // Configure email recipients
-    const to = requestData.email;
-    const cc = requestData.assignedStaffEmail ? [requestData.assignedStaffEmail] : [];
-    
+
+    // Prepare template variables
+    const variables = {
+      name: `${data.firstName} ${data.lastName}`,
+      requestId: requestId.toString(),
+      requestType: data.requestType,
+      organizationName: data.organizationName,
+      closureComment: data.closureComment || 'Your request has been processed and is now closed.',
+      date: new Date().toLocaleDateString()
+    };
+
+    // Process the template
+    const processedSubject = processTemplate(template.subject, variables);
+    const processedBody = processTemplate(template.body, variables);
+
+    // Prepare recipients
+    const options: any = {
+      to: data.email,
+      subject: processedSubject,
+      html: processedBody
+    };
+
+    // Add CC for the assigned staff if available
+    if (data.assignedStaffEmail) {
+      options.cc = [data.assignedStaffEmail];
+    }
+
     // Send the email
-    const result = await sendEmail(
-      to,
-      subject,
-      textContent,
-      htmlContent,
-      cc
-    );
-    
-    if (result.success) {
-      console.log(`✅ Closure notification email sent successfully for ${requestType} #${requestId}`);
-      return true;
-    } else {
-      console.error(`❌ Failed to send closure notification email for ${requestType} #${requestId}:`, result.error);
-      return false;
-    }
+    const success = await sendEmailWithTemplate(options);
+
+    return success;
   } catch (error) {
-    console.error(`Error sending closure notification for ${requestType} #${requestId}:`, error);
+    console.error('Error sending request closure notification:', error);
     return false;
   }
 }

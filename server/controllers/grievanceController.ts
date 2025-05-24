@@ -249,6 +249,32 @@ export async function createGrievance(req: Request, res: Response) {
 
     const newGrievance = await storage.createGrievance(data);
     
+    // Send email notification for grievance creation
+    try {
+      // Import the notification service
+      const { sendRequestCreationNotification } = require('../services/requestNotificationService');
+      
+      // Get organization info
+      const organization = await storage.getOrganization(data.organizationId);
+      
+      // Send notification
+      await sendRequestCreationNotification(
+        'grievance',
+        newGrievance.grievanceId,
+        {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          organizationName: organization ? organization.businessName : 'Our Organization',
+          requestType: 'Grievance'
+        }
+      );
+      console.log(`✅ Creation notification email sent for Grievance #${newGrievance.grievanceId}`);
+    } catch (emailError) {
+      console.error(`📧 Grievance creation email notification failed:`, emailError);
+      // Don't fail the grievance creation if email fails
+    }
+    
     return res.status(201).json(newGrievance);
   } catch (error) {
     console.error("Error creating grievance:", error);
