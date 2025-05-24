@@ -18,6 +18,7 @@ import * as requestPageController from './controllers/requestPageController';
 import * as grievanceController from './controllers/grievanceController';
 import * as complianceDocumentController from './controllers/complianceDocumentController';
 import { requestStatusController } from './controllers/requestStatusController';
+import * as notificationController from './controllers/notificationController';
 import * as dashboardController from './controllers/dashboardController';
 import * as otpAuthController from './controllers/otpAuthController';
 import * as emailController from './controllers/emailController';
@@ -249,9 +250,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Email configuration routes
-  app.get('/api/admin/email-settings', isAuthenticated, isAdmin, emailController.getEmailSettings);
-  app.post('/api/admin/email-settings', isAuthenticated, isAdmin, emailController.updateEmailSettings);
-  app.post('/api/admin/test-email', isAuthenticated, isAdmin, emailController.sendTestEmail);
+  app.get('/api/email/settings', isAuthenticated, isAdmin, emailController.getSettings);
+  app.post('/api/email/settings', isAuthenticated, isAdmin, emailController.updateSettings);
+  app.post('/api/email/test', isAuthenticated, isAdmin, emailController.sendTestEmail);
   
   app.post('/api/otp/verify', (req, res) => {
     console.log('OTP verify request:', req.body);
