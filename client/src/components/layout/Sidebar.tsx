@@ -197,6 +197,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <span className="material-icons mr-3">list_alt</span>
                 <span>Request Statuses</span>
             </Link>
+
+            <Link href="/admin/exception-logs" className={cn(
+                "sidebar-item flex items-center px-4 py-3 rounded-md cursor-pointer",
+                isActive("/admin/exception-logs")
+                  ? "active text-[#2E77AE] bg-[#2E77AE]/10" 
+                  : "text-neutral-600 hover:text-[#2E77AE] hover:bg-[#2E77AE]/5"
+              )}>
+                <span className="material-icons mr-3">bug_report</span>
+                <span>Exception Logs</span>
+            </Link>
           </>
         )}
         

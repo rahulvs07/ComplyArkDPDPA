@@ -154,7 +154,7 @@ function Router() {
       
       <Route path="/admin/exception-logs">
         <AppLayout>
-          <ProtectedRoute component={ExceptionLogs} adminOnly={true} />
+          <ProtectedRoute component={ExceptionLogs} superAdminOnly={true} />
         </AppLayout>
       </Route>
       
