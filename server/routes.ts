@@ -23,6 +23,7 @@ import * as otpAuthController from './controllers/simpleOtpController';
 import * as emailController from './controllers/emailController';
 import * as emailTemplateController from './controllers/emailTemplateController';
 import * as notificationEmailController from './controllers/notificationEmailController';
+import { getEmailSettings, saveEmailSettings, sendTestEmail, checkEmailConfiguration } from './emailService';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session
