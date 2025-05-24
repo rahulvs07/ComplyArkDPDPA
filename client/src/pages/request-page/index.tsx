@@ -315,16 +315,79 @@ export default function RequestPage() {
     return null;
   }
 
-  // If not authenticated, the useEffect will handle the redirect to OTP page
+  // If not authenticated, show OTP verification
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader>
-            <CardTitle>Redirecting to Verification</CardTitle>
+            <CardTitle>{organization.name} - Email Verification</CardTitle>
+            <CardDescription>
+              Please verify your email to continue with your request
+            </CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <CardContent>
+            {!userEmail ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="verificationEmail" className="text-sm font-medium">Email Address</label>
+                  <Input
+                    id="verificationEmail"
+                    type="email"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    We'll send a verification code to this email address
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => userEmail && setShowOtpVerification(true)}
+                  disabled={!userEmail}
+                  className="w-full"
+                >
+                  Continue
+                </Button>
+              </div>
+            ) : showOtpVerification ? (
+              <OtpVerification 
+                email={userEmail}
+                onVerificationSuccess={(email) => {
+                  // Save verification to session storage
+                  sessionStorage.setItem(`otp_verified_${organization.id}`, 'true');
+                  sessionStorage.setItem(`otp_email_${organization.id}`, email);
+                  setIsAuthenticated(true);
+                }}
+                onBack={() => {
+                  setShowOtpVerification(false);
+                }}
+                organizationId={organization.id}
+              />
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="verificationEmail" className="text-sm font-medium">Email Address</label>
+                  <Input
+                    id="verificationEmail"
+                    type="email"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    We'll send a verification code to this email address
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => userEmail && setShowOtpVerification(true)}
+                  disabled={!userEmail}
+                  className="w-full"
+                >
+                  Continue
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
