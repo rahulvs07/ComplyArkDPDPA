@@ -195,7 +195,7 @@ export default function OTPVerificationPage() {
       
       toast({
         title: 'OTP Sent',
-        description: `We've sent a verification code to ${data.email}. For testing, use "1234".`,
+        description: `We've sent a verification code to ${data.email}. Please check your inbox.`,
       });
     } catch (err) {
       toast({
@@ -506,7 +506,7 @@ export default function OTPVerificationPage() {
                     maxLength={6}
                   />
                   <p className="text-sm text-muted-foreground mt-1">
-                    Enter the code sent to your email. For testing, use "1234".
+                    Enter the verification code sent to your email.
                     {expiresAt && (
                       <span className="block text-xs mt-1">
                         Code expires in 30 minutes.
