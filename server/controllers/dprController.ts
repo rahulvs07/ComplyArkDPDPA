@@ -472,35 +472,35 @@ export const createPublicDPRequest = async (req: Request, res: Response) => {
       comments: `Request submitted by ${email}. Status: Submitted.`
     });
     
-    // Send email notification using direct notification sender
+    // Send email notification using our fixed notification service with proven working technique
     try {
-      // Import the direct notification sender
-      const { sendDirectDPRNotification } = require('../sendDirectNotification');
+      // Import the fixed notification service
+      const { sendDPRCreationNotification } = require('../services/fixedNotificationService');
       
       // Get status name for notification
       const status = await storage.getRequestStatus(submittedStatus.statusId);
       
-      // Send email using the verified direct notification sender
-      const result = await sendDirectDPRNotification({
-        requestId: request.requestId,
+      // Send email using our working notification service
+      const result = await sendDPRCreationNotification(
+        email,
+        request.requestId,
+        requestType,
         firstName,
         lastName,
-        email,
-        requestType,
-        organizationName: organization.businessName,
-        statusName: status?.statusName || 'Submitted',
-        dueDate: completionDate
-      });
+        organization.businessName,
+        status?.statusName || 'Submitted',
+        completionDate
+      );
       
       if (result && result.success) {
-        console.log(`===== DIRECT NOTIFICATION SUCCESS =====`);
-        console.log(`Email sent for DPR #${request.requestId} - Message ID: ${result.messageId}`);
+        console.log(`FIXED NOTIFICATION SERVICE: Email sent successfully!`);
+        console.log(`DPR #${request.requestId} notification - Message ID: ${result.messageId}`);
       } else {
-        console.error(`===== DIRECT NOTIFICATION FAILED =====`);
-        console.error(`Email failed: ${result?.error || 'Unknown error'}`);
+        console.error(`FIXED NOTIFICATION SERVICE: Email failed!`);
+        console.error(`Error: ${result?.error || 'Unknown error'}`);
       }
     } catch (emailError) {
-      console.error("Failed to send direct notification email:", emailError);
+      console.error("Failed to send notification email:", emailError);
       // Don't fail the request creation if email fails
     }
     
