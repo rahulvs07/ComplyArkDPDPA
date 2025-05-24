@@ -19,7 +19,7 @@ import * as grievanceController from './controllers/grievanceController';
 import * as complianceDocumentController from './controllers/complianceDocumentController';
 import { requestStatusController } from './controllers/requestStatusController';
 import * as dashboardController from './controllers/dashboardController';
-import * as otpAuthController from './controllers/fixedOtpController';
+import * as otpAuthController from './controllers/simpleOtpController';
 import * as emailController from './controllers/emailController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
