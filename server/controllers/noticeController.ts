@@ -32,7 +32,7 @@ async function generateDocxNotice(
     });
     
     // Generate a unique document ID
-    const documentId = `PN-${Math.floor(10000 + Math.random() * 90000)}-${new Date().getFullYear()}`;
+    const documentId = `CA-${Math.floor(Math.random() * 10000)}-${new Date().getFullYear()}`;
     
     // Create a new document with professional styling
     const doc = new Document({
@@ -129,25 +129,15 @@ async function generateDocxNotice(
         headers: {
           default: {
             children: [
-              // Header with organization name on left and date on right
               new Paragraph({
                 style: "Header",
+                alignment: "center",
                 children: [
                   new TextRun({
                     text: organizationName,
                     bold: true,
                     size: 24, // 12pt
                     color: "FFFFFF"
-                  }),
-                  new TextRun({
-                    text: "        ",
-                    color: "FFFFFF"
-                  }),
-                  new TextRun({
-                    text: currentDate,
-                    size: 20, // 10pt
-                    color: "FFFFFF",
-                    alignment: "right"
                   }),
                 ],
                 shading: {
@@ -157,19 +147,19 @@ async function generateDocxNotice(
                 border: {
                   bottom: {
                     color: "EEEEEE",
-                    size: 3,
+                    size: 6,
                     style: "single",
                   },
                 },
                 spacing: {
-                  after: 60,
+                  after: 120,
                 },
               }),
               // Add organization address right below the organization name
               ...(organizationAddress ? [
                 new Paragraph({
                   style: "Header",
-                  alignment: "left",
+                  alignment: "center",
                   children: [
                     new TextRun({
                       text: organizationAddress,
