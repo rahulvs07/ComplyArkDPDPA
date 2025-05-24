@@ -17,11 +17,15 @@ function generateToken(): string {
 // Send OTP to user email
 export const sendOtp = async (req: Request, res: Response) => {
   try {
+    console.log('OTP request received for processing');
     const { email, organizationId } = req.body;
     
     if (!email) {
+      console.log('OTP request rejected: missing email');
       return res.status(400).json({ message: 'Email is required' });
     }
+    
+    console.log(`Processing OTP request for email: ${email}`);
     
     // Generate OTP and token
     const otp = generateOTP();
@@ -31,6 +35,7 @@ export const sendOtp = async (req: Request, res: Response) => {
     
     // Store OTP data in database
     try {
+      console.log('Storing OTP verification in database');
       await storage.createOtpVerification({
         token,
         otp,
@@ -38,9 +43,13 @@ export const sendOtp = async (req: Request, res: Response) => {
         organizationId: organizationId || null,
         expiresAt: expiryTime
       });
+      console.log('OTP verification stored successfully');
     } catch (dbError) {
       console.error('Error storing OTP in database:', dbError);
-      return res.status(500).json({ message: 'Failed to process OTP request' });
+      return res.status(500).json({ 
+        message: 'Failed to process OTP request',
+        error: dbError instanceof Error ? dbError.message : 'Database error'
+      });
     }
     
     // Clean up expired OTPs
@@ -54,6 +63,7 @@ export const sendOtp = async (req: Request, res: Response) => {
     }
     
     // Send OTP via email using template
+    console.log('Sending OTP via email using template');
     const emailResult = await sendEmailWithTemplate(
       email,
       'OTP Verification',
@@ -82,29 +92,52 @@ export const sendOtp = async (req: Request, res: Response) => {
         <p>If you did not request this OTP, please ignore this email.</p>
       `;
       
+      console.log('Attempting fallback email format');
       const fallbackResult = await sendEmail(email, subject, plainText, htmlMessage);
       
       // Use the fallback result instead
       if (fallbackResult.success) {
+        console.log('Fallback email sent successfully');
         emailResult.success = true;
         emailResult.error = undefined;
+      } else {
+        console.error('Fallback email also failed:', fallbackResult.error);
       }
     }
-    const emailSent = emailResult.success;
     
-    if (!emailSent) {
-      console.log('Failed to send OTP email. Returning token anyway for testing.');
+    // Log success or failure
+    if (!emailResult.success) {
+      console.log('Failed to send OTP email. Error:', emailResult.error);
+      console.log('Proceeding anyway for testing purposes with OTP:', otp);
+    } else {
+      console.log('OTP email sent successfully');
     }
     
-    // Return token but not the actual OTP for security
-    return res.status(200).json({
+    // Create response object
+    const responseData: any = {
       message: 'OTP sent successfully',
       token,
       expiresAt: expiryTime
-    });
+    };
+    
+    // In development, include the OTP in response for easier testing
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('DEV MODE: Including OTP in response for testing:', otp);
+      responseData.devInfo = {
+        otp,
+        emailStatus: emailResult.success ? 'sent' : 'failed',
+        emailError: emailResult.error
+      };
+    }
+    
+    console.log('OTP process completed successfully');
+    return res.status(200).json(responseData);
   } catch (error) {
     console.error('Send OTP error:', error);
-    return res.status(500).json({ message: 'Failed to send OTP' });
+    return res.status(500).json({ 
+      message: 'Failed to send OTP',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 
