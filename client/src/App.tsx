@@ -15,6 +15,7 @@ import AdminIndustries from "@/pages/admin/industries";
 import AdminTemplates from "@/pages/admin/templates";
 import EmailSettings from "@/pages/admin/email-settings";
 import OtpTestingPage from "@/pages/admin/otp-testing";
+import ExceptionLogs from "@/pages/admin/exception-logs";
 import UserSettings from "@/pages/user/settings";
 import WelcomePage from "@/pages/welcome";
 import RequestPage from "@/pages/RequestPage";
@@ -27,6 +28,7 @@ import OtpTestPage from "@/pages/otp-test";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "./components/layout/AppLayout";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { registerGlobalErrorHandler } from "@/lib/exceptionLogger";
 
 // Protected route component that redirects to login if not authenticated
 function ProtectedRoute({ component: Component, adminOnly = false, superAdminOnly = false, ...rest }: { 
@@ -147,6 +149,12 @@ function Router() {
       <Route path="/admin/otp-testing">
         <AppLayout>
           <ProtectedRoute component={OtpTestingPage} adminOnly={true} />
+        </AppLayout>
+      </Route>
+      
+      <Route path="/admin/exception-logs">
+        <AppLayout>
+          <ProtectedRoute component={ExceptionLogs} adminOnly={true} />
         </AppLayout>
       </Route>
       

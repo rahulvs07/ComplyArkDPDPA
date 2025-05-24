@@ -644,6 +644,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/dashboard/escalated-requests', isAuthenticated, dashboardController.getEscalatedRequests);
   app.get('/api/dashboard/upcoming-due-requests', isAuthenticated, dashboardController.getUpcomingDueRequests);
   
+  // Exception logging routes
+  app.post('/api/exceptions', exceptionLogController.logException);
+  app.get('/api/exceptions', isAuthenticated, exceptionLogController.getExceptionLogs);
+  app.get('/api/exceptions/:id', isAuthenticated, exceptionLogController.getExceptionLogById);
+  app.patch('/api/exceptions/:id', isAuthenticated, exceptionLogController.updateExceptionLogStatus);
+  app.delete('/api/exceptions/:id', isAuthenticated, isSuperAdmin, exceptionLogController.deleteExceptionLog);
+  
   const httpServer = createServer(app);
 
   return httpServer;
