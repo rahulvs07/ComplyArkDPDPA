@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
-import MainLayout from '@/components/layouts/MainLayout';
+import MainLayout from '@/components/layout/AppLayout';
 
 function OtpTestingPage() {
   // OTP Request State
@@ -145,13 +145,19 @@ function OtpTestingPage() {
   };
   
   return (
-    <MainLayout>
-      <div className="container mx-auto p-4">
-        <div className="flex flex-col gap-6">
-          <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow-sm p-6 border border-neutral-200">
+        <div className="flex justify-between items-center">
+          <div>
             <h1 className="text-2xl font-bold">OTP Testing Tool</h1>
-            <Button variant="outline" onClick={handleReset}>Reset</Button>
+            <p className="text-neutral-600 mt-1">Test OTP verification functionality with your configured email settings.</p>
           </div>
+          <Button variant="outline" onClick={handleReset}>Reset</Button>
+        </div>
+      </div>
+      
+      <div className="container mx-auto p-0">
+        <div className="flex flex-col gap-6">
           
           <p className="text-muted-foreground">
             This tool allows administrators to test the OTP verification system using
@@ -263,7 +269,7 @@ function OtpTestingPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   );
 }
 
