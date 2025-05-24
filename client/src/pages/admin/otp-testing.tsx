@@ -47,7 +47,18 @@ function OtpTestingPage() {
         body: JSON.stringify({ email }),
       });
       
-      const data = await response.json();
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        // Handle non-JSON response (like HTML error pages)
+        const textResponse = await response.text();
+        console.error('Non-JSON response received:', textResponse.substring(0, 100) + '...');
+        throw new Error('Server returned non-JSON response. Check server logs for OTP details.');
+      }
       
       if (response.ok) {
         setRequestStatus('success');
@@ -118,7 +129,18 @@ function OtpTestingPage() {
         body: JSON.stringify({ otp, token: otpToken }),
       });
       
-      const data = await response.json();
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        // Handle non-JSON response (like HTML error pages)
+        const textResponse = await response.text();
+        console.error('Non-JSON response received:', textResponse.substring(0, 100) + '...');
+        throw new Error('Server returned non-JSON response. Check server logs for details.');
+      }
       
       if (response.ok) {
         setVerifyStatus('success');
