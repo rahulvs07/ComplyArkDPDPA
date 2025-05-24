@@ -7,7 +7,8 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import MainLayout from '@/components/layout/AppLayout';
 
-function OtpTestingPage() {
+// This is the main component that will be rendered inside the layout
+function OtpTestingContent() {
   // OTP Request State
   const [email, setEmail] = useState('');
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
@@ -339,7 +340,7 @@ function OtpTestingPage() {
 export default function OtpTestingRoute() {
   return (
     <MainLayout>
-      <OtpTestingPage />
+      <OtpTestingContent />
     </MainLayout>
   );
 }
