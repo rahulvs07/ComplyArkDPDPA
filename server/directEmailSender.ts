@@ -31,19 +31,24 @@ export async function sendDirectEmail(
     console.log('- SMTP Host:', config.smtpHost);
     console.log('- SMTP Port:', config.smtpPort);
     
-    // Configure nodemailer transport
+    // Configure nodemailer transport with the exact settings that worked in the test
     const transportOptions = {
-      host: config.smtpHost || '',
+      host: config.smtpHost || 'smtp.gmail.com',
       port: Number(config.smtpPort) || 587,
-      secure: false,
+      secure: false, // Use TLS
       auth: {
-        user: config.smtpUsername || '',
+        user: config.smtpUsername || 'automatikgarage@gmail.com',
         pass: config.smtpPassword || '',
       },
       tls: {
-        rejectUnauthorized: false
-      }
+        rejectUnauthorized: false // Accept self-signed certificates
+      },
+      debug: true, // Enable debug output for detailed logs
+      logger: true  // Log information into the console
     };
+    
+    console.log('DIRECT EMAIL: Transport options:', JSON.stringify(transportOptions, (key, value) => 
+      key === 'pass' ? '******' : value, 2));
     
     // Create transporter
     console.log('DIRECT EMAIL: Creating transport...');
@@ -51,13 +56,23 @@ export async function sendDirectEmail(
     
     // Verify connection
     console.log('DIRECT EMAIL: Verifying SMTP connection...');
-    await transporter.verify();
-    console.log('DIRECT EMAIL: SMTP connection verified successfully');
+    try {
+      const verification = await transporter.verify();
+      console.log('DIRECT EMAIL: SMTP connection verification result:', verification);
+      console.log('DIRECT EMAIL: SMTP connection verified successfully');
+    } catch (verifyError) {
+      console.error('DIRECT EMAIL: SMTP connection verification failed:');
+      console.error(verifyError);
+      return { 
+        success: false, 
+        error: `SMTP connection failed: ${verifyError instanceof Error ? verifyError.message : 'Unknown error'}`
+      };
+    }
     
-    // Send email
+    // Send email with enhanced debugging
     console.log('DIRECT EMAIL: Sending email...');
-    const result = await transporter.sendMail({
-      from: `"${config.fromName}" <${config.fromEmail}>`,
+    const mailOptions = {
+      from: `"${config.fromName || 'ComplyArk'}" <${config.fromEmail || 'automatikgarage@gmail.com'}>`,
       to,
       subject,
       text: textContent,
@@ -68,7 +83,16 @@ export async function sendDirectEmail(
         'Importance': 'high',
         'X-MSMail-Priority': 'High'
       }
-    });
+    };
+    
+    console.log('DIRECT EMAIL: Mail options:', JSON.stringify({
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      headers: mailOptions.headers
+    }, null, 2));
+    
+    const result = await transporter.sendMail(mailOptions);
     
     console.log(`DIRECT EMAIL: Email sent successfully to ${to}`);
     console.log(`DIRECT EMAIL: Message ID: ${result.messageId}`);
