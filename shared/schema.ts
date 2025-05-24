@@ -358,3 +358,32 @@ export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).
 // Types for OTP verification
 export type OtpVerification = typeof otpVerifications.$inferSelect;
 export type InsertOtpVerification = z.infer<typeof insertOtpVerificationSchema>;
+
+// Exception Logging Table
+export const exceptionLogs = pgTable("exceptionLogs", {
+  id: serial("id").primaryKey(),
+  pageName: text("pageName").notNull(),
+  functionName: text("functionName").notNull(),
+  errorMessage: text("errorMessage").notNull(),
+  stackTrace: text("stackTrace"),
+  userId: integer("userId").references(() => users.id),
+  organizationId: integer("organizationId").references(() => organizations.id),
+  browserInfo: text("browserInfo"),
+  url: text("url"),
+  additionalInfo: text("additionalInfo"),
+  severity: text("severity", { enum: ["low", "medium", "high", "critical"] }).notNull().default("medium"),
+  status: text("status", { enum: ["new", "in_progress", "resolved", "ignored"] }).notNull().default("new"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  resolvedAt: timestamp("resolvedAt"),
+});
+
+// Insert schema for exception logs
+export const insertExceptionLogSchema = createInsertSchema(exceptionLogs).omit({
+  id: true,
+  createdAt: true,
+  resolvedAt: true
+});
+
+// Types for exception logs
+export type ExceptionLog = typeof exceptionLogs.$inferSelect;
+export type InsertExceptionLog = z.infer<typeof insertExceptionLogSchema>;
