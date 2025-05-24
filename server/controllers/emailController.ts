@@ -134,7 +134,7 @@ export const saveEmailSettings = async (req: Request, res: Response) => {
 // Send test email
 export const sendTestEmail = async (req: Request, res: Response) => {
   try {
-    const { recipient, subject, message } = req.body;
+    const { recipient, subject, message, html } = req.body;
     
     // Validate required fields
     if (!recipient || !subject || !message) {
@@ -160,7 +160,8 @@ export const sendTestEmail = async (req: Request, res: Response) => {
         emailConfig,
         recipient,
         subject,
-        message
+        message,
+        html
       );
       
       if (result.success) {
@@ -173,7 +174,8 @@ export const sendTestEmail = async (req: Request, res: Response) => {
         emailConfig,
         recipient,
         subject,
-        message
+        message,
+        html
       );
       
       if (result.success) {
@@ -237,7 +239,8 @@ async function sendSmtpEmail(
   config: typeof emailSettings.$inferSelect,
   to: string,
   subject: string,
-  text: string
+  text: string,
+  html?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!config.smtpHost || !config.smtpPort) {
@@ -339,9 +342,9 @@ export async function sendEmail(
     const config = settings[0];
     
     if (config.provider === 'smtp') {
-      return sendSmtpEmail(config, to, subject, text);
+      return sendSmtpEmail(config, to, subject, text, html);
     } else if (config.provider === 'sendgrid') {
-      return sendSendgridEmail(config, to, subject, text);
+      return sendSendgridEmail(config, to, subject, text, html);
     } else {
       return {
         success: false,

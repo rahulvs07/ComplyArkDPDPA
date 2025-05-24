@@ -1,110 +1,106 @@
-import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/lib/auth';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, CheckCircle, XCircle, Mail } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { toast } from '@/hooks/use-toast';
+import MainLayout from '@/components/layouts/MainLayout';
 
-const OtpTestingPage = () => {
-  const { toast } = useToast();
-  const { user } = useAuth();
+function OtpTestingPage() {
+  // OTP Request State
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [token, setToken] = useState('');
-  const [otpSending, setOtpSending] = useState(false);
-  const [otpVerifying, setOtpVerifying] = useState(false);
-  const [sendStatus, setSendStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [verifyStatus, setVerifyStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [expiryTime, setExpiryTime] = useState<Date | null>(null);
+  const [isRequestingOtp, setIsRequestingOtp] = useState(false);
+  const [otpToken, setOtpToken] = useState('');
+  const [otpExpiryTime, setOtpExpiryTime] = useState<Date | null>(null);
   
-  // Handle sending OTP
-  const handleSendOtp = async () => {
+  // OTP Verification State
+  const [otp, setOtp] = useState('');
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  
+  // Status States
+  const [requestStatus, setRequestStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [verifyStatus, setVerifyStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+  
+  // Handle OTP Request
+  const handleRequestOtp = async () => {
     if (!email) {
       toast({
-        title: 'Email Required',
-        description: 'Please enter an email address to send the OTP.',
-        variant: 'destructive'
+        title: "Error",
+        description: "Please enter an email address",
+        variant: "destructive"
       });
       return;
     }
     
-    setOtpSending(true);
-    setSendStatus('idle');
+    setIsRequestingOtp(true);
+    setRequestStatus('idle');
+    setErrorMessage('');
     
     try {
-      const organizationId = user?.organizationId || '';
-      
-      const response = await fetch('/api/auth/otp/send', {
+      const response = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          email,
-          organizationId
-        })
+        body: JSON.stringify({ email }),
       });
       
       const data = await response.json();
       
       if (response.ok) {
-        setToken(data.token);
-        setSendStatus('success');
-        setExpiryTime(new Date(data.expiresAt));
-        
+        setRequestStatus('success');
+        setOtpToken(data.token);
+        setOtpExpiryTime(new Date(data.expiresAt));
         toast({
-          title: 'OTP Sent Successfully',
-          description: `An OTP has been sent to ${email}. It will expire at ${new Date(data.expiresAt).toLocaleTimeString()}.`,
+          title: "Success",
+          description: "OTP sent successfully",
         });
       } else {
-        setSendStatus('error');
+        setRequestStatus('error');
+        setErrorMessage(data.message || 'Failed to send OTP');
         toast({
-          title: 'Failed to Send OTP',
-          description: data.message || 'An error occurred while sending the OTP.',
-          variant: 'destructive'
+          title: "Error",
+          description: data.message || 'Failed to send OTP',
+          variant: "destructive"
         });
       }
     } catch (error) {
-      setSendStatus('error');
-      console.error('Error sending OTP:', error);
+      setRequestStatus('error');
+      setErrorMessage('An unexpected error occurred');
       toast({
-        title: 'Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive'
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
       });
     } finally {
-      setOtpSending(false);
+      setIsRequestingOtp(false);
     }
   };
   
-  // Handle verifying OTP
+  // Handle OTP Verification
   const handleVerifyOtp = async () => {
-    if (!otp || !token) {
+    if (!otp || !otpToken) {
       toast({
-        title: 'OTP and Token Required',
-        description: 'Please enter the OTP and ensure you have a valid token.',
-        variant: 'destructive'
+        title: "Error",
+        description: "Please enter OTP and ensure you have requested an OTP first",
+        variant: "destructive"
       });
       return;
     }
     
-    setOtpVerifying(true);
+    setIsVerifyingOtp(true);
     setVerifyStatus('idle');
+    setErrorMessage('');
     
     try {
-      const response = await fetch('/api/auth/otp/verify', {
+      const response = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          otp,
-          token 
-        })
+        body: JSON.stringify({ otp, token: otpToken }),
       });
       
       const data = await response.json();
@@ -112,200 +108,163 @@ const OtpTestingPage = () => {
       if (response.ok) {
         setVerifyStatus('success');
         toast({
-          title: 'OTP Verified Successfully',
-          description: `OTP verification successful for ${data.email}.`,
+          title: "Success",
+          description: "OTP verified successfully",
         });
       } else {
         setVerifyStatus('error');
+        setErrorMessage(data.message || 'Failed to verify OTP');
         toast({
-          title: 'OTP Verification Failed',
-          description: data.message || 'The OTP could not be verified.',
-          variant: 'destructive'
+          title: "Error",
+          description: data.message || 'Failed to verify OTP',
+          variant: "destructive"
         });
       }
     } catch (error) {
       setVerifyStatus('error');
-      console.error('Error verifying OTP:', error);
+      setErrorMessage('An unexpected error occurred');
       toast({
-        title: 'Error',
-        description: 'An unexpected error occurred during verification.',
-        variant: 'destructive'
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
       });
     } finally {
-      setOtpVerifying(false);
+      setIsVerifyingOtp(false);
     }
   };
   
+  // Reset All
+  const handleReset = () => {
+    setEmail('');
+    setOtp('');
+    setOtpToken('');
+    setOtpExpiryTime(null);
+    setRequestStatus('idle');
+    setVerifyStatus('idle');
+    setErrorMessage('');
+  };
+  
   return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-6">OTP Verification Testing</h1>
-      
-      <div className="mb-6">
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
-          This page allows administrators to test the OTP verification system. You can send test OTPs to any email address and verify them.
-        </p>
-        
-        <Alert className="mb-6">
-          <AlertTitle>Important Note</AlertTitle>
-          <AlertDescription>
-            This is a testing interface only. Make sure your email settings are properly configured before testing.
-            You can configure email settings in the Email Settings page.
-          </AlertDescription>
-        </Alert>
-      </div>
-      
-      <Tabs defaultValue="send">
-        <TabsList className="mb-6">
-          <TabsTrigger value="send">Send OTP</TabsTrigger>
-          <TabsTrigger value="verify">Verify OTP</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="send">
-          <Card>
-            <CardHeader>
-              <CardTitle>Send OTP</CardTitle>
-              <CardDescription>
-                Send a test OTP to any email address.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                
-                <Button
-                  onClick={handleSendOtp}
-                  disabled={otpSending || !email}
-                  className="w-full"
-                >
-                  {otpSending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending OTP...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="mr-2 h-4 w-4" />
-                      Send OTP
-                    </>
-                  )}
-                </Button>
-                
-                {sendStatus === 'success' && (
-                  <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded flex items-start">
-                    <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium">OTP Sent Successfully</p>
-                      <p className="text-sm mt-1">
-                        An OTP has been sent to {email}.
-                        {expiryTime && (
-                          <span> It will expire at {expiryTime.toLocaleTimeString()}.</span>
+    <MainLayout>
+      <div className="container mx-auto p-4">
+        <div className="flex flex-col gap-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">OTP Testing Tool</h1>
+            <Button variant="outline" onClick={handleReset}>Reset</Button>
+          </div>
+          
+          <p className="text-muted-foreground">
+            This tool allows administrators to test the OTP verification system using
+            the configured email settings.
+          </p>
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* OTP Request Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Request OTP</CardTitle>
+                <CardDescription>
+                  Enter an email address to receive an OTP
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="email" className="text-sm font-medium">Email Address</label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  
+                  <Button 
+                    onClick={handleRequestOtp} 
+                    disabled={isRequestingOtp || !email}
+                  >
+                    {isRequestingOtp ? 'Sending OTP...' : 'Send OTP'}
+                  </Button>
+                  
+                  {requestStatus === 'success' && (
+                    <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                      <AlertDescription>
+                        OTP sent successfully to {email}. 
+                        {otpExpiryTime && (
+                          <span> Expires at {otpExpiryTime.toLocaleTimeString()}</span>
                         )}
-                      </p>
-                      <p className="text-sm mt-2 font-medium">Token: {token}</p>
-                    </div>
-                  </div>
-                )}
-                
-                {sendStatus === 'error' && (
-                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 rounded flex items-start">
-                    <XCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Failed to Send OTP</p>
-                      <p className="text-sm mt-1">
-                        There was an error sending the OTP to {email}. Please check your email settings and try again.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="verify">
-          <Card>
-            <CardHeader>
-              <CardTitle>Verify OTP</CardTitle>
-              <CardDescription>
-                Verify a test OTP that was previously sent.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="token">Token</Label>
-                  <Input
-                    id="token"
-                    placeholder="Enter token received from OTP send"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="otp">OTP</Label>
-                  <Input
-                    id="otp"
-                    placeholder="Enter the OTP received in email"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                  />
-                </div>
-                
-                <Button
-                  onClick={handleVerifyOtp}
-                  disabled={otpVerifying || !otp || !token}
-                  className="w-full"
-                >
-                  {otpVerifying ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Verifying OTP...
-                    </>
-                  ) : (
-                    <>Verify OTP</>
+                      </AlertDescription>
+                    </Alert>
                   )}
-                </Button>
-                
-                {verifyStatus === 'success' && (
-                  <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 rounded flex items-start">
-                    <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium">OTP Verified Successfully</p>
-                      <p className="text-sm mt-1">
-                        The OTP has been successfully verified.
-                      </p>
-                    </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* OTP Verification Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Verify OTP</CardTitle>
+                <CardDescription>
+                  Enter the OTP received in your email
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="otp" className="text-sm font-medium">OTP Code</label>
+                    <Input
+                      id="otp"
+                      type="text"
+                      placeholder="Enter OTP code"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      maxLength={6}
+                    />
                   </div>
-                )}
-                
-                {verifyStatus === 'error' && (
-                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 rounded flex items-start">
-                    <XCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium">OTP Verification Failed</p>
-                      <p className="text-sm mt-1">
-                        The OTP could not be verified. It may be incorrect, expired, or already used.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+                  
+                  <Button 
+                    onClick={handleVerifyOtp} 
+                    disabled={isVerifyingOtp || !otp || !otpToken}
+                  >
+                    {isVerifyingOtp ? 'Verifying...' : 'Verify OTP'}
+                  </Button>
+                  
+                  {verifyStatus === 'success' && (
+                    <Alert className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                      <AlertDescription>
+                        OTP verified successfully!
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Error Display */}
+          {errorMessage && (
+            <Alert className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+          
+          <Separator />
+          
+          <div className="text-sm text-muted-foreground">
+            <h3 className="font-semibold mb-2">How to test the OTP system:</h3>
+            <ol className="list-decimal ml-5 space-y-1">
+              <li>Enter a valid email address in the Request OTP section</li>
+              <li>Click "Send OTP" to send an OTP to the email address</li>
+              <li>Check your email for the OTP code</li>
+              <li>Enter the OTP code in the Verify OTP section</li>
+              <li>Click "Verify OTP" to validate the code</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </MainLayout>
   );
-};
+}
 
 export default OtpTestingPage;
