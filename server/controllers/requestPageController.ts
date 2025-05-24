@@ -164,32 +164,35 @@ export async function createDPRequest(req: Request, res: Response) {
       .values(requestValues)
       .returning();
     
-    // Send email notification to the requester using our robust email service
+    // Send email notification to the requester
     try {
-      const { sendRequestCreationEmail } = await import('../services/robustEmailService');
+      const { sendDPRSubmissionNotification } = await import('../utils/emailService');
       
       // Get status name for notification
       const status = await db.query.requestStatuses.findFirst({
         where: eq(requestStatuses.statusId, dpRequest.statusId)
       });
       
-      // Send email using the robust email service
-      const result = await sendRequestCreationEmail(
-        dpRequest.email,
-        dpRequest.requestId,
-        dpRequest.requestType,
-        dpRequest.firstName,
-        dpRequest.lastName,
-        organization.businessName,
-        status?.statusName || 'Submitted',
-        completionDate
-      );
-      
-      if (result.success) {
-        console.log(`✅ Email notification sent for DPR request #${dpRequest.requestId} - Message ID: ${result.messageId}`);
-      } else {
-        console.error(`❌ Email notification failed: ${result.error}`);
+      // Get assigned user name if available
+      let assignedUser = null;
+      if (dpRequest.assignedToUserId) {
+        assignedUser = await db.query.users.findFirst({
+          where: eq(users.id, dpRequest.assignedToUserId)
+        });
       }
+      
+      await sendDPRSubmissionNotification({
+        requestId: dpRequest.requestId,
+        requestType: dpRequest.requestType,
+        requesterName: `${dpRequest.firstName} ${dpRequest.lastName}`,
+        requesterEmail: dpRequest.email,
+        organizationName: organization.businessName,
+        statusName: status?.statusName || 'Submitted',
+        assignedTo: assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'System Admin',
+        dueDate: completionDate ? new Date(completionDate).toLocaleDateString() : 'TBD'
+      });
+      
+      console.log(`✅ Email notification sent for DPR request #${dpRequest.requestId}`);
     } catch (emailError) {
       console.error('📧 Email notification failed:', emailError);
       // Don't fail the request creation if email fails
@@ -273,31 +276,34 @@ export async function createGrievance(req: Request, res: Response) {
       .values(grievanceValues)
       .returning();
     
-    // Send email notification to the requester using our robust email service
+    // Send email notification to the requester
     try {
-      const { sendGrievanceCreationEmail } = await import('../services/robustEmailService');
+      const { sendGrievanceSubmissionNotification } = await import('../utils/emailService');
       
       // Get status name for notification
       const status = await db.query.requestStatuses.findFirst({
         where: eq(requestStatuses.statusId, grievance.statusId)
       });
       
-      // Send email using the robust email service
-      const result = await sendGrievanceCreationEmail(
-        grievance.email,
-        grievance.grievanceId,
-        grievance.firstName,
-        grievance.lastName,
-        organization.businessName,
-        status?.statusName || 'Submitted',
-        completionDate
-      );
-      
-      if (result.success) {
-        console.log(`✅ Email notification sent for Grievance #${grievance.grievanceId} - Message ID: ${result.messageId}`);
-      } else {
-        console.error(`❌ Email notification failed: ${result.error}`);
+      // Get assigned user name if available
+      let assignedUser = null;
+      if (grievance.assignedToUserId) {
+        assignedUser = await db.query.users.findFirst({
+          where: eq(users.id, grievance.assignedToUserId)
+        });
       }
+      
+      await sendGrievanceSubmissionNotification({
+        grievanceId: grievance.grievanceId,
+        requesterName: `${grievance.firstName} ${grievance.lastName}`,
+        requesterEmail: grievance.email,
+        organizationName: organization.businessName,
+        statusName: status?.statusName || 'Submitted',
+        assignedTo: assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'System Admin',
+        dueDate: completionDate ? new Date(completionDate).toLocaleDateString() : 'TBD'
+      });
+      
+      console.log(`✅ Email notification sent for Grievance #${grievance.grievanceId}`);
     } catch (emailError) {
       console.error('📧 Email notification failed:', emailError);
       // Don't fail the grievance creation if email fails

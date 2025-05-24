@@ -225,46 +225,6 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
         }
         
         historyEntry.comments = closureComments;
-        
-        // Send closure email notification
-        try {
-          // Import the fixed notification service
-          const { sendRequestClosureNotification } = require('../services/fixedNotificationService');
-          
-          // Get organization info
-          const organization = await storage.getOrganization(request.organizationId);
-          
-          // Get assigned staff info (for CC)
-          let assignedStaffEmail = null;
-          if (assignedToUserId || request.assignedToUserId) {
-            const staffUserId = assignedToUserId !== undefined ? assignedToUserId : request.assignedToUserId;
-            if (staffUserId) {
-              const assignedUser = await storage.getUser(staffUserId);
-              if (assignedUser) {
-                assignedStaffEmail = assignedUser.email;
-              }
-            }
-          }
-          
-          // Send notification using improved service
-          await sendRequestClosureNotification(
-            'dpr',
-            requestId,
-            {
-              firstName: request.firstName,
-              lastName: request.lastName,
-              email: request.email,
-              organizationName: organization ? organization.businessName : 'Our Organization',
-              requestType: request.requestType,
-              closureComment: closureComments || 'Your request has been processed and is now closed.',
-              assignedStaffEmail
-            }
-          );
-          console.log(`✅ Closure notification email sent for DPR #${requestId}`);
-        } catch (emailError) {
-          console.error(`📧 DPR closure email notification failed:`, emailError);
-          // Don't fail the request update if email fails
-        }
       }
     }
     
@@ -471,38 +431,6 @@ export const createPublicDPRequest = async (req: Request, res: Response) => {
       newStatusId: submittedStatus.statusId,
       comments: `Request submitted by ${email}. Status: Submitted.`
     });
-    
-    // Send email notification using our fixed notification service with proven working technique
-    try {
-      // Import the fixed notification service
-      const { sendDPRCreationNotification } = require('../services/fixedNotificationService');
-      
-      // Get status name for notification
-      const status = await storage.getRequestStatus(submittedStatus.statusId);
-      
-      // Send email using our working notification service
-      const result = await sendDPRCreationNotification(
-        email,
-        request.requestId,
-        requestType,
-        firstName,
-        lastName,
-        organization.businessName,
-        status?.statusName || 'Submitted',
-        completionDate
-      );
-      
-      if (result && result.success) {
-        console.log(`FIXED NOTIFICATION SERVICE: Email sent successfully!`);
-        console.log(`DPR #${request.requestId} notification - Message ID: ${result.messageId}`);
-      } else {
-        console.error(`FIXED NOTIFICATION SERVICE: Email failed!`);
-        console.error(`Error: ${result?.error || 'Unknown error'}`);
-      }
-    } catch (emailError) {
-      console.error("Failed to send notification email:", emailError);
-      // Don't fail the request creation if email fails
-    }
     
     return res.status(201).json({
       requestId: request.requestId,

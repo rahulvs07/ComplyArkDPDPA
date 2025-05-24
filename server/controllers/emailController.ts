@@ -240,92 +240,6 @@ export const getEmailTemplates = async (req: Request, res: Response) => {
 </html>`,
         },
         {
-          name: 'Request Creation Notification',
-          subject: 'Your {requestType} Request #{requestId} - ComplyArk',
-          body: `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; }
-    .content { padding: 20px; background-color: #f9f9f9; }
-    .details { background-color: #eaeaea; padding: 15px; margin: 15px 0; }
-    .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h2>Request Confirmation</h2>
-    </div>
-    <div class="content">
-      <p>Hello {name},</p>
-      <p>Thank you for submitting your {requestType} request with {organizationName}. We have received it and will process it accordingly.</p>
-      <div class="details">
-        <p><strong>Request ID:</strong> {requestId}</p>
-        <p><strong>Request Type:</strong> {requestType}</p>
-        <p><strong>Submitted On:</strong> ${new Date().toLocaleDateString()}</p>
-      </div>
-      <p>Please keep this Request ID for your records. You may be contacted if additional information is needed.</p>
-      <p>We will notify you when your request has been processed.</p>
-    </div>
-    <div class="footer">
-      <p>This is an automated message from the ComplyArk system.</p>
-      <p>&copy; ComplyArk - Data Protection and Privacy Management</p>
-    </div>
-  </div>
-</body>
-</html>`,
-        },
-        {
-          name: 'Request Closure Notification',
-          subject: 'Your {requestType} Request #{requestId} Has Been Completed - ComplyArk',
-          body: `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; }
-    .content { padding: 20px; background-color: #f9f9f9; }
-    .details { background-color: #eaeaea; padding: 15px; margin: 15px 0; }
-    .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
-    .comment { background-color: #f5f5f5; padding: 15px; border-left: 4px solid #4F46E5; margin: 15px 0; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h2>Request Completed</h2>
-    </div>
-    <div class="content">
-      <p>Hello {name},</p>
-      <p>Your {requestType} request with {organizationName} has been completed and is now closed.</p>
-      <div class="details">
-        <p><strong>Request ID:</strong> {requestId}</p>
-        <p><strong>Request Type:</strong> {requestType}</p>
-        <p><strong>Status:</strong> Closed</p>
-      </div>
-      
-      <p><strong>Comments from our team:</strong></p>
-      <div class="comment">
-        {closureComment}
-      </div>
-      
-      <p>Thank you for using our services. If you have any further questions, please contact us.</p>
-    </div>
-    <div class="footer">
-      <p>This is an automated message from the ComplyArk system.</p>
-      <p>&copy; ComplyArk - Data Protection and Privacy Management</p>
-    </div>
-  </div>
-</body>
-</html>`,
-        },
-        {
           name: 'Request Confirmation',
           subject: 'Your Request Confirmation - ComplyArk',
           body: `
@@ -617,8 +531,7 @@ async function sendSmtpEmail(
   to: string,
   subject: string,
   text: string,
-  html?: string,
-  cc?: string[]
+  html?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!config.smtpHost || !config.smtpPort) {
@@ -655,7 +568,6 @@ async function sendSmtpEmail(
     const result = await transporter.sendMail({
       from: `"${config.fromName}" <${config.fromEmail}>`,
       to,
-      cc: cc && cc.length > 0 ? cc : undefined,
       subject,
       text,
       html: html || undefined,
@@ -684,8 +596,7 @@ async function sendSendgridEmail(
   to: string,
   subject: string,
   text: string,
-  html?: string,
-  cc?: string[]
+  html?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!config.sendgridApiKey) {
@@ -707,7 +618,6 @@ async function sendSendgridEmail(
         name: config.fromName,
       },
       to,
-      cc: cc && cc.length > 0 ? cc : undefined,
       subject,
       text,
       html: html || undefined,
@@ -735,8 +645,7 @@ export async function sendEmail(
   to: string,
   subject: string,
   text: string,
-  html?: string,
-  cc?: string[]
+  html?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Get email settings
@@ -752,9 +661,9 @@ export async function sendEmail(
     const config = settings[0];
     
     if (config.provider === 'smtp') {
-      return sendSmtpEmail(config, to, subject, text, html, cc);
+      return sendSmtpEmail(config, to, subject, text, html);
     } else if (config.provider === 'sendgrid') {
-      return sendSendgridEmail(config, to, subject, text, html, cc);
+      return sendSendgridEmail(config, to, subject, text, html);
     } else {
       return {
         success: false,
