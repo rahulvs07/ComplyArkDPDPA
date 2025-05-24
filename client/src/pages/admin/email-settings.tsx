@@ -212,9 +212,98 @@ const EmailSettings = () => {
     });
   };
   
+  const handleSaveTemplate = () => {
+    if (!editingTemplate.name || !editingTemplate.subject || !editingTemplate.body) {
+      toast({
+        title: 'Error',
+        description: 'Please fill in all fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+    saveTemplateMutation.mutate(editingTemplate);
+  };
+
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-2xl font-bold mb-6">Email Settings</h1>
+      
+      {/* Email Template Editing Dialog */}
+      <Dialog open={isEditingTemplate} onOpenChange={setIsEditingTemplate}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{editingTemplate.id ? 'Edit' : 'Create'} Email Template</DialogTitle>
+            <DialogDescription>
+              Define the content and structure of emails sent by the system.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="templateName">Template Name</Label>
+              <Input
+                id="templateName"
+                placeholder="e.g., OTP Verification, Welcome Email"
+                value={editingTemplate.name}
+                onChange={(e) => setEditingTemplate({...editingTemplate, name: e.target.value})}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="templateSubject">Email Subject</Label>
+              <Input
+                id="templateSubject"
+                placeholder="e.g., Your Verification Code"
+                value={editingTemplate.subject}
+                onChange={(e) => setEditingTemplate({...editingTemplate, subject: e.target.value})}
+              />
+              <p className="text-xs text-muted-foreground">
+                You can use variables like {'{otp}'} or {'{userName}'} that will be replaced with actual values.
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="templateBody">Email Body (HTML)</Label>
+              <textarea
+                id="templateBody"
+                className="w-full min-h-[200px] px-3 py-2 text-sm rounded-md border border-input bg-transparent"
+                placeholder="<h1>Hello!</h1><p>Your verification code is: {otp}</p>"
+                value={editingTemplate.body}
+                onChange={(e) => setEditingTemplate({...editingTemplate, body: e.target.value})}
+              />
+              <p className="text-xs text-muted-foreground">
+                You can use HTML formatting and variables like {'{otp}'}, {'{userName}'}, etc.
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsEditingTemplate(false)}
+            >
+              <X className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveTemplate}
+              disabled={saveTemplateMutation.isPending}
+            >
+              {saveTemplateMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Template
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <Tabs defaultValue="general">
         <TabsList className="mb-6">
