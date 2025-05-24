@@ -1,238 +1,155 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@/lib/auth";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Shield,
-  LockIcon,
-  BadgeCheckIcon,
-  LayoutDashboardIcon,
-} from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2 } from "lucide-react";
 
-export default function Login() {
-  const [, setLocation] = useLocation();
-  const { login, isAuthenticated, isLoading } = useAuth();
+interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+export default function LoginPage() {
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoadingLogin, setIsLoadingLogin] = useState(false);
-  const [success, setSuccess] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [credentials, setCredentials] = useState<LoginCredentials>({
+    username: "",
+    password: ""
+  });
 
-  // Redirect to dashboard if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      setIsRedirecting(true);
-      setLocation("/dashboard");
-    }
-  }, [isAuthenticated, isLoading, setLocation]);
-
-  // Show loading state if we're authenticating or redirecting
-  if (isLoading || isRedirecting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-neutral-600">
-            {isRedirecting ? "Redirecting..." : "Authenticating..."}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    setIsLoadingLogin(true);
-    setSuccess("");
-
-    try {
-      await login(username, password);
-      setSuccess(`Login successful! Redirecting to dashboard...`);
-
-      // Redirect to dashboard after a short delay
-      setTimeout(() => {
-        setLocation("/dashboard");
-      }, 1500);
-    } catch (error) {
-      console.error("Login error:", error);
+  const loginMutation = useMutation({
+    mutationFn: (data: LoginCredentials) => {
+      return apiRequest("POST", "/api/login", data);
+    },
+    onSuccess: () => {
       toast({
-        title: "Login Failed",
-        description: "Invalid username or password. Please try again.",
+        title: "Login successful",
+        description: "Welcome to ComplyArk!",
+      });
+      setLocation("/dashboard");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid username or password",
         variant: "destructive",
       });
-    } finally {
-      setIsLoadingLogin(false);
-    }
+    },
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setCredentials({
+      ...credentials,
+      [name]: value
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    loginMutation.mutate(credentials);
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left side - Login form */}
-      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center px-6 lg:px-16 xl:px-28">
-        <div className="w-full max-w-md flex flex-col items-center">
-          {/* Logo */}
-          <div className="mb-8 flex flex-col items-center">
-            <div className="mb-4">
-              <div className="flex items-center">
-                <span className="font-bold text-3xl">
-                  <span className="text-foreground dark:text-white">Comply</span>
-                  <span className="text-[#2E77AE]">Ark</span>
-                </span>
-              </div>
-            </div>
-            <p className="text-sm text-foreground dark:text-gray-300">
-              DPDPA Compliance Management System
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="flex flex-col justify-center p-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">
+              <span className="text-black dark:text-white">Comply</span>
+              <span className="text-blue-600">Ark</span>
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400">
+              Simplifying Data Protection Compliance
             </p>
           </div>
 
-          {/* Login form */}
-          <form onSubmit={handleSubmit} className="w-full space-y-4">
-            <div>
-              <input
-                id="email"
-                type="text"
-                placeholder="Email address"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#2E77AE] focus:border-[#2E77AE]"
-                required
-              />
-            </div>
-
-            <div>
-              <input
-                id="password"
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Checkbox
-                  id="remember-me"
-                  checked={rememberMe}
-                  onCheckedChange={(checked) =>
-                    setRememberMe(checked as boolean)
-                  }
-                  className="h-4 w-4 text-blue-500 focus:ring-blue-500"
-                />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-700"
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>Login to Your Account</CardTitle>
+              <CardDescription>
+                Enter your credentials to access the DPDPA compliance platform
+              </CardDescription>
+            </CardHeader>
+            <form onSubmit={handleSubmit}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    name="username"
+                    value={credentials.username}
+                    onChange={handleInputChange}
+                    placeholder="Enter your username"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={credentials.password}
+                    onChange={handleInputChange}
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  disabled={loginMutation.isPending}
                 >
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <a
-                  href="#"
-                  className="text-blue-500 hover:text-blue-600"
-                  onClick={(e) => e.preventDefault()}
-                >
-                  Forgot your password?
-                </a>
-              </div>
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={isLoadingLogin}
-                className="w-full bg-[#2E77AE] hover:bg-[#0F3460] text-white py-2 px-4 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#2E77AE] focus:ring-offset-2"
-              >
-                {isLoadingLogin ? "Signing in..." : "Sign in"}
-              </button>
-            </div>
-          </form>
-
-          {success && (
-            <div className="mt-4 p-2 bg-green-50 border border-green-200 rounded text-green-700 text-center w-full">
-              {success}
-            </div>
-          )}
-
-          <div className="mt-4 text-center text-sm text-gray-600">
-            <a
-              href="#"
-              className="text-blue-500 hover:text-blue-600"
-              onClick={(e) => e.preventDefault()}
-            >
-              Administrator Login
-            </a>
-          </div>
-
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>Demo Credentials:</p>
-            <p>Admin: complyarkadmin / complyarkadmin</p>
-            <p>User: user / password</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Right side - Geometric Abstract Image */}
-      <div className="hidden lg:block lg:w-1/2 bg-[#050b23] relative overflow-hidden">
-        <div className="absolute inset-0 flex flex-col justify-center items-center">
-          {/* Hero image with animation */}
-          <div className="col-lg-6 order-1 order-lg-2 hero-img text-center aos-animate" data-aos="fade-up">
-            <img 
-              src="/assets/img/hero-compliance-abstract.png" 
-              className="img-fluid animated" 
-              alt="Comply Ark - Abstract illustration of data security and compliance"
-              style={{
-                animation: "upAndDown 4s ease-in-out infinite alternate",
-                maxWidth: "80%"
-              }}
-            />
-          </div>
-          
-          {/* Tagline with animation */}
-          <div className="mt-8 text-center">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4"
-                style={{ 
-                  textShadow: "0 0 15px rgba(46, 119, 174, 0.5), 0 0 30px rgba(46, 119, 174, 0.3)",
-                  animation: "fadeIn 2s ease-out"
-                }}>
-              Simplifying Data Protection
-            </h2>
-            <h2 className="text-4xl md:text-5xl font-bold text-white"
-                style={{ 
-                  textShadow: "0 0 15px rgba(46, 119, 174, 0.5), 0 0 30px rgba(46, 119, 174, 0.3)",
-                  animation: "fadeIn 2s ease-out 0.5s both"
-                }}>
-              Compliance
-            </h2>
-          </div>
+                  {loginMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Logging in...
+                    </>
+                  ) : "Login"}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
         </div>
 
-        {/* CSS Animations */}
-        <style>
-          {`
-            @keyframes upAndDown {
-              0% { transform: translateY(-10px); }
-              50% { transform: translateY(10px); }
-              100% { transform: translateY(-10px); }
-            }
-            
-            @keyframes fadeIn {
-              from { opacity: 0; transform: translateY(20px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            
-            .img-fluid.animated {
-              filter: drop-shadow(0 0 15px rgba(46, 119, 174, 0.6));
-            }
-          `}
-        </style>
+        <div className="hidden md:flex flex-col justify-center items-center bg-blue-600 rounded-lg p-8">
+          <div className="text-white max-w-md">
+            <h2 className="text-2xl font-bold mb-4">Streamline Your Compliance Workflow</h2>
+            <ul className="space-y-2">
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>Manage data protection requests and grievances efficiently</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>Generate privacy notices with customizable templates</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>Track compliance documentation in a centralized repository</span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">✓</span>
+                <span>Real-time notifications for status updates and deadlines</span>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );
