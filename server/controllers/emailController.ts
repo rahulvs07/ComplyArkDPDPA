@@ -211,36 +211,32 @@ export const saveEmailTemplate = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'Name, subject, and body are required' });
     }
 
-    let result;
-    
     // Check if we're updating an existing template
     if (id) {
-      const existingTemplate = await db.select().from(emailTemplates).where(sql`id = ${id}`).limit(1);
+      const existingTemplate = await storage.getEmailTemplate(id);
       
-      if (existingTemplate.length === 0) {
+      if (!existingTemplate) {
         return res.status(404).json({ message: 'Template not found' });
       }
       
-      result = await db.update(emailTemplates).set({ name, subject, body }).where(sql`id = ${id}`);
+      const updatedTemplate = await storage.updateEmailTemplate(id, { name, subject, body });
       return res.status(200).json({ message: 'Template updated successfully', id });
     } else {
       // Check if a template with this name already exists
-      const existingTemplate = await db.select().from(emailTemplates).where(sql`name = ${name}`).limit(1);
+      const existingTemplate = await storage.getEmailTemplateByName(name);
       
-      if (existingTemplate.length > 0) {
+      if (existingTemplate) {
         // Update the existing template
-        result = await db.update(emailTemplates)
-          .set({ subject, body })
-          .where(sql`id = ${existingTemplate[0].id}`);
+        const updatedTemplate = await storage.updateEmailTemplate(existingTemplate.id, { subject, body });
         
         return res.status(200).json({ 
           message: 'Template updated successfully', 
-          id: existingTemplate[0].id 
+          id: existingTemplate.id 
         });
       } else {
         // Create a new template
-        result = await db.insert(emailTemplates).values({ name, subject, body });
-        return res.status(201).json({ message: 'Template created successfully' });
+        const newTemplate = await storage.createEmailTemplate({ name, subject, body });
+        return res.status(201).json({ message: 'Template created successfully', id: newTemplate.id });
       }
     }
   } catch (error) {
@@ -262,13 +258,17 @@ export const deleteEmailTemplate = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'Invalid template ID' });
     }
 
-    const existingTemplate = await db.select().from(emailTemplates).where(sql`id = ${templateId}`).limit(1);
+    const existingTemplate = await storage.getEmailTemplate(templateId);
     
-    if (existingTemplate.length === 0) {
+    if (!existingTemplate) {
       return res.status(404).json({ message: 'Template not found' });
     }
 
-    await db.delete(emailTemplates).where(sql`id = ${templateId}`);
+    const deleted = await storage.deleteEmailTemplate(templateId);
+    
+    if (!deleted) {
+      return res.status(500).json({ message: 'Failed to delete template' });
+    }
     
     return res.status(200).json({ message: 'Template deleted successfully' });
   } catch (error) {
@@ -357,14 +357,12 @@ export async function sendEmail(
 ): Promise<boolean> {
   try {
     // Get email settings
-    const settings = await db.select().from(emailSettings).limit(1);
+    const emailConfig = await storage.getEmailSettings();
     
-    if (settings.length === 0) {
+    if (!emailConfig) {
       console.error('Email settings not configured');
       return false;
     }
-
-    const emailConfig = settings[0];
 
     // Send email based on the provider
     if (emailConfig.provider === 'smtp') {
@@ -391,16 +389,16 @@ export async function sendTemplateEmail(
 ): Promise<boolean> {
   try {
     // Get the template
-    const template = await db.select().from(emailTemplates).where(sql`name = ${templateName}`).limit(1);
+    const template = await storage.getEmailTemplateByName(templateName);
     
-    if (template.length === 0) {
+    if (!template) {
       console.error(`Template "${templateName}" not found`);
       return false;
     }
 
     // Replace variables in the subject and body
-    let subject = template[0].subject;
-    let body = template[0].body;
+    let subject = template.subject;
+    let body = template.body;
 
     // Replace template variables with their values
     Object.entries(templateVariables).forEach(([key, value]) => {

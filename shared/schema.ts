@@ -333,3 +333,28 @@ export type InsertEmailSetting = z.infer<typeof insertEmailSettingsSchema>;
 
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+
+// OTP Verification Table
+export const otpVerifications = pgTable("otpVerifications", {
+  id: serial("id").primaryKey(),
+  token: text("token").notNull().unique(),
+  otp: text("otp").notNull(),
+  email: text("email").notNull(),
+  organizationId: integer("organizationId").references(() => organizations.id),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow(),
+  verified: boolean("verified").default(false),
+  verifiedAt: timestamp("verifiedAt"),
+});
+
+// Insert schema for OTP verification
+export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).omit({
+  id: true,
+  createdAt: true,
+  verified: true,
+  verifiedAt: true
+});
+
+// Types for OTP verification
+export type OtpVerification = typeof otpVerifications.$inferSelect;
+export type InsertOtpVerification = z.infer<typeof insertOtpVerificationSchema>;

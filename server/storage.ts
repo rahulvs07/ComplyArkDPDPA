@@ -22,6 +22,11 @@ import crypto from 'crypto';
 
 // Interface for all storage operations
 export interface IStorage {
+  // OTP Verification operations
+  createOtpVerification(data: InsertOtpVerification): Promise<OtpVerification>;
+  getOtpVerificationByToken(token: string): Promise<OtpVerification | undefined>;
+  markOtpAsVerified(token: string): Promise<boolean>;
+  cleanupExpiredOtps(): Promise<number>;
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -724,6 +729,41 @@ import { db } from "./db";
 import { eq, and, desc, sql, count, isNull, like, inArray } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
+  // OTP Verification operations
+  async createOtpVerification(data: InsertOtpVerification): Promise<OtpVerification> {
+    const [result] = await db.insert(otpVerifications)
+      .values({
+        ...data,
+        createdAt: new Date()
+      })
+      .returning();
+    
+    return result;
+  }
+
+  async getOtpVerificationByToken(token: string): Promise<OtpVerification | undefined> {
+    const results = await db.select().from(otpVerifications).where(sql`token = ${token}`).limit(1);
+    return results.length > 0 ? results[0] : undefined;
+  }
+
+  async markOtpAsVerified(token: string): Promise<boolean> {
+    const result = await db.update(otpVerifications)
+      .set({
+        verified: true,
+        verifiedAt: new Date()
+      })
+      .where(sql`token = ${token}`);
+    
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async cleanupExpiredOtps(): Promise<number> {
+    const result = await db.delete(otpVerifications)
+      .where(sql`expires_at < ${new Date()}`);
+    
+    return result.rowCount !== null ? result.rowCount : 0;
+  }
+
   // Email Settings operations
   async getEmailSettings(): Promise<EmailSetting | undefined> {
     const settings = await db.select().from(emailSettings).limit(1);
