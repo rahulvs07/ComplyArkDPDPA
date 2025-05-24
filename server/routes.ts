@@ -248,6 +248,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Email configuration routes
+  app.get('/api/admin/email-settings', isAuthenticated, isAdmin, emailController.getEmailSettings);
+  app.post('/api/admin/email-settings', isAuthenticated, isAdmin, emailController.updateEmailSettings);
+  app.post('/api/admin/test-email', isAuthenticated, isAdmin, emailController.sendTestEmail);
+  
   app.post('/api/otp/verify', (req, res) => {
     console.log('OTP verify request:', req.body);
     const { email, otp, organizationId } = req.body;
