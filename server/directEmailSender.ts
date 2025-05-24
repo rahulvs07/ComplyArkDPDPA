@@ -31,8 +31,16 @@ export async function sendDirectEmail(
     console.log('- SMTP Host:', config.smtpHost);
     console.log('- SMTP Port:', config.smtpPort);
     
-    // Configure nodemailer transport with the exact settings that worked in the test
-    const transportOptions = {
+    // Configure nodemailer transport based on provider setting
+    let transportOptions;
+    
+    if (config.provider === 'sendgrid') {
+      // We're using a dummy key as requested and falling back to SMTP
+      console.log('DIRECT EMAIL: SendGrid configured, but using SMTP as requested');
+    }
+    
+    // Always use SMTP configuration as requested
+    transportOptions = {
       host: config.smtpHost || 'smtp.gmail.com',
       port: Number(config.smtpPort) || 587,
       secure: false, // Use TLS

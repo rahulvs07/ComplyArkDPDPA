@@ -250,8 +250,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/otp/send', otpAuthController.sendOtp);
   app.post('/api/auth/otp/verify', otpAuthController.verifyOtp);
   
-  // Simple OTP test endpoint with enhanced test mode functionality
-  app.post('/api/otp/generate', (req, res) => {
+  // OTP generation endpoint that sends emails via SMTP
+  app.post('/api/otp/generate', async (req, res) => {
     console.log('OTP generate request:', req.body);
     
     // Extract variables from request body
@@ -260,37 +260,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Check if test mode is enabled
     const isTestMode = testMode === true || testMode === 'true';
     
-    // Generate a random 6-digit OTP for variety (though we'll accept 1234 in verification)
+    // Generate a random 6-digit OTP 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiryTime = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
     
-    // Display the OTP prominently in the logs if test mode is enabled
-    if (isTestMode) {
-      console.log('╔═══════════════════════════════════════╗');
-      console.log('║           TEST MODE ACTIVE            ║');
-      console.log('║  No actual email will be sent         ║');
-      console.log('╠═══════════════════════════════════════╣');
-      console.log('║  OTP CODE: ' + otp.padEnd(24, ' ') + '║');
-      console.log('║  Email: ' + email.substring(0, 22).padEnd(24, ' ') + '║');
-      console.log('╚═══════════════════════════════════════╝');
+    try {
+      // Import our EmailService for sending emails
+      const { EmailService } = await import('./controllers/emailService');
       
-      // In test mode, include the OTP in the response
-      return res.status(200).json({ 
-        message: 'OTP generated in test mode', 
+      // Generate a random token for OTP verification
+      const crypto = require('crypto');
+      const token = crypto.randomBytes(32).toString('hex');
+      
+      // Store OTP in database for verification later
+      await storage.createOtpVerification({
+        token,
+        otp,
         email,
-        otp, // Include the actual OTP in test mode
-        testMode: true,
+        organizationId: organizationId ? parseInt(organizationId) : null,
         expiresAt: expiryTime
       });
+      
+      // Display the OTP prominently in the logs if test mode is enabled
+      if (isTestMode) {
+        console.log('╔═══════════════════════════════════════╗');
+        console.log('║           TEST MODE ACTIVE            ║');
+        console.log('║  No actual email will be sent         ║');
+        console.log('╠═══════════════════════════════════════╣');
+        console.log('║  OTP CODE: ' + otp.padEnd(24, ' ') + '║');
+        console.log('║  Email: ' + email.substring(0, 22).padEnd(24, ' ') + '║');
+        console.log('╚═══════════════════════════════════════╝');
+        
+        // In test mode, include the OTP in the response
+        return res.status(200).json({ 
+          message: 'OTP generated in test mode', 
+          email,
+          otp, // Include the actual OTP in test mode
+          token,
+          testMode: true,
+          expiresAt: expiryTime
+        });
+      }
+      
+      // For non-test mode, actually send the email using the consolidated email service
+      const emailResult = await EmailService.sendOtpEmail(email, otp, organizationName || 'ComplyArk');
+      
+      console.log('Email sending result:', emailResult);
+      
+      // Return success response
+      return res.status(200).json({ 
+        message: 'OTP sent successfully', 
+        email,
+        token,
+        expiresAt: expiryTime,
+        emailSent: emailResult.success
+      });
+    } catch (error) {
+      console.error('Error in OTP generation:', error);
+      return res.status(500).json({
+        message: 'Failed to generate OTP',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
-    
-    // For non-test mode, we would typically send an actual email here
-    // But for simplicity, we'll just acknowledge receipt
-    res.status(200).json({ 
-      message: 'OTP sent successfully', 
-      email,
-      expiresAt: expiryTime
-    });
   });
   
   app.post('/api/otp/verify', (req, res) => {
