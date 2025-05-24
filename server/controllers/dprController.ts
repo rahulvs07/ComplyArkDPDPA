@@ -228,8 +228,8 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
         
         // Send closure email notification
         try {
-          // Import the direct notification service
-          const { sendClosureNotificationDirectly } = require('../services/directNotificationService');
+          // Import the fixed notification service
+          const { sendRequestClosureNotification } = require('../services/fixedNotificationService');
           
           // Get organization info
           const organization = await storage.getOrganization(request.organizationId);
@@ -246,21 +246,21 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
             }
           }
           
-          // Send notification directly
-          await sendClosureNotificationDirectly(
+          // Send notification using improved service
+          await sendRequestClosureNotification(
             'dpr',
+            requestId,
             {
               firstName: request.firstName,
               lastName: request.lastName,
               email: request.email,
-              requestId: requestId,
               organizationName: organization ? organization.businessName : 'Our Organization',
               requestType: request.requestType,
               closureComment: closureComments || 'Your request has been processed and is now closed.',
               assignedStaffEmail
             }
           );
-          console.log(`✅ Direct closure notification email sent for DPR #${requestId}`);
+          console.log(`✅ Closure notification email sent for DPR #${requestId}`);
         } catch (emailError) {
           console.error(`📧 DPR closure email notification failed:`, emailError);
           // Don't fail the request update if email fails
@@ -474,23 +474,23 @@ export const createPublicDPRequest = async (req: Request, res: Response) => {
     
     // Send email notification for request creation
     try {
-      // Import the direct notification service
-      const { sendCreationNotificationDirectly } = require('../services/directNotificationService');
+      // Import the fixed notification service
+      const { sendRequestCreationNotification } = require('../services/fixedNotificationService');
       
       // Send notification directly
-      await sendCreationNotificationDirectly(
+      await sendRequestCreationNotification(
         'dpr',
+        request.requestId,
         {
           firstName,
           lastName,
           email,
           organizationName: organization.businessName,
-          requestType: requestType,
-          requestId: request.requestId
+          requestType: requestType
         }
       );
       
-      console.log(`✅ Direct notification email sent to ${email} for DPR #${request.requestId}`);
+      console.log(`✅ Fixed notification email sent to ${email} for DPR #${request.requestId}`);
     } catch (emailError) {
       console.error("Failed to send creation notification email:", emailError);
       // Don't fail the request creation if email fails
