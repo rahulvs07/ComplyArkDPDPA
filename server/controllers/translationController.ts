@@ -154,7 +154,7 @@ export const translateNotice = async (req: AuthRequest, res: Response) => {
       .execute();
       
     const existingTranslation = existingTranslations.find(
-      t => t.language === targetLanguage
+      t => t.noticeId === noticeId && t.language === targetLanguage
     );
       
     if (existingTranslation) {
@@ -217,10 +217,12 @@ export const getNoticeTranslations = async (req: Request, res: Response) => {
     const translations = await db
       .select()
       .from(translatedNotices)
-      .where(eq(translatedNotices.noticeId, parseInt(noticeId)))
       .execute();
       
-    res.status(200).json(translations);
+    // Filter the translations for this notice
+    const noticeTranslations = translations.filter(t => t.noticeId === parseInt(noticeId));
+      
+    res.status(200).json(noticeTranslations);
   } catch (error) {
     console.error('Error fetching notice translations:', error);
     res.status(500).json({ message: 'Failed to fetch notice translations' });
@@ -229,26 +231,55 @@ export const getNoticeTranslations = async (req: Request, res: Response) => {
 
 /**
  * Utility function to translate text using the IndicTrans2 model
- * This would call a Python script or directly use the model via a separate process
+ * This calls our Python script which will simulate or eventually use the real model
  */
 async function translateWithIndicTrans2(text: string, targetLanguage: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    // In a real implementation, this would call the IndicTrans2 model
-    // For now, we'll simulate a successful translation with a placeholder
-    
     // Check if the target language is supported
     if (!LANGUAGE_CODE_MAP[targetLanguage]) {
       reject(new Error(`Unsupported language: ${targetLanguage}`));
       return;
     }
     
-    // TODO: Implement actual model inference
-    // This would involve spawning a Python process or using a Node.js binding
+    // Get the full language code with script
+    const fullLanguageCode = LANGUAGE_CODE_MAP[targetLanguage];
     
-    // For demonstration purposes, we'll simulate a successful translation
-    setTimeout(() => {
-      resolve(`[Translated to ${targetLanguage} using IndicTrans2] ${text}`);
-    }, 1000);
+    // Call the Python script to translate the text
+    const pythonProcess = spawn('python3', [
+      path.join(__dirname, '../../scripts/translate.py'),
+      '--text', text,
+      '--target_lang', fullLanguageCode
+    ]);
+    
+    let translatedText = '';
+    let errorOutput = '';
+    
+    // Collect output from the Python script
+    pythonProcess.stdout.on('data', (data) => {
+      translatedText += data.toString();
+    });
+    
+    pythonProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+    
+    // Handle process completion
+    pythonProcess.on('close', (code) => {
+      if (code !== 0) {
+        console.error(`Translation script exited with code ${code}`);
+        console.error(`Error output: ${errorOutput}`);
+        reject(new Error(`Translation failed with code ${code}: ${errorOutput}`));
+        return;
+      }
+      
+      resolve(translatedText.trim());
+    });
+    
+    // Handle process errors
+    pythonProcess.on('error', (err) => {
+      console.error('Failed to start translation process:', err);
+      reject(err);
+    });
   });
 }
 
