@@ -1,10 +1,7 @@
 import { Request, Response } from 'express';
-import { sendEmail, sendEmailWithTemplate } from './emailController';
 import { storage } from '../storage';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
-import { db } from '../db';
-import { emailSettings } from '@shared/schema';
+import { sendOtpEmail } from './otpEmailService';
 
 // Generate OTP
 function generateOTP(): string {
@@ -65,111 +62,33 @@ export const sendOtp = async (req: Request, res: Response) => {
       console.warn('Failed to clean up expired OTPs:', cleanupError);
     }
     
-    // Send OTP via email
+    // Send OTP via email using our dedicated OTP email service
     console.log('********************************************');
-    console.log('DETAILED OTP EMAIL SENDING LOG');
+    console.log('SENDING OTP EMAIL');
     console.log(`Sending OTP ${otp} to ${email}`);
     console.log(`Organization ID: ${organizationId || 'Not specified'}`);
     const orgName = req.body.organizationName || 'ComplyArk';
     console.log(`Organization Name: ${orgName}`);
     console.log('********************************************');
     
-    // Send the OTP email directly to ensure delivery
-    const subject = `Your Verification Code for ${orgName}`;
-    const plainText = `Your verification code is: ${otp}. This code will expire in 15 minutes.`;
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background-color: #4F46E5; color: white; padding: 20px; text-align: center;">
-          <h2>${orgName} Verification</h2>
-        </div>
-        <div style="padding: 20px; background-color: #f9f9f9;">
-          <p>Hello,</p>
-          <p>Your verification code for ${orgName} is:</p>
-          <div style="font-size: 24px; font-weight: bold; background-color: #eaeaea; padding: 10px; text-align: center; margin: 20px 0; letter-spacing: 5px;">${otp}</div>
-          <p>This code will expire in 15 minutes.</p>
-        </div>
-      </div>
-    `;
+    // Use our specialized OTP email service for more reliable delivery
+    const emailResult = await sendOtpEmail(email, otp, orgName);
     
-    console.log('Sending direct email to ensure delivery...');
-    let directEmailResult;
-    
-    try {
-      // Call sendEmail with detailed logging
-      console.log('Email parameters:');
-      console.log('- To:', email);
-      console.log('- Subject:', subject);
-      console.log('- Plain text length:', plainText.length);
-      console.log('- HTML content length:', htmlContent.length);
+    // Log the email sending result
+    if (emailResult.success) {
+      console.log('✅ OTP email sent successfully');
+    } else {
+      console.error('❌ OTP email sending failed:', emailResult.error);
       
-      // Try sending with direct SMTP test approach
-      const settings = await db.select().from(emailSettings).limit(1);
-      if (settings.length > 0) {
-        console.log('Using found email settings - SMTP details:');
-        console.log('- SMTP Host:', settings[0].smtpHost);
-        console.log('- SMTP Port:', settings[0].smtpPort);
-        console.log('- SMTP Username:', settings[0].smtpUsername);
-        console.log('- From Email:', settings[0].fromEmail);
-        
-        // Use the same direct SMTP approach that works for test emails
-        const transportOptions = {
-          host: settings[0].smtpHost,
-          port: Number(settings[0].smtpPort) || 587,
-          secure: false,
-          auth: {
-            user: settings[0].smtpUsername || '',
-            pass: settings[0].smtpPassword || '',
-          },
-          tls: {
-            rejectUnauthorized: false
-          }
-        };
-        
-        try {
-          console.log('Creating SMTP transport with these options');
-          const transporter = nodemailer.createTransport(transportOptions);
-          
-          console.log('Verifying SMTP connection...');
-          await transporter.verify();
-          console.log('SMTP connection verified successfully for OTP email');
-          
-          console.log('Sending OTP email directly via SMTP...');
-          const result = await transporter.sendMail({
-            from: `"${settings[0].fromName}" <${settings[0].fromEmail}>`,
-            to: email,
-            subject: subject,
-            text: plainText,
-            html: htmlContent,
-          });
-          
-          console.log(`OTP email sent successfully to ${email}, message ID: ${result.messageId}`);
-          directEmailResult = { success: true };
-        } catch (smtpError) {
-          console.error('SMTP error when sending OTP:', smtpError);
-          
-          // Fall back to the regular email function if direct SMTP fails
-          directEmailResult = await sendEmail(email, subject, plainText, htmlContent);
-          console.log('Fallback email sending result:', directEmailResult);
-        }
-      } else {
-        // No settings found, use regular function
-        directEmailResult = await sendEmail(email, subject, plainText, htmlContent);
-        console.log('Regular email sending result:', directEmailResult);
+      // In development, we return success even if email fails
+      // This allows testing the OTP verification process
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`DEV MODE: Using test OTP ${otp} for ${email}`);
       }
-    } catch (emailError) {
-      console.error('Error during email sending process:', emailError);
-      directEmailResult = { 
-        success: false, 
-        error: emailError instanceof Error ? emailError.message : 'Unknown email error' 
-      };
     }
     
-    // Original template-based approach as fallback
-    if (!directEmailResult || !directEmailResult.success) {
-      console.log('OTP template not found, using fallback email format');
-      
-      const subject = 'Your OTP Verification Code';
-      const plainText = `
+    // In development mode or if email fails, show OTP in response for testing
+    if (process.env.NODE_ENV === 'development' || !emailResult.success) {
         ComplyArk Verification
         Your One-Time Password (OTP) for verification is: ${otp}
         This OTP will expire in 15 minutes.
