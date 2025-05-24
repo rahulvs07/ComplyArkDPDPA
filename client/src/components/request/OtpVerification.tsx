@@ -113,7 +113,11 @@ function OtpVerification({ email, onVerificationSuccess, onBack, organizationId 
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ otp, token: otpToken }),
+        body: JSON.stringify({ 
+          email, 
+          otp, 
+          organizationId: organizationId || null
+        }),
       });
 
       const data = await response.json();

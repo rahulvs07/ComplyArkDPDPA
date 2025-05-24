@@ -99,7 +99,41 @@ export default function RequestPage() {
         statusId: 1 // Default to "Submitted" status (statusId 1)
       };
       
-      // Store email and request data for OTP verification step
+      // If already authenticated, submit the request directly
+      if (isAuthenticated) {
+        console.log('User is authenticated - submitting DPR request directly:', requestData);
+        
+        try {
+          const response = await fetch('/api/dpr/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Error response:', errorData);
+            throw new Error(errorData.message || 'Failed to submit request');
+          }
+          
+          const data = await response.json();
+          console.log('DPR creation success:', data);
+          setSubmitSuccess({
+            message: data.message || 'Your data protection request has been submitted successfully.',
+            id: data.requestId,
+            type: 'dpr'
+          });
+        } catch (error) {
+          console.error('Error submitting DPR request:', error);
+          setError(error instanceof Error ? error.message : 'Failed to submit request');
+        }
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Otherwise store email and request data for OTP verification step
       setUserEmail(email);
       setPendingRequestData(requestData);
       setShowOtpVerification(true);
