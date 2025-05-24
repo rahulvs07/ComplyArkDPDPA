@@ -68,10 +68,12 @@ function OtpVerification({ email, onVerificationSuccess, onBack, organizationId 
         });
       }
     } catch (error) {
-      setErrorMessage('An unexpected error occurred');
+      console.error('OTP Request Error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Connection error';
+      setErrorMessage(`Error: ${errorMsg}`);
       toast({
         title: "Error",
-        description: "An unexpected error occurred while sending verification code",
+        description: `Problem sending verification code: ${errorMsg}`,
         variant: "destructive"
       });
     } finally {
@@ -119,10 +121,12 @@ function OtpVerification({ email, onVerificationSuccess, onBack, organizationId 
         });
       }
     } catch (error) {
-      setErrorMessage('An unexpected error occurred');
+      console.error('OTP Verification Error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Connection error';
+      setErrorMessage(`Error: ${errorMsg}`);
       toast({
         title: "Error",
-        description: "An unexpected error occurred while verifying code",
+        description: `Problem verifying code: ${errorMsg}`,
         variant: "destructive"
       });
     } finally {
