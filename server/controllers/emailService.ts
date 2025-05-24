@@ -39,21 +39,41 @@ export class EmailService {
       // As requested, we always use SMTP regardless of the provider setting
       console.log('EMAIL SERVICE: Using SMTP as requested');
       
-      // Configure nodemailer transport with the exact settings that worked in the test
+      // Clean up password - remove any trailing commas or spaces that might cause auth issues
+      let cleanPassword = '';
+      if (config.smtpPassword) {
+        // Gmail app passwords are 16 characters without spaces
+        // If password has spaces or unexpected characters, it might be corrupted
+        cleanPassword = config.smtpPassword.trim();
+        console.log(`Original password length: ${config.smtpPassword.length}, Cleaned password length: ${cleanPassword.length}`);
+      }
+      
+      // Configure nodemailer transport with proper settings for Gmail
+      const isGmail = (config.smtpHost || '').includes('gmail.com');
+      
       const transportOptions = {
         host: config.smtpHost || 'smtp.gmail.com',
         port: Number(config.smtpPort) || 587,
-        secure: false, // Use TLS
+        secure: Number(config.smtpPort) === 465, // Use SSL if port is 465, otherwise use STARTTLS
         auth: {
           user: config.smtpUsername || 'automatikgarage@gmail.com',
-          pass: config.smtpPassword || '',
+          pass: cleanPassword || '',
         },
         tls: {
-          rejectUnauthorized: false // Accept self-signed certificates
+          // Gmail requires proper certificates
+          rejectUnauthorized: isGmail ? true : false,
+          // For Gmail, we need to add these options
+          ...(isGmail && {
+            minVersion: 'TLSv1.2'
+          })
         },
         debug: true, // Enable debug output for detailed logs
         logger: true  // Log information into the console
       };
+      
+      console.log(`Using ${isGmail ? 'Gmail' : 'Standard'} SMTP configuration`);
+      console.log(`Secure mode: ${transportOptions.secure ? 'SSL (Port 465)' : 'STARTTLS (Port 587)'}`);
+      
       
       console.log('EMAIL SERVICE: Transport options:', JSON.stringify(transportOptions, (key, value) => 
         key === 'pass' ? '******' : value, 2));
