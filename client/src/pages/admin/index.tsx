@@ -11,6 +11,7 @@ import TemplatesTab from "./templates";
 import RequestStatusesTab from "./requeststatuses";
 import EmailSettings from "./email-settings";
 import OtpTestingPage from "./otp-testing";
+import ExceptionLogs from "./exception-logs";
 
 export default function AdminPanel() {
   const { user } = useAuth();
@@ -93,6 +94,12 @@ export default function AdminPanel() {
             >
               OTP Testing
             </TabsTrigger>
+            <TabsTrigger 
+              value="exceptionlogs" 
+              className="px-6 py-3 text-sm rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary-500 data-[state=active]:text-primary-500"
+            >
+              Exception Logs
+            </TabsTrigger>
           </TabsList>
           
           <CardContent className="p-6">
@@ -122,6 +129,10 @@ export default function AdminPanel() {
             
             <TabsContent value="otptesting" className="m-0">
               <OtpTestingPage />
+            </TabsContent>
+            
+            <TabsContent value="exceptionlogs" className="m-0">
+              <ExceptionLogs />
             </TabsContent>
           </CardContent>
         </Tabs>
