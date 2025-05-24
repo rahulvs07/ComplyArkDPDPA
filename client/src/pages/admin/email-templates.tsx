@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 import AppLayout from "../../components/layout/AppLayout";
 
 import {
@@ -48,6 +49,7 @@ interface EmailTemplate {
 
 export default function EmailTemplatesPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentTemplate, setCurrentTemplate] = useState<EmailTemplate>({
@@ -56,6 +58,9 @@ export default function EmailTemplatesPage() {
     subject: "",
     body: "",
   });
+  
+  // Check if user has edit permissions (only superadmin can edit templates)
+  const canEdit = user?.username === 'complyarkadmin';
 
   // Fetch all email templates
   const {
@@ -187,9 +192,11 @@ export default function EmailTemplatesPage() {
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Email Templates</h1>
-        <Button onClick={handleCreateTemplate}>
-          <Plus className="mr-2 h-4 w-4" /> Create New Template
-        </Button>
+        {canEdit && (
+          <Button onClick={handleCreateTemplate}>
+            <Plus className="mr-2 h-4 w-4" /> Create New Template
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -228,22 +235,28 @@ export default function EmailTemplatesPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditTemplate(template)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteTemplate(template)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {canEdit ? (
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditTemplate(template)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteTemplate(template)}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">
+                          View only
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
