@@ -221,20 +221,6 @@ export const insertComplianceDocumentSchema = createInsertSchema(complianceDocum
   uploadedAt: true 
 });
 
-// Email Settings Table
-export const emailSettings = pgTable("email_settings", {
-  id: serial("id").primaryKey(),
-  host: text("host"),
-  port: integer("port").default(587),
-  secure: boolean("secure").default(false),
-  username: text("username"),
-  password: text("password"),
-  fromEmail: text("from_email").default('noreply@complyark.com'),
-  enabled: boolean("enabled").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
 // Notification Logs Table
 export const notificationLogs = pgTable("notification_logs", {
   notificationId: serial("notification_id").primaryKey(),
@@ -252,13 +238,6 @@ export const notificationLogs = pgTable("notification_logs", {
   isRead: boolean("is_read").notNull().default(false),
   relatedItemId: integer("related_item_id"),
   relatedItemType: text("related_item_type"),
-});
-
-// Insert schema for email settings
-export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
 });
 
 // Insert schema for notification logs

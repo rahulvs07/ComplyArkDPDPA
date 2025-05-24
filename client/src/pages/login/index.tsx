@@ -23,12 +23,6 @@ export default function LoginPage() {
       await login(username, password);
       setSuccess(`Login successful! Redirecting to dashboard...`);
       
-      // Set login in localStorage for persistence
-      localStorage.setItem("hasVisitedLogin", "true");
-      
-      // Dispatch custom event for App.tsx to handle
-      window.dispatchEvent(new Event('login-success'));
-      
       // Redirect to dashboard after a short delay
       setTimeout(() => {
         window.location.href = "/dashboard";
