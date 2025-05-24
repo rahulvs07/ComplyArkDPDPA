@@ -22,6 +22,7 @@ import RequestPageNew from "@/pages/request-page/index";
 import RequestStatusPage from "@/pages/RequestStatusPage";
 import OTPAuthPage from "@/pages/OTPAuthPage";
 import OTPVerificationPage from "@/pages/otp-verification-simple";
+import OtpTestPage from "@/pages/otp-test";
 // React is already imported by JSX
 import { AuthProvider, useAuth } from "@/lib/auth";
 import AppLayout from "./components/layout/AppLayout";
@@ -168,6 +169,7 @@ function Router() {
       <Route path="/request-page/:token" component={OTPVerificationPage} />
       <Route path="/request-form/:token" component={RequestPageNew} />
       <Route path="/request-status" component={RequestStatusPage} />
+      <Route path="/otp-test" component={OtpTestPage} />
       
       {/* Fallback to 404 */}
       <Route component={NotFound} />
