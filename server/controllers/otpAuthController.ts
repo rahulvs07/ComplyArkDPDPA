@@ -64,13 +64,23 @@ export const sendOtp = async (req: Request, res: Response) => {
     
     // Send OTP via email using template
     console.log('Sending OTP via email using template');
+    
+    // Add organization name to the template variables if available
+    const templateVariables: Record<string, string> = {
+      otp: otp,
+      expiryMinutes: '15'
+    };
+    
+    // Add organization name if provided
+    if (organizationName) {
+      templateVariables.organizationName = organizationName;
+    }
+    
+    console.log(`Sending OTP email to ${email} with template variables:`, templateVariables);
     const emailResult = await sendEmailWithTemplate(
       email,
       'OTP Verification',
-      {
-        otp: otp,
-        expiryMinutes: '15'
-      }
+      templateVariables
     );
     
     // Fallback to direct email sending if template not found
