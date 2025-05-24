@@ -45,30 +45,44 @@ const EmailSettings = () => {
   // Fetch email settings
   const { data: emailSettings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['/api/admin/email-settings'],
-    onSuccess: (data: any) => {
-      if (data) {
-        setProvider(data.provider || 'smtp');
-        setFromEmail(data.fromEmail || '');
-        setFromName(data.fromName || '');
-        setSmtpHost(data.smtpHost || '');
-        setSmtpPort(data.smtpPort?.toString() || '');
-        setSmtpUsername(data.smtpUsername || '');
-        // Password is not displayed for security
-        setUseTLS(data.useTLS !== undefined ? data.useTLS : true);
-        // API key is not displayed for security
-      }
-    },
+    refetchOnWindowFocus: false,
+    retry: 1,
+    retryDelay: 1000
   });
+
+  // Update state when settings are loaded
+  useEffect(() => {
+    if (emailSettings) {
+      setProvider(emailSettings.provider || 'smtp');
+      setFromEmail(emailSettings.fromEmail || '');
+      setFromName(emailSettings.fromName || '');
+      setSmtpHost(emailSettings.smtpHost || '');
+      setSmtpPort(emailSettings.smtpPort?.toString() || '');
+      setSmtpUsername(emailSettings.smtpUsername || '');
+      // Password is not displayed for security
+      setUseTLS(emailSettings.useTLS !== undefined ? emailSettings.useTLS : true);
+      // API key is not displayed for security
+    }
+  }, [emailSettings]);
   
   // Fetch email templates
   const { data: emailTemplates, isLoading: isLoadingTemplates } = useQuery({
     queryKey: ['/api/admin/email-templates'],
-    onSuccess: (data: any) => {
-      if (data && Array.isArray(data)) {
-        setTemplates(data);
-      }
-    },
+    refetchOnWindowFocus: false,
+    retry: 1,
+    retryDelay: 1000
   });
+
+  // Update templates state when loaded
+  useEffect(() => {
+    if (emailTemplates && Array.isArray(emailTemplates)) {
+      console.log('Received email templates:', emailTemplates);
+      setTemplates(emailTemplates);
+      console.log('Email templates set to state:', emailTemplates.length, 'templates');
+    } else {
+      console.warn('Email templates data is not an array or is empty', emailTemplates);
+    }
+  }, [emailTemplates]);
   
   // Save email template
   const saveTemplateMutation = useMutation({
@@ -427,7 +441,7 @@ const EmailSettings = () => {
                           checked={useTLS}
                           onCheckedChange={setUseTLS}
                         />
-                        <Label htmlFor="useTLS">Use TLS/SSL</Label>
+                        <Label htmlFor="useTLS">Use TLS/SSL encryption</Label>
                       </div>
                     </div>
                   )}
@@ -438,7 +452,7 @@ const EmailSettings = () => {
                       <h3 className="text-lg font-medium">SendGrid Configuration</h3>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="sendgridApiKey">SendGrid API Key</Label>
+                        <Label htmlFor="sendgridApiKey">API Key</Label>
                         <Input
                           id="sendgridApiKey"
                           type="password"
@@ -449,50 +463,42 @@ const EmailSettings = () => {
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           {emailSettings?.sendgridApiKey ? 
                             "API key is stored securely. Enter a new key only if you want to change it." : 
-                            "Enter your SendGrid API key to authenticate with the service."
+                            "Enter your SendGrid API key to authorize email sending."
                           }
                         </p>
                       </div>
                     </div>
                   )}
-                  
-                  <Button 
-                    onClick={handleSaveSettings}
-                    disabled={saveSettingsMutation.isPending}
-                    className="w-full"
-                  >
-                    {saveSettingsMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>Save Email Settings</>
-                    )}
-                  </Button>
                 </div>
               )}
             </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button onClick={handleSaveSettings} disabled={saveSettingsMutation.isPending}>
+                {saveSettingsMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Settings
+                  </>
+                )}
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
         
         <TabsContent value="test">
           <Card>
             <CardHeader>
-              <CardTitle>Send Test Email</CardTitle>
+              <CardTitle>Test Email</CardTitle>
               <CardDescription>
-                Send a test email to verify your email configuration.
+                Send a test email to verify your email settings are working correctly.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Alert className="mb-6">
-                <InfoIcon className="h-4 w-4" />
-                <AlertTitle>Before sending a test email</AlertTitle>
-                <AlertDescription>
-                  Make sure you have saved your email settings in the General Settings tab.
-                </AlertDescription>
-              </Alert>
-              
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="testRecipient">Recipient Email</Label>
@@ -508,7 +514,7 @@ const EmailSettings = () => {
                   <Label htmlFor="testSubject">Subject</Label>
                   <Input
                     id="testSubject"
-                    placeholder="Test Email Subject"
+                    placeholder="Test Email from ComplyArk"
                     value={testSubject}
                     onChange={(e) => setTestSubject(e.target.value)}
                   />
@@ -518,32 +524,38 @@ const EmailSettings = () => {
                   <Label htmlFor="testMessage">Message</Label>
                   <textarea
                     id="testMessage"
-                    className="w-full min-h-[120px] px-3 py-2 text-sm rounded-md border border-input bg-transparent"
-                    placeholder="Enter your test message here..."
+                    className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-transparent"
+                    placeholder="This is a test email from ComplyArk."
                     value={testMessage}
                     onChange={(e) => setTestMessage(e.target.value)}
                   />
                 </div>
-                
-                <Button
-                  onClick={handleSendTestEmail}
-                  disabled={testSending || !testRecipient}
-                  className="w-full"
-                >
-                  {testSending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending Test Email...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="mr-2 h-4 w-4" />
-                      Send Test Email
-                    </>
-                  )}
-                </Button>
               </div>
             </CardContent>
+            <CardFooter className="flex justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  <InfoIcon className="inline-block mr-1 h-4 w-4" />
+                  Make sure to save your email settings before testing.
+                </p>
+              </div>
+              <Button 
+                onClick={handleSendTestEmail} 
+                disabled={testSending || !testRecipient}
+              >
+                {testSending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Test Email
+                  </>
+                )}
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
         
@@ -611,21 +623,31 @@ const EmailSettings = () => {
               ) : (
                 <div className="text-center py-6">
                   <p className="text-gray-500 dark:text-gray-400">No email templates found.</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => {
-                      setEditingTemplate({
-                        id: 0,
-                        name: '',
-                        subject: '',
-                        body: ''
-                      });
-                      setIsEditingTemplate(true);
-                    }}
-                  >
-                    Create Template
-                  </Button>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Make sure you're logged in as an administrator and refresh the page.
+                  </p>
+                  <div className="mt-4 flex justify-center gap-2">
+                    <Button 
+                      variant="outline"
+                      onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/email-templates'] })}
+                    >
+                      Refresh Templates
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setEditingTemplate({
+                          id: 0,
+                          name: '',
+                          subject: '',
+                          body: ''
+                        });
+                        setIsEditingTemplate(true);
+                      }}
+                    >
+                      Create Template
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
