@@ -268,9 +268,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import our EmailService for sending emails
       const { EmailService } = await import('./controllers/emailService');
       
-      // Generate a random token for OTP verification
-      const crypto = require('crypto');
-      const token = crypto.randomBytes(32).toString('hex');
+      // Generate a random token for OTP verification using node's crypto module
+      // We need to use a different approach since dynamic imports aren't allowed here
+      const token = Array.from(new Uint8Array(32))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
       
       // Store OTP in database for verification later
       await storage.createOtpVerification({

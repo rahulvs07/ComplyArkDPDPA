@@ -90,24 +90,39 @@ export const sendOtp = async (req: Request, res: Response) => {
     }
     
     // Regular mode - send OTP email using our direct email sender
-    console.log('Sending OTP email using direct sender');
+    console.log('═════════════════════════════════════════');
+    console.log('SENDING ACTUAL OTP EMAIL:');
+    console.log(`Email: ${email}`);
+    console.log(`Organization: ${organizationName}`);
+    console.log('═════════════════════════════════════════');
+    
     const orgName = organizationName || 'ComplyArk';
     
     try {
+      // Attempt to send the OTP email with detailed logging
+      console.log('Starting sendOtpEmail function call...');
       const emailResult = await sendOtpEmail(email, otp, orgName);
+      console.log('Returned from sendOtpEmail function:', emailResult);
       
       if (emailResult.success) {
-        console.log('OTP email sent successfully:', emailResult.messageId);
+        console.log('╔═══════════════════════════════════════╗');
+        console.log('║          OTP EMAIL SENT               ║');
+        console.log(`║  Message ID: ${emailResult.messageId?.substring(0, 15).padEnd(22, ' ')} ║`);
+        console.log('╚═══════════════════════════════════════╝');
       } else {
-        console.error('Failed to send OTP email:', emailResult.error);
+        console.error('╔═══════════════════════════════════════╗');
+        console.error('║          OTP EMAIL FAILED             ║');
+        console.error(`║  Error: ${(emailResult.error || 'Unknown').substring(0, 25).padEnd(24, ' ')} ║`);
+        console.error('╚═══════════════════════════════════════╝');
       }
       
       return res.status(200).json({
-        message: 'OTP sent successfully',
+        message: emailResult.success ? 'OTP sent successfully' : 'OTP generated (email failed)',
         email,
         token,
         expiresAt: expiryTime,
-        emailSent: emailResult.success
+        emailSent: emailResult.success,
+        error: emailResult.success ? undefined : emailResult.error
       });
     } catch (emailError) {
       console.error('Error in OTP email sending:', emailError);
