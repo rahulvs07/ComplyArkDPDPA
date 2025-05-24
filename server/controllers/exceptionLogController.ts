@@ -64,11 +64,11 @@ export const getExceptionLogs = async (req: AuthRequest, res: Response) => {
     // Build query based on filters
     let query = db.select().from(exceptionLogs);
     
-    if (status) {
+    if (status && status !== 'all') {
       query = query.where(eq(exceptionLogs.status, String(status)));
     }
     
-    if (severity) {
+    if (severity && severity !== 'all') {
       query = query.where(eq(exceptionLogs.severity, String(severity)));
     }
     
