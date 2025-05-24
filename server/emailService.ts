@@ -3,12 +3,12 @@
  * This service abstracts away the specifics of each provider to offer a unified interface
  */
 import nodemailer from 'nodemailer';
-import sgMail from '@sendgrid/mail';
+import { MailService } from '@sendgrid/mail';
 import { db } from './db';
 import { emailSettings, emailTemplates } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 
-// Interface for email settings stored in database
+// Define email settings interface
 export interface EmailSettings {
   provider: 'smtp' | 'sendgrid' | 'test';
   fromEmail: string;
@@ -21,7 +21,7 @@ export interface EmailSettings {
   sendgridApiKey?: string;
 }
 
-// Interface for email sending parameters
+// Define email params interface
 export interface EmailParams {
   to: string | string[];
   cc?: string | string[];
@@ -43,23 +43,33 @@ export async function getEmailSettings(): Promise<EmailSettings> {
   try {
     const settings = await db.select().from(emailSettings).limit(1);
     
-    if (settings.length > 0) {
-      return settings[0] as EmailSettings;
+    if (settings.length === 0) {
+      // Return default test mode settings if none found
+      return {
+        provider: 'test',
+        fromEmail: 'noreply@complyark.com',
+        fromName: 'ComplyArk',
+      };
     }
     
-    // Default to test mode if no settings are found
     return {
-      provider: 'test',
-      fromEmail: 'noreply@complyark.com',
-      fromName: 'ComplyArk System'
+      provider: settings[0].provider as 'smtp' | 'sendgrid',
+      fromEmail: settings[0].fromEmail,
+      fromName: settings[0].fromName,
+      smtpHost: settings[0].smtpHost || undefined,
+      smtpPort: settings[0].smtpPort || undefined,
+      smtpUsername: settings[0].smtpUsername || undefined,
+      smtpPassword: settings[0].smtpPassword || undefined,
+      useTLS: settings[0].useTLS || false,
+      sendgridApiKey: settings[0].sendgridApiKey || undefined,
     };
   } catch (error) {
-    console.error('Error fetching email settings:', error);
-    // Fallback to test mode in case of error
+    console.error('Error getting email settings:', error);
+    // Return default test mode settings if error
     return {
       provider: 'test',
       fromEmail: 'noreply@complyark.com',
-      fromName: 'ComplyArk System'
+      fromName: 'ComplyArk',
     };
   }
 }
@@ -69,17 +79,40 @@ export async function getEmailSettings(): Promise<EmailSettings> {
  */
 export async function saveEmailSettings(settings: EmailSettings): Promise<boolean> {
   try {
-    const currentSettings = await db.select().from(emailSettings);
+    // Check if settings already exist
+    const existingSettings = await db.select().from(emailSettings).limit(1);
     
-    if (currentSettings.length > 0) {
+    if (existingSettings.length > 0) {
       // Update existing settings
       await db.update(emailSettings)
-        .set(settings)
-        .where(eq(emailSettings.id, currentSettings[0].id));
+        .set({
+          provider: settings.provider,
+          fromEmail: settings.fromEmail,
+          fromName: settings.fromName,
+          smtpHost: settings.smtpHost,
+          smtpPort: settings.smtpPort,
+          smtpUsername: settings.smtpUsername,
+          smtpPassword: settings.smtpPassword,
+          useTLS: settings.useTLS,
+          sendgridApiKey: settings.sendgridApiKey,
+          updatedAt: new Date()
+        })
+        .where(eq(emailSettings.id, existingSettings[0].id));
     } else {
-      // Create new settings
-      await db.insert(emailSettings).values(settings);
+      // Insert new settings
+      await db.insert(emailSettings).values({
+        provider: settings.provider,
+        fromEmail: settings.fromEmail,
+        fromName: settings.fromName,
+        smtpHost: settings.smtpHost,
+        smtpPort: settings.smtpPort,
+        smtpUsername: settings.smtpUsername,
+        smtpPassword: settings.smtpPassword,
+        useTLS: settings.useTLS,
+        sendgridApiKey: settings.sendgridApiKey
+      });
     }
+    
     return true;
   } catch (error) {
     console.error('Error saving email settings:', error);
@@ -94,9 +127,15 @@ export async function saveEmailSettings(settings: EmailSettings): Promise<boolea
  * @returns The processed template with variables replaced
  */
 export function processTemplate(template: string, variables: Record<string, string>): string {
-  return template.replace(/\{([^}]+)\}/g, (match, key) => {
-    return variables[key] !== undefined ? variables[key] : match;
-  });
+  let processedTemplate = template;
+  
+  // Replace variables in the template
+  for (const [key, value] of Object.entries(variables)) {
+    const regex = new RegExp(`{${key}}`, 'g');
+    processedTemplate = processedTemplate.replace(regex, value);
+  }
+  
+  return processedTemplate;
 }
 
 /**
@@ -104,17 +143,14 @@ export function processTemplate(template: string, variables: Record<string, stri
  */
 export async function getTemplateByName(templateName: string): Promise<any | null> {
   try {
-    const templates = await db.select()
+    const template = await db.select()
       .from(emailTemplates)
       .where(eq(emailTemplates.name, templateName))
       .limit(1);
     
-    if (templates.length > 0) {
-      return templates[0];
-    }
-    return null;
+    return template.length > 0 ? template[0] : null;
   } catch (error) {
-    console.error(`Error fetching template "${templateName}":`, error);
+    console.error(`Error getting email template '${templateName}':`, error);
     return null;
   }
 }
@@ -126,24 +162,31 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
     const settings = await getEmailSettings();
     
-    // In test mode, just log the email content and return success
+    // Test mode just logs the email and returns true
     if (settings.provider === 'test') {
-      console.log('SENDING EMAIL IN TEST MODE');
-      console.log('To:', params.to);
-      if (params.cc) console.log('CC:', params.cc);
-      console.log('Subject:', params.subject);
-      console.log('Text:', params.text);
-      console.log('HTML:', params.html?.substring(0, 200) + '...');
+      console.log('Test Mode Email:', {
+        from: `${settings.fromName} <${settings.fromEmail}>`,
+        to: params.to,
+        cc: params.cc,
+        subject: params.subject,
+        text: params.text,
+        html: params.html,
+        attachments: params.attachments
+      });
       return true;
     }
     
+    // Send using SMTP
     if (settings.provider === 'smtp') {
       return await sendSmtpEmail(settings, params);
-    } else if (settings.provider === 'sendgrid') {
+    }
+    
+    // Send using SendGrid
+    if (settings.provider === 'sendgrid') {
       return await sendSendgridEmail(settings, params);
     }
     
-    throw new Error(`Unsupported email provider: ${settings.provider}`);
+    return false;
   } catch (error) {
     console.error('Error sending email:', error);
     return false;
@@ -155,30 +198,32 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
  * Gets the template from the database and processes it with the provided variables
  */
 export async function sendEmailWithTemplate(
-  templateName: string, 
-  to: string | string[], 
-  cc: string | string[] | undefined,
-  variables: Record<string, string>
+  templateName: string,
+  to: string | string[],
+  cc?: string | string[],
+  variables: Record<string, string> = {}
 ): Promise<boolean> {
   try {
     const template = await getTemplateByName(templateName);
+    
     if (!template) {
-      console.error(`Template "${templateName}" not found`);
+      console.error(`Email template '${templateName}' not found`);
       return false;
     }
     
+    // Process the template with variables
     const subject = processTemplate(template.subject, variables);
-    const html = processTemplate(template.body, variables);
+    const body = processTemplate(template.body, variables);
     
+    // Send the email
     return await sendEmail({
       to,
       cc,
       subject,
-      html,
-      text: html.replace(/<[^>]*>?/gm, '') // Simple HTML to plain text conversion
+      html: body
     });
   } catch (error) {
-    console.error(`Error sending email with template "${templateName}":`, error);
+    console.error(`Error sending email with template '${templateName}':`, error);
     return false;
   }
 }
@@ -190,38 +235,47 @@ async function sendSmtpEmail(
   settings: EmailSettings,
   params: EmailParams
 ): Promise<boolean> {
-  if (!settings.smtpHost || !settings.smtpPort) {
-    throw new Error('SMTP settings are incomplete');
-  }
-  
   try {
-    // Create SMTP transport
-    const transport = nodemailer.createTransport({
+    if (!settings.smtpHost || !settings.smtpPort) {
+      console.error('SMTP not properly configured');
+      return false;
+    }
+    
+    // Create transporter
+    const transporter = nodemailer.createTransport({
       host: settings.smtpHost,
       port: settings.smtpPort,
-      secure: settings.useTLS || false,
+      secure: settings.useTLS,
       auth: settings.smtpUsername && settings.smtpPassword ? {
         user: settings.smtpUsername,
         pass: settings.smtpPassword
       } : undefined
     });
     
-    // Send the email
-    const result = await transport.sendMail({
-      from: `"${settings.fromName}" <${settings.fromEmail}>`,
-      to: Array.isArray(params.to) ? params.to.join(', ') : params.to,
-      cc: params.cc ? (Array.isArray(params.cc) ? params.cc.join(', ') : params.cc) : undefined,
+    // Format recipients
+    const to = Array.isArray(params.to) ? params.to.join(', ') : params.to;
+    const cc = params.cc ? (Array.isArray(params.cc) ? params.cc.join(', ') : params.cc) : undefined;
+    
+    // Send mail
+    const info = await transporter.sendMail({
+      from: `${settings.fromName} <${settings.fromEmail}>`,
+      to,
+      cc,
       subject: params.subject,
       text: params.text,
       html: params.html,
-      attachments: params.attachments
+      attachments: params.attachments?.map(attachment => ({
+        filename: attachment.filename,
+        content: attachment.content,
+        contentType: attachment.contentType
+      }))
     });
     
-    console.log('Email sent via SMTP:', result.messageId);
+    console.log('SMTP Email sent:', info.messageId);
     return true;
   } catch (error) {
-    console.error('SMTP email error:', error);
-    throw error;
+    console.error('Error sending SMTP email:', error);
+    return false;
   }
 }
 
@@ -232,47 +286,48 @@ async function sendSendgridEmail(
   settings: EmailSettings,
   params: EmailParams
 ): Promise<boolean> {
-  if (!settings.sendgridApiKey) {
-    // If SendGrid API key is missing but environment variable is available, use that
-    if (process.env.SENDGRID_API_KEY) {
-      settings.sendgridApiKey = process.env.SENDGRID_API_KEY;
-    } else {
-      throw new Error('SendGrid API key is not configured');
-    }
-  }
-  
   try {
-    // Configure SendGrid
-    sgMail.setApiKey(settings.sendgridApiKey);
+    if (!settings.sendgridApiKey) {
+      console.error('SendGrid API key not configured');
+      return false;
+    }
     
-    // Prepare email data
+    // Setup SendGrid
+    const sendgrid = new MailService();
+    sendgrid.setApiKey(settings.sendgridApiKey);
+    
+    // Format recipients
+    const to = Array.isArray(params.to) ? params.to : [params.to];
+    const cc = params.cc ? (Array.isArray(params.cc) ? params.cc : [params.cc]) : undefined;
+    
+    // Create message
     const msg = {
       from: {
         email: settings.fromEmail,
         name: settings.fromName
       },
-      to: Array.isArray(params.to) ? params.to : [params.to],
-      cc: params.cc ? (Array.isArray(params.cc) ? params.cc : [params.cc]) : undefined,
+      to,
+      cc,
       subject: params.subject,
       text: params.text,
       html: params.html,
-      attachments: params.attachments ? params.attachments.map(attachment => ({
+      attachments: params.attachments?.map(attachment => ({
         content: Buffer.isBuffer(attachment.content) 
           ? attachment.content.toString('base64') 
           : Buffer.from(attachment.content).toString('base64'),
         filename: attachment.filename,
         type: attachment.contentType,
         disposition: 'attachment'
-      })) : undefined
+      }))
     };
     
-    // Send the email
-    const result = await sgMail.send(msg);
-    console.log('Email sent via SendGrid:', result[0].statusCode);
+    // Send mail
+    await sendgrid.send(msg as any);
+    console.log('SendGrid Email sent');
     return true;
   } catch (error) {
-    console.error('SendGrid email error:', error);
-    throw error;
+    console.error('Error sending SendGrid email:', error);
+    return false;
   }
 }
 
@@ -281,49 +336,49 @@ async function sendSendgridEmail(
  */
 export async function checkEmailConfiguration(): Promise<{ 
   configured: boolean; 
-  provider: string;
-  error?: string;
+  provider: string; 
+  issues: string[] 
 }> {
   try {
     const settings = await getEmailSettings();
+    const issues: string[] = [];
     
     if (settings.provider === 'test') {
-      return { configured: true, provider: 'test' };
+      return {
+        configured: true,
+        provider: 'Test Mode',
+        issues: []
+      };
+    } else if (settings.provider === 'smtp') {
+      if (!settings.smtpHost) issues.push('SMTP Host not configured');
+      if (!settings.smtpPort) issues.push('SMTP Port not configured');
+      
+      return {
+        configured: issues.length === 0,
+        provider: 'SMTP',
+        issues
+      };
+    } else if (settings.provider === 'sendgrid') {
+      if (!settings.sendgridApiKey) issues.push('SendGrid API Key not configured');
+      
+      return {
+        configured: issues.length === 0,
+        provider: 'SendGrid',
+        issues
+      };
     }
     
-    if (settings.provider === 'smtp') {
-      if (!settings.smtpHost || !settings.smtpPort) {
-        return { 
-          configured: false, 
-          provider: 'smtp',
-          error: 'SMTP host and port are required' 
-        };
-      }
-      return { configured: true, provider: 'smtp' };
-    }
-    
-    if (settings.provider === 'sendgrid') {
-      if (!settings.sendgridApiKey && !process.env.SENDGRID_API_KEY) {
-        return { 
-          configured: false, 
-          provider: 'sendgrid',
-          error: 'SendGrid API key is not configured' 
-        };
-      }
-      return { configured: true, provider: 'sendgrid' };
-    }
-    
-    return { 
-      configured: false, 
-      provider: settings.provider,
-      error: `Unknown provider: ${settings.provider}` 
+    return {
+      configured: false,
+      provider: 'Unknown',
+      issues: ['Unknown email provider']
     };
   } catch (error) {
     console.error('Error checking email configuration:', error);
-    return { 
-      configured: false, 
-      provider: 'unknown',
-      error: 'Error checking email configuration' 
+    return {
+      configured: false,
+      provider: 'Error',
+      issues: ['Error checking configuration']
     };
   }
 }
@@ -332,42 +387,32 @@ export async function checkEmailConfiguration(): Promise<{
  * Send a test email to verify configuration
  */
 export async function sendTestEmail(to: string): Promise<{ 
-  success: boolean;
-  message: string;
+  success: boolean; 
+  message: string 
 }> {
   try {
-    const settings = await getEmailSettings();
     const result = await sendEmail({
       to,
-      subject: 'Test Email from ComplyArk',
+      subject: 'ComplyArk Email Configuration Test',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px;">
-          <h2 style="color: #4F46E5;">ComplyArk Email Test</h2>
-          <p>This is a test email sent from your ComplyArk application.</p>
-          <p>Your email settings are configured correctly using the <strong>${settings.provider}</strong> provider.</p>
-          <p>From: ${settings.fromName} &lt;${settings.fromEmail}&gt;</p>
-          <hr style="border: 0; height: 1px; background: #eaeaea; margin: 20px 0;">
-          <p style="color: #666; font-size: 12px;">This is an automated message. Please do not reply to this email.</p>
-        </div>
+        <h1>Email Configuration Test</h1>
+        <p>This is a test email from ComplyArk to verify your email configuration.</p>
+        <p>If you received this email, your email configuration is working correctly.</p>
+        <p>Time: ${new Date().toLocaleString()}</p>
       `
     });
     
-    if (result) {
-      return {
-        success: true,
-        message: `Test email successfully sent to ${to} using ${settings.provider} provider`
-      };
-    } else {
-      return {
-        success: false,
-        message: 'Failed to send test email. Check logs for details.'
-      };
-    }
-  } catch (error: any) {
+    return {
+      success: result,
+      message: result 
+        ? 'Test email sent successfully' 
+        : 'Failed to send test email'
+    };
+  } catch (error) {
     console.error('Error sending test email:', error);
     return {
       success: false,
-      message: `Failed to send test email: ${error.message || 'Unknown error'}`
+      message: `Error sending test email: ${error.message}`
     };
   }
 }

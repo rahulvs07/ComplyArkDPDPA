@@ -732,6 +732,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Email Settings API routes
+  app.get('/api/email-settings', isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const settings = await getEmailSettings();
+      // Don't return sensitive data like passwords and API keys
+      return res.json({
+        provider: settings.provider,
+        fromEmail: settings.fromEmail,
+        fromName: settings.fromName,
+        smtpHost: settings.smtpHost,
+        smtpPort: settings.smtpPort,
+        smtpUsername: settings.smtpUsername,
+        useTLS: settings.useTLS,
+        hasSendgridKey: !!settings.sendgridApiKey,
+        hasSmtpPassword: !!settings.smtpPassword
+      });
+    } catch (error) {
+      console.error('Error getting email settings:', error);
+      return res.status(500).json({ message: 'Failed to get email settings' });
+    }
+  });
+
+  app.post('/api/email-settings', isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const settings = req.body;
+      const result = await saveEmailSettings(settings);
+      
+      if (!result) {
+        return res.status(500).json({ message: 'Failed to save email settings' });
+      }
+      
+      return res.json({ message: 'Email settings saved successfully' });
+    } catch (error) {
+      console.error('Error saving email settings:', error);
+      return res.status(500).json({ message: 'Failed to save email settings' });
+    }
+  });
+
+  app.post('/api/email-settings/test', isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email address is required' });
+      }
+      
+      const result = await sendTestEmail(email);
+      return res.json(result);
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      return res.status(500).json({ message: 'Failed to send test email' });
+    }
+  });
+
+  app.get('/api/email-settings/status', isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const status = await checkEmailConfiguration();
+      return res.json(status);
+    } catch (error) {
+      console.error('Error checking email configuration:', error);
+      return res.status(500).json({ message: 'Failed to check email configuration' });
+    }
+  });
+
+  // Email Templates API routes
+  app.get('/api/email-templates', isAuthenticated, isAdmin, emailTemplateController.getAllEmailTemplates);
+  app.get('/api/email-templates/:id', isAuthenticated, isAdmin, emailTemplateController.getEmailTemplateById);
+  app.post('/api/email-templates', isAuthenticated, isAdmin, emailTemplateController.createEmailTemplate);
+  app.put('/api/email-templates/:id', isAuthenticated, isAdmin, emailTemplateController.updateEmailTemplate);
+  app.delete('/api/email-templates/:id', isAuthenticated, isAdmin, emailTemplateController.deleteEmailTemplate);
+
+  // Notification Email API routes
+  app.post('/api/notifications/dpr/confirmation/:requestId', isAuthenticated, canManageRequests, notificationEmailController.sendDprConfirmationEmail);
+  app.post('/api/notifications/dpr/status-update', isAuthenticated, canManageRequests, notificationEmailController.sendDprStatusNotification);
+  app.post('/api/notifications/grievance/confirmation/:grievanceId', isAuthenticated, canManageRequests, notificationEmailController.sendGrievanceConfirmationEmail);
+  app.post('/api/notifications/grievance/status-update', isAuthenticated, canManageRequests, notificationEmailController.sendGrievanceStatusNotification);
+
   const httpServer = createServer(app);
 
   return httpServer;
