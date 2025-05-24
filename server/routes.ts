@@ -21,7 +21,7 @@ import { requestStatusController } from './controllers/requestStatusController';
 import * as dashboardController from './controllers/dashboardController';
 import * as otpAuthController from './controllers/simpleOtpController';
 import * as emailController from './controllers/emailController';
-import * as exceptionLogController from './controllers/exceptionLogController';
+import { logException, getExceptionLogs, getExceptionLogById, updateExceptionLogStatus, deleteExceptionLog } from './controllers/exceptionLogController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session
@@ -645,11 +645,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/dashboard/upcoming-due-requests', isAuthenticated, dashboardController.getUpcomingDueRequests);
   
   // Exception logging routes
-  app.post('/api/exceptions', exceptionLogController.logException);
-  app.get('/api/exceptions', isAuthenticated, exceptionLogController.getExceptionLogs);
-  app.get('/api/exceptions/:id', isAuthenticated, exceptionLogController.getExceptionLogById);
-  app.patch('/api/exceptions/:id', isAuthenticated, exceptionLogController.updateExceptionLogStatus);
-  app.delete('/api/exceptions/:id', isAuthenticated, isSuperAdmin, exceptionLogController.deleteExceptionLog);
+  app.post('/api/exceptions', logException);
+  app.get('/api/exceptions', isAuthenticated, getExceptionLogs);
+  app.get('/api/exceptions/:id', isAuthenticated, getExceptionLogById);
+  app.patch('/api/exceptions/:id/status', isAuthenticated, updateExceptionLogStatus);
+  app.delete('/api/exceptions/:id', isAuthenticated, isSuperAdmin, deleteExceptionLog);
   
   const httpServer = createServer(app);
 
