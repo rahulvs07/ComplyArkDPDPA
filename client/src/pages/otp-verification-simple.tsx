@@ -156,7 +156,7 @@ export default function OTPVerificationSimplePage() {
       
       toast({
         title: 'OTP Sent',
-        description: `We've sent a verification code to ${emailValue}. For testing, use "1234".`,
+        description: `We've sent a verification code to ${emailValue}. Please check your inbox.`,
       });
     } catch (err) {
       toast({
@@ -185,22 +185,7 @@ export default function OTPVerificationSimplePage() {
     setIsVerifying(true);
     
     try {
-      // For testing, accept "1234" without server validation
-      if (otpValue === "1234") {
-        setVerified(true);
-        
-        // Store authenticated status in organization-specific session storage
-        sessionStorage.setItem(`otp_verified_${organization.id}`, 'true');
-        sessionStorage.setItem(`otp_email_${organization.id}`, email);
-        
-        toast({
-          title: 'Verification Successful',
-          description: 'You can now submit your request.',
-        });
-        
-        setIsVerifying(false);
-        return;
-      }
+      // Always validate with the server
       
       const response = await fetch('/api/otp/verify', {
         method: 'POST',
@@ -485,7 +470,7 @@ export default function OTPVerificationSimplePage() {
                     }}
                   />
                   <p className="text-sm text-muted-foreground mt-1">
-                    Enter the code sent to your email. For testing, use "1234".
+                    Enter the verification code sent to your email.
                     {expiresAt && (
                       <span className="block text-xs mt-1">
                         Code expires in 30 minutes.
