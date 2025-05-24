@@ -573,6 +573,9 @@ export const downloadNotice = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: "Notice does not belong to this organization" });
     }
     
+    // Get organization details for the document
+    const organization = await storage.getOrganization(orgId);
+    
     // Create temporary directory if it doesn't exist
     if (!fs.existsSync(NOTICES_DIR)) {
       fs.mkdirSync(NOTICES_DIR, { recursive: true });
@@ -582,7 +585,22 @@ export const downloadNotice = async (req: AuthRequest, res: Response) => {
     if (format === 'docx') {
       // Generate DOCX version of the notice
       const docxFilePath = path.join(NOTICES_DIR, `notice_${noticeId}_${Date.now()}.docx`);
-      await generateDocxNotice(notice.noticeBody, docxFilePath);
+      
+      // Add request page URL to the notice body if organization has one
+      let noticeBodyWithRequestUrl = notice.noticeBody;
+      if (organization && organization.requestPageUrlToken) {
+        const requestUrl = `${req.protocol}://${req.get('host')}/request/${organization.requestPageUrlToken}`;
+        noticeBodyWithRequestUrl = `${notice.noticeBody}\n\nTo submit data protection requests or exercise your rights under this notice, please visit:\n${requestUrl}`;
+      }
+      
+      // Generate the document with organization info
+      await generateDocxNotice(
+        noticeBodyWithRequestUrl, 
+        docxFilePath, 
+        notice.noticeName,
+        organization ? organization.businessName : undefined,
+        organization ? organization.businessAddress : undefined
+      );
       
       const fileContent = fs.readFileSync(docxFilePath);
       const fileName = `${notice.noticeName.replace(/\s+/g, '_')}.docx`;
