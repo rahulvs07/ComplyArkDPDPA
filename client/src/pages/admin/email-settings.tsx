@@ -37,7 +37,7 @@ const EmailSettings = () => {
   // Fetch email settings
   const { data: emailSettings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['/api/admin/email-settings'],
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data) {
         setProvider(data.provider || 'smtp');
         setFromEmail(data.fromEmail || '');
@@ -55,7 +55,7 @@ const EmailSettings = () => {
   // Fetch email templates
   const { data: emailTemplates, isLoading: isLoadingTemplates } = useQuery({
     queryKey: ['/api/admin/email-templates'],
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data && Array.isArray(data)) {
         setTemplates(data);
       }

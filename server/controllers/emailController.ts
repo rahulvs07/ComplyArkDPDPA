@@ -247,21 +247,25 @@ async function sendSmtpEmail(
       };
     }
     
-    const transporter = nodemailer.createTransport({
+    // Use the nodemailer.createTransport() method with the proper configuration
+    const transportOptions = {
       host: config.smtpHost,
-      port: config.smtpPort,
-      secure: config.useTLS,
+      port: config.smtpPort || 587,
+      secure: config.useTLS === true,
       auth: config.smtpUsername && config.smtpPassword ? {
         user: config.smtpUsername,
         pass: config.smtpPassword,
-      } : undefined,
-    });
+      } : undefined
+    };
+    
+    const transporter = nodemailer.createTransport(transportOptions);
     
     await transporter.sendMail({
       from: `"${config.fromName}" <${config.fromEmail}>`,
       to,
       subject,
       text,
+      html: html || undefined,
     });
     
     return { success: true };
@@ -279,7 +283,8 @@ async function sendSendgridEmail(
   config: typeof emailSettings.$inferSelect,
   to: string,
   subject: string,
-  text: string
+  text: string,
+  html?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!config.sendgridApiKey) {
@@ -300,6 +305,7 @@ async function sendSendgridEmail(
       to,
       subject,
       text,
+      html: html || undefined,
     });
     
     return { success: true };
