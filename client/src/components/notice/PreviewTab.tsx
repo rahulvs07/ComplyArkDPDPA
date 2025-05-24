@@ -222,13 +222,6 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
               color: white;
             }
             
-            .header-top {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              margin-bottom: 15px;
-            }
-            
             .logo {
               font-weight: 700;
               font-size: 24px;
@@ -238,8 +231,6 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
             .company-address {
               font-size: 12px;
               margin-top: 5px;
-              max-width: 250px;
-              text-align: right;
               opacity: 0.9;
             }
             
@@ -247,7 +238,8 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
               font-size: 28px;
               font-weight: 600;
               text-align: center;
-              margin-top: 15px;
+              margin-top: 25px;
+              margin-bottom: 5px;
             }
             
             .document-id {
@@ -334,14 +326,12 @@ export default function PreviewTab({ questionnaireData, onNext, onPrevious }: Pr
         <body>
           <div class="page">
             <div class="header">
-              <div class="header-top">
-                <div>
-                  <div class="logo">${organizationInfo.businessName}</div>
-                  <div class="document-id">Document ID: ${documentId}</div>
-                </div>
+              <div>
+                <div class="logo">${organizationInfo.businessName}</div>
                 <div class="company-address">
                   ${organizationInfo.businessAddress.replace(/\n/g, '<br>')}
                 </div>
+                <div class="document-id">Document ID: ${documentId}</div>
               </div>
               <div class="document-title">${noticeName || "Privacy Notice"}</div>
             </div>

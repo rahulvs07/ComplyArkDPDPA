@@ -152,29 +152,33 @@ async function generateDocxNotice(
                   },
                 },
                 spacing: {
-                  after: 200,
+                  after: 120,
                 },
               }),
-              // Add organization address if available
+              // Add organization address right below the organization name
               ...(organizationAddress ? [
                 new Paragraph({
                   style: "Header",
-                  alignment: "left",
+                  alignment: "center",
                   children: [
                     new TextRun({
                       text: organizationAddress,
                       size: 20, // 10pt
-                      color: "666666"
+                      color: "DDDDDD"
                     }),
                   ],
+                  shading: {
+                    type: "solid",
+                    color: "2E77AE",
+                  },
                   spacing: {
-                    after: 120,
+                    after: 200,
                   },
                 })
               ] : []),
               new Paragraph({
                 style: "Header",
-                alignment: "right",
+                alignment: "left",
                 children: [
                   new TextRun({
                     text: `Document ID: ${documentId}`,
