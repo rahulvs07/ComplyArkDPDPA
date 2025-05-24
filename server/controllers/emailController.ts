@@ -642,11 +642,17 @@ async function sendSendgridEmail(
 
 // Helper function to send email using configured provider
 export async function sendEmail(
-  to: string,
-  subject: string,
-  text: string,
-  html?: string
+  to: string | { to: string, from: string, subject: string, text?: string, html?: string, cc?: string[] },
+  subject?: string,
+  text?: string,
+  html?: string,
+  cc?: string[]
 ): Promise<{ success: boolean; error?: string }> {
+  // Handle object form of parameters
+  if (typeof to === 'object') {
+    const params = to;
+    return sendEmail(params.to, params.subject, params.text, params.html, params.cc);
+  }
   try {
     // Get email settings
     const settings = await db.select().from(emailSettings).limit(1);
