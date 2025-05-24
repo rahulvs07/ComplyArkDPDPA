@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import MainLayout from "@/components/layouts/MainLayout";
+import MainLayout from "../../components/layouts/MainLayout";
 
 import {
   Table,

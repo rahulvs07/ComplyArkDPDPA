@@ -14,6 +14,7 @@ import AdminUsers from "@/pages/admin/users";
 import AdminIndustries from "@/pages/admin/industries";
 import AdminTemplates from "@/pages/admin/templates";
 import EmailSettings from "@/pages/admin/email-settings";
+import EmailTemplates from "@/pages/admin/email-templates";
 import OtpTestingPage from "@/pages/admin/otp-testing";
 import UserSettings from "@/pages/user/settings";
 import WelcomePage from "@/pages/welcome";

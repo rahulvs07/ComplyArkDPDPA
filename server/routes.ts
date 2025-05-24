@@ -21,6 +21,8 @@ import { requestStatusController } from './controllers/requestStatusController';
 import * as dashboardController from './controllers/dashboardController';
 import * as otpAuthController from './controllers/simpleOtpController';
 import * as emailController from './controllers/emailController';
+import * as emailTemplateController from './controllers/emailTemplateController';
+import * as notificationEmailController from './controllers/notificationEmailController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session
@@ -642,6 +644,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/dashboard/status-distribution', isAuthenticated, dashboardController.getStatusDistribution);
   app.get('/api/dashboard/escalated-requests', isAuthenticated, dashboardController.getEscalatedRequests);
   app.get('/api/dashboard/upcoming-due-requests', isAuthenticated, dashboardController.getUpcomingDueRequests);
+  
+  // Email Template Management Routes
+  app.get('/api/admin/email-templates', isAuthenticated, isAdmin, emailTemplateController.getAllEmailTemplates);
+  app.get('/api/admin/email-templates/:id', isAuthenticated, isAdmin, emailTemplateController.getEmailTemplateById);
+  app.post('/api/admin/email-templates', isAuthenticated, isAdmin, emailTemplateController.createEmailTemplate);
+  app.put('/api/admin/email-templates/:id', isAuthenticated, isAdmin, emailTemplateController.updateEmailTemplate);
+  app.delete('/api/admin/email-templates/:id', isAuthenticated, isAdmin, emailTemplateController.deleteEmailTemplate);
+  
+  // Notification Email Routes - For sending emails when status changes
+  app.post('/api/notifications/dpr/status', isAuthenticated, canManageRequests, notificationEmailController.sendDprStatusNotification);
+  app.post('/api/notifications/grievance/status', isAuthenticated, canManageRequests, notificationEmailController.sendGrievanceStatusNotification);
+  app.post('/api/notifications/dpr/confirmation/:requestId', isAuthenticated, canManageRequests, notificationEmailController.sendDprConfirmationEmail);
+  app.post('/api/notifications/grievance/confirmation/:grievanceId', isAuthenticated, canManageRequests, notificationEmailController.sendGrievanceConfirmationEmail);
+  
+  // Auto-send confirmation emails when new requests are created
+  app.post('/api/dpr/create', async (req: Request, res: Response) => {
+    try {
+      const data = req.body;
+      if (!data.organizationId) {
+        return res.status(400).json({ message: "Organization ID is required" });
+      }
+
+      console.log("Creating DPR with data:", data);
+      const newRequest = await storage.createDPRequest(data);
+      
+      // Try to send confirmation email, but don't fail if it doesn't work
+      try {
+        await notificationEmailController.sendDprConfirmationEmail({
+          params: { requestId: newRequest.requestId.toString() }
+        } as Request, res);
+      } catch (emailError) {
+        console.error("Failed to send confirmation email:", emailError);
+        // Continue with the request creation even if email fails
+      }
+      
+      return res.status(201).json({
+        message: "Data Protection Request created successfully",
+        requestId: newRequest.requestId,
+        status: "New request created - assigned for processing"
+      });
+    } catch (error) {
+      console.error("Error creating DPR request:", error);
+      return res.status(500).json({ message: "Failed to create DPR request" });
+    }
+  });
+  
+  // Auto-send confirmation emails when new grievances are created
+  app.post('/api/grievance/create', async (req: Request, res: Response) => {
+    try {
+      const data = req.body;
+      if (!data.organizationId) {
+        return res.status(400).json({ message: "Organization ID is required" });
+      }
+      
+      console.log("Creating Grievance with data:", data);
+      
+      // Get the status ID for "Submitted" if not provided
+      if (!data.statusId) {
+        const statuses = await storage.getRequestStatuses();
+        const submittedStatus = statuses.find(
+          s => s.statusName.toLowerCase() === 'submitted'
+        );
+        data.statusId = submittedStatus?.statusId || statuses[0].statusId;
+      }
+      
+      const newGrievance = await storage.createGrievance(data);
+      
+      // Try to send confirmation email, but don't fail if it doesn't work
+      try {
+        await notificationEmailController.sendGrievanceConfirmationEmail({
+          params: { grievanceId: newGrievance.grievanceId.toString() }
+        } as Request, res);
+      } catch (emailError) {
+        console.error("Failed to send confirmation email:", emailError);
+        // Continue with the grievance creation even if email fails
+      }
+      
+      return res.status(201).json({
+        message: "Grievance created successfully",
+        grievanceId: newGrievance.grievanceId,
+        status: "New grievance created - assigned for processing"
+      });
+    } catch (error) {
+      console.error("Error creating grievance:", error);
+      return res.status(500).json({ message: "Failed to create grievance" });
+    }
+  });
   
   const httpServer = createServer(app);
 
