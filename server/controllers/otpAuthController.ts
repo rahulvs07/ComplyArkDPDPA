@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { sendEmail } from './emailController';
+import { sendEmail, sendEmailWithTemplate } from './emailController';
 import { storage } from '../storage';
 import crypto from 'crypto';
 
@@ -53,23 +53,43 @@ export const sendOtp = async (req: Request, res: Response) => {
       console.warn('Failed to clean up expired OTPs:', cleanupError);
     }
     
-    // Send OTP via email
-    const subject = 'Your OTP Verification Code';
-    const plainText = `
-      ComplyArk Verification
-      Your One-Time Password (OTP) for verification is: ${otp}
-      This OTP will expire in 15 minutes.
-      If you did not request this OTP, please ignore this email.
-    `;
+    // Send OTP via email using template
+    const emailResult = await sendEmailWithTemplate(
+      email,
+      'OTP Verification',
+      {
+        otp: otp,
+        expiryMinutes: '15'
+      }
+    );
     
-    const htmlMessage = `
-      <h2>ComplyArk Verification</h2>
-      <p>Your One-Time Password (OTP) for verification is: <strong>${otp}</strong></p>
-      <p>This OTP will expire in 15 minutes.</p>
-      <p>If you did not request this OTP, please ignore this email.</p>
-    `;
-    
-    const emailResult = await sendEmail(email, subject, plainText, htmlMessage);
+    // Fallback to direct email sending if template not found
+    if (!emailResult.success && emailResult.error?.includes('not found')) {
+      console.log('OTP template not found, using fallback email format');
+      
+      const subject = 'Your OTP Verification Code';
+      const plainText = `
+        ComplyArk Verification
+        Your One-Time Password (OTP) for verification is: ${otp}
+        This OTP will expire in 15 minutes.
+        If you did not request this OTP, please ignore this email.
+      `;
+      
+      const htmlMessage = `
+        <h2>ComplyArk Verification</h2>
+        <p>Your One-Time Password (OTP) for verification is: <strong>${otp}</strong></p>
+        <p>This OTP will expire in 15 minutes.</p>
+        <p>If you did not request this OTP, please ignore this email.</p>
+      `;
+      
+      const fallbackResult = await sendEmail(email, subject, plainText, htmlMessage);
+      
+      // Use the fallback result instead
+      if (fallbackResult.success) {
+        emailResult.success = true;
+        emailResult.error = undefined;
+      }
+    }
     const emailSent = emailResult.success;
     
     if (!emailSent) {
