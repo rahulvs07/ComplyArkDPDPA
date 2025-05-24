@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import MainLayout from "../../components/layouts/MainLayout";
+import AppLayout from "../../components/layout/AppLayout";
 
 import {
   Table,
@@ -34,7 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Pencil, Trash } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 
 interface EmailTemplate {
@@ -184,83 +184,83 @@ export default function EmailTemplatesPage() {
   };
 
   return (
-    <MainLayout>
-      <div className="container mx-auto py-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Email Templates</h1>
-          <Button onClick={handleCreateTemplate}>Create New Template</Button>
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center items-center p-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : error ? (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center text-red-500">
-                Failed to load templates. Please try again.
-              </div>
-            </CardContent>
-          </Card>
-        ) : templates && templates.length > 0 ? (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Preview</TableHead>
-                    <TableHead className="w-[120px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {templates.map((template: EmailTemplate) => (
-                    <TableRow key={template.id}>
-                      <TableCell className="font-medium">{template.name}</TableCell>
-                      <TableCell>{template.subject}</TableCell>
-                      <TableCell>
-                        <div className="max-w-xs truncate">
-                          {template.body.replace(/<[^>]*>?/gm, '').substring(0, 100)}
-                          {template.body.length > 100 ? '...' : ''}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditTemplate(template)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteTemplate(template)}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="mb-4">No email templates found.</p>
-                <Button onClick={handleCreateTemplate}>Create First Template</Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Email Templates</h1>
+        <Button onClick={handleCreateTemplate}>
+          <Plus className="mr-2 h-4 w-4" /> Create New Template
+        </Button>
       </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center p-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : error ? (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-red-500">
+              Failed to load templates. Please try again.
+            </div>
+          </CardContent>
+        </Card>
+      ) : templates && templates.length > 0 ? (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Preview</TableHead>
+                  <TableHead className="w-[120px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {templates.map((template: EmailTemplate) => (
+                  <TableRow key={template.id}>
+                    <TableCell className="font-medium">{template.name}</TableCell>
+                    <TableCell>{template.subject}</TableCell>
+                    <TableCell>
+                      <div className="max-w-xs truncate">
+                        {template.body.replace(/<[^>]*>?/gm, '').substring(0, 100)}
+                        {template.body.length > 100 ? '...' : ''}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditTemplate(template)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteTemplate(template)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <p className="mb-4">No email templates found.</p>
+              <Button onClick={handleCreateTemplate}>Create First Template</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Edit/Create Template Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -378,6 +378,6 @@ export default function EmailTemplatesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </MainLayout>
+    </div>
   );
 }

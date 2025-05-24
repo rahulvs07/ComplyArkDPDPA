@@ -145,6 +145,12 @@ function Router() {
         </AppLayout>
       </Route>
       
+      <Route path="/admin/email-templates">
+        <AppLayout>
+          <ProtectedRoute component={EmailTemplates} adminOnly={true} />
+        </AppLayout>
+      </Route>
+      
       <Route path="/admin/otp-testing">
         <AppLayout>
           <ProtectedRoute component={OtpTestingPage} adminOnly={true} />
