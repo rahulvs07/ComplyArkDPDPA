@@ -132,8 +132,8 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       html: options.html
     };
     
-    // Send email using nodemailer
-    const info = await transporter.sendMail(mailOptions);
+    // Send email using our configured transporter
+    const info = await emailTransporter.sendMail(mailOptions);
     
     console.log(`📧 Email sent successfully: ${info.messageId}`);
     return true;
