@@ -253,12 +253,16 @@ async function sendSmtpEmail(
     // Use the nodemailer.createTransport() method with the proper configuration
     const transportOptions = {
       host: config.smtpHost,
-      port: config.smtpPort || 587,
-      secure: config.useTLS === true,
-      auth: config.smtpUsername && config.smtpPassword ? {
-        user: config.smtpUsername,
-        pass: config.smtpPassword,
-      } : undefined
+      port: Number(config.smtpPort) || 587,
+      secure: false, // Try without TLS first
+      auth: {
+        user: config.smtpUsername || '',
+        pass: config.smtpPassword || '',
+      },
+      // Add additional TLS options to handle SSL/TLS version issues
+      tls: {
+        rejectUnauthorized: false
+      }
     };
     
     const transporter = nodemailer.createTransport(transportOptions);

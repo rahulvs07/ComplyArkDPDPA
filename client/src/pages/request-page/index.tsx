@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { Loader2, ShieldAlert, AlertCircle, AlertTriangle, Moon, Sun } from 'lucide-react';
 import { useTheme } from "@/components/theme/ThemeProvider";
 import OtpVerification from '@/components/request/OtpVerification';
@@ -26,8 +27,8 @@ export default function RequestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<{message: string, id: number, type: string} | null>(null);
   const [showOtpVerification, setShowOtpVerification] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
   const [pendingRequestData, setPendingRequestData] = useState<any>(null);
-  const [userEmail, setUserEmail] = useState("");
   const { token } = useParams<{ token: string }>();
   const [, navigate] = useLocation();
   const { theme, toggleTheme } = useTheme();
