@@ -472,16 +472,16 @@ export const createPublicDPRequest = async (req: Request, res: Response) => {
       comments: `Request submitted by ${email}. Status: Submitted.`
     });
     
-    // Send email notification using our EMERGENCY direct email sender
+    // Send email notification using direct notification sender
     try {
-      // Import the direct email sender that completely bypasses test mode
-      const { sendDPRCreationEmail } = require('../forceSendEmail');
+      // Import the direct notification sender
+      const { sendDirectDPRNotification } = require('../sendDirectNotification');
       
       // Get status name for notification
       const status = await storage.getRequestStatus(submittedStatus.statusId);
       
-      // Send email using the direct email sender
-      const result = await sendDPRCreationEmail({
+      // Send email using the verified direct notification sender
+      const result = await sendDirectDPRNotification({
         requestId: request.requestId,
         firstName,
         lastName,
@@ -492,13 +492,15 @@ export const createPublicDPRequest = async (req: Request, res: Response) => {
         dueDate: completionDate
       });
       
-      if (result.success) {
-        console.log(`🔴 EMERGENCY EMAIL SENDER: Email sent for DPR #${request.requestId} - Message ID: ${result.messageId}`);
+      if (result && result.success) {
+        console.log(`===== DIRECT NOTIFICATION SUCCESS =====`);
+        console.log(`Email sent for DPR #${request.requestId} - Message ID: ${result.messageId}`);
       } else {
-        console.error(`🔴 EMERGENCY EMAIL SENDER: Email failed: ${result.error}`);
+        console.error(`===== DIRECT NOTIFICATION FAILED =====`);
+        console.error(`Email failed: ${result?.error || 'Unknown error'}`);
       }
     } catch (emailError) {
-      console.error("Failed to send creation notification email:", emailError);
+      console.error("Failed to send direct notification email:", emailError);
       // Don't fail the request creation if email fails
     }
     
