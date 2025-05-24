@@ -273,34 +273,31 @@ export async function createGrievance(req: Request, res: Response) {
       .values(grievanceValues)
       .returning();
     
-    // Send email notification to the requester
+    // Send email notification to the requester using our robust email service
     try {
-      const { sendGrievanceSubmissionNotification } = await import('../utils/emailService');
+      const { sendGrievanceCreationEmail } = await import('../services/robustEmailService');
       
       // Get status name for notification
       const status = await db.query.requestStatuses.findFirst({
         where: eq(requestStatuses.statusId, grievance.statusId)
       });
       
-      // Get assigned user name if available
-      let assignedUser = null;
-      if (grievance.assignedToUserId) {
-        assignedUser = await db.query.users.findFirst({
-          where: eq(users.id, grievance.assignedToUserId)
-        });
+      // Send email using the robust email service
+      const result = await sendGrievanceCreationEmail(
+        grievance.email,
+        grievance.grievanceId,
+        grievance.firstName,
+        grievance.lastName,
+        organization.businessName,
+        status?.statusName || 'Submitted',
+        completionDate
+      );
+      
+      if (result.success) {
+        console.log(`✅ Email notification sent for Grievance #${grievance.grievanceId} - Message ID: ${result.messageId}`);
+      } else {
+        console.error(`❌ Email notification failed: ${result.error}`);
       }
-      
-      await sendGrievanceSubmissionNotification({
-        grievanceId: grievance.grievanceId,
-        requesterName: `${grievance.firstName} ${grievance.lastName}`,
-        requesterEmail: grievance.email,
-        organizationName: organization.businessName,
-        statusName: status?.statusName || 'Submitted',
-        assignedTo: assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'System Admin',
-        dueDate: completionDate ? new Date(completionDate).toLocaleDateString() : 'TBD'
-      });
-      
-      console.log(`✅ Email notification sent for Grievance #${grievance.grievanceId}`);
     } catch (emailError) {
       console.error('📧 Email notification failed:', emailError);
       // Don't fail the grievance creation if email fails
