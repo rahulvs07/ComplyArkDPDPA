@@ -62,29 +62,48 @@ export const sendOtp = async (req: Request, res: Response) => {
       console.warn('Failed to clean up expired OTPs:', cleanupError);
     }
     
-    // Send OTP via email using template
-    console.log('Sending OTP via email using template');
+    // Send OTP via email
+    console.log('********************************************');
+    console.log('DETAILED OTP EMAIL SENDING LOG');
+    console.log(`Sending OTP ${otp} to ${email}`);
+    console.log(`Organization ID: ${organizationId || 'Not specified'}`);
+    const orgName = req.body.organizationName || 'ComplyArk';
+    console.log(`Organization Name: ${orgName}`);
+    console.log('********************************************');
     
-    // Add organization name to the template variables if available
-    const templateVariables: Record<string, string> = {
-      otp: otp,
-      expiryMinutes: '15'
-    };
+    // Send the OTP email directly to ensure delivery
+    const subject = `Your Verification Code for ${orgName}`;
+    const plainText = `Your verification code is: ${otp}. This code will expire in 15 minutes.`;
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #4F46E5; color: white; padding: 20px; text-align: center;">
+          <h2>${orgName} Verification</h2>
+        </div>
+        <div style="padding: 20px; background-color: #f9f9f9;">
+          <p>Hello,</p>
+          <p>Your verification code for ${orgName} is:</p>
+          <div style="font-size: 24px; font-weight: bold; background-color: #eaeaea; padding: 10px; text-align: center; margin: 20px 0; letter-spacing: 5px;">${otp}</div>
+          <p>This code will expire in 15 minutes.</p>
+        </div>
+      </div>
+    `;
     
-    // Add organization name if provided
-    if (organizationName) {
-      templateVariables.organizationName = organizationName;
+    console.log('Sending direct email to ensure delivery...');
+    let directEmailResult;
+    
+    try {
+      directEmailResult = await sendEmail(email, subject, plainText, htmlContent);
+      console.log('Direct email sending result:', directEmailResult);
+    } catch (emailError) {
+      console.error('Error during email sending process:', emailError);
+      directEmailResult = { 
+        success: false, 
+        error: emailError instanceof Error ? emailError.message : 'Unknown email error' 
+      };
     }
     
-    console.log(`Sending OTP email to ${email} with template variables:`, templateVariables);
-    const emailResult = await sendEmailWithTemplate(
-      email,
-      'OTP Verification',
-      templateVariables
-    );
-    
-    // Fallback to direct email sending if template not found
-    if (!emailResult.success && emailResult.error?.includes('not found')) {
+    // Original template-based approach as fallback
+    if (!directEmailResult || !directEmailResult.success) {
       console.log('OTP template not found, using fallback email format');
       
       const subject = 'Your OTP Verification Code';
