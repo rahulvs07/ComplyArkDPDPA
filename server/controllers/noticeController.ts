@@ -15,7 +15,14 @@ const NOTICES_DIR = path.join(process.cwd(), 'NoticesGenerated');
 const TRANSLATED_NOTICES_DIR = path.join(process.cwd(), 'NoticesTranslated');
 
 // Helper function to generate DOCX document from notice content
-async function generateDocxNotice(noticeContent: string, outputPath: string, noticeName: string = "Privacy Notice", organizationName: string = "ComplyArk"): Promise<void> {
+async function generateDocxNotice(
+  noticeContent: string, 
+  outputPath: string, 
+  noticeName: string = "Privacy Notice", 
+  organizationName: string = "ComplyArk",
+  organizationAddress: string = "",
+  requestPageUrlToken: string | null = null
+): Promise<void> {
   try {
     // Get current date for footer
     const currentDate = new Date().toLocaleDateString('en-US', {
@@ -148,6 +155,23 @@ async function generateDocxNotice(noticeContent: string, outputPath: string, not
                   after: 200,
                 },
               }),
+              // Add organization address if available
+              ...(organizationAddress ? [
+                new Paragraph({
+                  style: "Header",
+                  alignment: "left",
+                  children: [
+                    new TextRun({
+                      text: organizationAddress,
+                      size: 20, // 10pt
+                      color: "666666"
+                    }),
+                  ],
+                  spacing: {
+                    after: 120,
+                  },
+                })
+              ] : []),
               new Paragraph({
                 style: "Header",
                 alignment: "right",
@@ -193,6 +217,25 @@ async function generateDocxNotice(noticeContent: string, outputPath: string, not
                   }),
                 ],
               }),
+              // Add request URL information in the footer if available
+              ...(requestPageUrlToken ? [
+                new Paragraph({
+                  style: "Footer",
+                  alignment: "center",
+                  children: [
+                    new TextRun({
+                      text: `Submit data requests at: `,
+                      size: 16, // 8pt
+                    }),
+                    new TextRun({
+                      text: `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'complyark.replit.app'}/request/${requestPageUrlToken}`,
+                      size: 16, // 8pt
+                      color: "2E77AE",
+                      underline: true
+                    }),
+                  ],
+                }),
+              ] : []),
             ],
           },
         },
@@ -217,7 +260,51 @@ async function generateDocxNotice(noticeContent: string, outputPath: string, not
             text: ""
           }),
           // Process notice content by paragraphs with section formatting
-          ...processNoticeContent(noticeContent)
+          ...processNoticeContent(noticeContent),
+          
+          // Add request URL if available
+          ...(requestPageUrlToken ? [
+            new Paragraph({
+              text: "",
+              spacing: { before: 360, after: 120 }
+            }),
+            new Paragraph({
+              style: "Heading2",
+              children: [
+                new TextRun({
+                  text: "Submit Your Data Protection Requests",
+                  bold: true,
+                })
+              ],
+              spacing: { before: 240, after: 120 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "You can submit data protection requests through our dedicated portal at:"
+                })
+              ],
+              spacing: { before: 120, after: 120 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'complyark.replit.app'}/request/${requestPageUrlToken}`,
+                  color: "2E77AE",
+                  underline: true
+                })
+              ],
+              spacing: { before: 120, after: 120 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Use this portal to exercise your rights regarding your personal data, including access, correction, or erasure requests."
+                })
+              ],
+              spacing: { before: 120, after: 240 }
+            })
+          ] : [])
         ],
       }],
     });
