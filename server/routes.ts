@@ -21,6 +21,7 @@ import { requestStatusController } from './controllers/requestStatusController';
 import * as dashboardController from './controllers/dashboardController';
 import * as otpAuthController from './controllers/simpleOtpController';
 import * as emailController from './controllers/emailController';
+import * as fixedEmailController from './controllers/fixedEmailController';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session
