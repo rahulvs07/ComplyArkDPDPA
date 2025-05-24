@@ -17,7 +17,9 @@ function generateToken(): string {
 export const sendOtp = async (req: Request, res: Response) => {
   try {
     console.log('OTP generate request:', req.body);
-    const { email, organizationId, organizationName, testMode } = req.body;
+    // Convert testMode string to boolean if needed (JSON parsing might keep it as string)
+    let { email, organizationId, organizationName, testMode } = req.body;
+    testMode = testMode === true || testMode === 'true';
     
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
@@ -80,9 +82,10 @@ export const sendOtp = async (req: Request, res: Response) => {
         message: 'OTP generated in test mode',
         email,
         token,
-        otpForTesting: otp,
+        otp, // Include OTP directly in the response for test mode
         expiresAt: expiryTime,
-        emailSent: true
+        emailSent: true,
+        testMode: true
       });
     }
     

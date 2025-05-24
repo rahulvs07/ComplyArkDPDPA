@@ -250,14 +250,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/auth/otp/send', otpAuthController.sendOtp);
   app.post('/api/auth/otp/verify', otpAuthController.verifyOtp);
   
-  // Simple OTP test endpoint that always works with "1234"
+  // Simple OTP test endpoint with enhanced test mode functionality
   app.post('/api/otp/generate', (req, res) => {
     console.log('OTP generate request:', req.body);
-    // For testing, just acknowledge we received the email
+    
+    // Extract variables from request body
+    const { email, testMode, organizationId, organizationName } = req.body;
+    
+    // Check if test mode is enabled
+    const isTestMode = testMode === true || testMode === 'true';
+    
+    // Generate a random 6-digit OTP for variety (though we'll accept 1234 in verification)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiryTime = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+    
+    // Display the OTP prominently in the logs if test mode is enabled
+    if (isTestMode) {
+      console.log('╔═══════════════════════════════════════╗');
+      console.log('║           TEST MODE ACTIVE            ║');
+      console.log('║  No actual email will be sent         ║');
+      console.log('╠═══════════════════════════════════════╣');
+      console.log('║  OTP CODE: ' + otp.padEnd(24, ' ') + '║');
+      console.log('║  Email: ' + email.substring(0, 22).padEnd(24, ' ') + '║');
+      console.log('╚═══════════════════════════════════════╝');
+      
+      // In test mode, include the OTP in the response
+      return res.status(200).json({ 
+        message: 'OTP generated in test mode', 
+        email,
+        otp, // Include the actual OTP in test mode
+        testMode: true,
+        expiresAt: expiryTime
+      });
+    }
+    
+    // For non-test mode, we would typically send an actual email here
+    // But for simplicity, we'll just acknowledge receipt
     res.status(200).json({ 
       message: 'OTP sent successfully', 
-      email: req.body.email,
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
+      email,
+      expiresAt: expiryTime
     });
   });
   
