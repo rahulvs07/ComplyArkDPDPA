@@ -127,6 +127,8 @@ export const sendOtp = async (req: Request, res: Response) => {
     console.log('********************************************');
     
     // Include the OTP directly in the response for easier testing
+    responseData.testOtp = otp; // Make OTP visible in the response for testing
+    responseData.email = email;
     responseData.testInfo = {
       testOtp: otp,
       emailStatus: emailResult.success ? 'sent' : 'failed'
