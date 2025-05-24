@@ -140,8 +140,8 @@ export default function UserForm({ onSuccess, initialData, isEdit = false }: Use
   const isLoading = createMutation.isPending || updateMutation.isPending;
   
   // Determine if organization selection should be disabled
-  // If the current user is not a global admin, they can only create users for their org
-  const disableOrgSelection = currentUser?.role !== 'admin' || (initialData && initialData.id === currentUser?.id);
+  // Only complyarkadmin can change organizations, org admins can only create users for their own org
+  const disableOrgSelection = currentUser?.username !== 'complyarkadmin' || (initialData && initialData.id === currentUser?.id);
   
   return (
     <Form {...form}>
