@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import nodemailer from 'nodemailer';
 import sgMail from '@sendgrid/mail';
 import { db } from '../db';
-import { emailSettings, emailTemplates } from '../storage';
+import { emailSettings, emailTemplates } from '@shared/schema';
+import { storage } from '../storage';
 import { AuthRequest } from '../types';
 import { sql } from 'drizzle-orm';
 
@@ -43,9 +44,9 @@ export const getEmailSettings = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Only super admins can access email settings' });
     }
 
-    const settings = await db.select().from(emailSettings).limit(1);
+    const settings = await storage.getEmailSettings();
     
-    if (settings.length === 0) {
+    if (!settings) {
       return res.status(200).json({
         provider: 'smtp',
         fromEmail: '',
@@ -61,9 +62,9 @@ export const getEmailSettings = async (req: AuthRequest, res: Response) => {
 
     // Don't expose the full password or API key in the response
     const settingsWithoutSensitive = {
-      ...settings[0],
-      smtpPassword: settings[0].smtpPassword ? '********' : '',
-      sendgridApiKey: settings[0].sendgridApiKey ? '********' : '',
+      ...settings,
+      smtpPassword: settings.smtpPassword ? '********' : '',
+      sendgridApiKey: settings.sendgridApiKey ? '********' : '',
     };
 
     return res.status(200).json(settingsWithoutSensitive);
@@ -105,49 +106,39 @@ export const updateEmailSettings = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'SendGrid configuration requires an API key' });
     }
 
-    // Check if settings already exist
-    const existingSettings = await db.select().from(emailSettings).limit(1);
+    // Get existing settings if any
+    const existingSettings = await storage.getEmailSettings();
 
-    let result;
-    if (existingSettings.length > 0) {
-      // Preserve password/API key if not provided (masked with asterisks)
-      const updatedSettings: Partial<EmailSettingsConfig> = {
-        provider,
-        fromEmail,
-        fromName,
-        smtpHost: provider === 'smtp' ? smtpHost : null,
-        smtpPort: provider === 'smtp' && smtpPort ? parseInt(smtpPort.toString()) : null,
-        smtpUsername: provider === 'smtp' ? smtpUsername : null,
-        useTLS: provider === 'smtp' ? useTLS : false,
-        sendgridApiKey: provider === 'sendgrid' ? sendgridApiKey : null,
-      };
+    // Prepare settings object
+    const updatedSettings: any = {
+      provider,
+      fromEmail,
+      fromName,
+      smtpHost: provider === 'smtp' ? smtpHost : null,
+      smtpPort: provider === 'smtp' && smtpPort ? parseInt(smtpPort.toString()) : null,
+      smtpUsername: provider === 'smtp' ? smtpUsername : null,
+      useTLS: provider === 'smtp' ? useTLS : false,
+      sendgridApiKey: provider === 'sendgrid' ? sendgridApiKey : null,
+    };
 
-      // Only update password if provided and not masked
-      if (provider === 'smtp' && smtpPassword && smtpPassword !== '********') {
-        updatedSettings.smtpPassword = smtpPassword;
-      }
-
-      // Only update API key if provided and not masked
-      if (provider === 'sendgrid' && sendgridApiKey && sendgridApiKey !== '********') {
-        updatedSettings.sendgridApiKey = sendgridApiKey;
-      }
-
-      // Update the existing settings
-      result = await db.update(emailSettings).set(updatedSettings).where(sql`id = ${existingSettings[0].id}`);
-    } else {
-      // Create new settings
-      result = await db.insert(emailSettings).values({
-        provider,
-        fromEmail,
-        fromName,
-        smtpHost: provider === 'smtp' ? smtpHost : null,
-        smtpPort: provider === 'smtp' && smtpPort ? parseInt(smtpPort.toString()) : null,
-        smtpUsername: provider === 'smtp' ? smtpUsername : null,
-        smtpPassword: provider === 'smtp' ? smtpPassword : null,
-        useTLS: provider === 'smtp' ? useTLS : false,
-        sendgridApiKey: provider === 'sendgrid' ? sendgridApiKey : null,
-      });
+    // Only update password if provided and not masked
+    if (provider === 'smtp' && smtpPassword && smtpPassword !== '********') {
+      updatedSettings.smtpPassword = smtpPassword;
+    } else if (provider === 'smtp' && existingSettings && existingSettings.smtpPassword && smtpPassword === '********') {
+      // Keep existing password if masked password is provided
+      updatedSettings.smtpPassword = existingSettings.smtpPassword;
     }
+
+    // Only update API key if provided and not masked
+    if (provider === 'sendgrid' && sendgridApiKey && sendgridApiKey !== '********') {
+      updatedSettings.sendgridApiKey = sendgridApiKey;
+    } else if (provider === 'sendgrid' && existingSettings && existingSettings.sendgridApiKey && sendgridApiKey === '********') {
+      // Keep existing API key if masked key is provided
+      updatedSettings.sendgridApiKey = existingSettings.sendgridApiKey;
+    }
+
+    // Update settings using storage interface
+    const result = await storage.updateEmailSettings(updatedSettings);
 
     return res.status(200).json({ message: 'Email settings updated successfully' });
   } catch (error) {
@@ -170,13 +161,11 @@ export const sendTestEmail = async (req: AuthRequest, res: Response) => {
     }
 
     // Get email settings
-    const settings = await db.select().from(emailSettings).limit(1);
+    const emailConfig = await storage.getEmailSettings();
     
-    if (settings.length === 0) {
+    if (!emailConfig) {
       return res.status(400).json({ message: 'Email settings not configured' });
     }
-
-    const emailConfig = settings[0];
 
     // Send email based on the provider
     if (emailConfig.provider === 'smtp') {
@@ -201,7 +190,7 @@ export const getEmailTemplates = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Only super admins can access email templates' });
     }
 
-    const templates = await db.select().from(emailTemplates);
+    const templates = await storage.listEmailTemplates();
     return res.status(200).json(templates);
   } catch (error) {
     console.error('Get email templates error:', error);

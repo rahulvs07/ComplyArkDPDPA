@@ -724,6 +724,96 @@ import { db } from "./db";
 import { eq, and, desc, sql, count, isNull, like, inArray } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
+  // Email Settings operations
+  async getEmailSettings(): Promise<EmailSetting | undefined> {
+    const settings = await db.select().from(emailSettings).limit(1);
+    return settings.length > 0 ? settings[0] : undefined;
+  }
+
+  async updateEmailSettings(settings: InsertEmailSetting): Promise<EmailSetting> {
+    // Check if settings already exist
+    const existingSettings = await db.select().from(emailSettings).limit(1);
+    
+    if (existingSettings.length > 0) {
+      await db.update(emailSettings)
+        .set({
+          ...settings,
+          updatedAt: new Date()
+        })
+        .where(sql`id = ${existingSettings[0].id}`);
+      
+      return {
+        ...existingSettings[0],
+        ...settings,
+        updatedAt: new Date()
+      };
+    } else {
+      const [result] = await db.insert(emailSettings)
+        .values({
+          ...settings,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      
+      return result;
+    }
+  }
+
+  // Email Template operations
+  async getEmailTemplate(id: number): Promise<EmailTemplate | undefined> {
+    const templates = await db.select().from(emailTemplates).where(sql`id = ${id}`).limit(1);
+    return templates.length > 0 ? templates[0] : undefined;
+  }
+
+  async getEmailTemplateByName(name: string): Promise<EmailTemplate | undefined> {
+    const templates = await db.select().from(emailTemplates).where(sql`name = ${name}`).limit(1);
+    return templates.length > 0 ? templates[0] : undefined;
+  }
+
+  async createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate> {
+    const [result] = await db.insert(emailTemplates)
+      .values({
+        ...template,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    return result;
+  }
+
+  async updateEmailTemplate(id: number, template: Partial<InsertEmailTemplate>): Promise<EmailTemplate | undefined> {
+    const existingTemplate = await this.getEmailTemplate(id);
+    
+    if (!existingTemplate) {
+      return undefined;
+    }
+    
+    await db.update(emailTemplates)
+      .set({
+        ...template,
+        updatedAt: new Date()
+      })
+      .where(sql`id = ${id}`);
+    
+    return {
+      ...existingTemplate,
+      ...template,
+      updatedAt: new Date()
+    };
+  }
+
+  async deleteEmailTemplate(id: number): Promise<boolean> {
+    const result = await db.delete(emailTemplates).where(sql`id = ${id}`);
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async listEmailTemplates(): Promise<EmailTemplate[]> {
+    return await db.select().from(emailTemplates).orderBy(sql`name`);
+  }
+
+  
   // Notification operations
   async getNotifications(organizationId: number, limit: number = 5, offset: number = 0): Promise<any[]> {
     try {
