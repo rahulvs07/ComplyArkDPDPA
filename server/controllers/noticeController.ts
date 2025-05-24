@@ -573,9 +573,6 @@ export const downloadNotice = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: "Notice does not belong to this organization" });
     }
     
-    // Get organization details for the document
-    const organization = await storage.getOrganization(orgId);
-    
     // Create temporary directory if it doesn't exist
     if (!fs.existsSync(NOTICES_DIR)) {
       fs.mkdirSync(NOTICES_DIR, { recursive: true });
@@ -585,22 +582,7 @@ export const downloadNotice = async (req: AuthRequest, res: Response) => {
     if (format === 'docx') {
       // Generate DOCX version of the notice
       const docxFilePath = path.join(NOTICES_DIR, `notice_${noticeId}_${Date.now()}.docx`);
-      
-      // Add request page URL to the notice body if organization has one
-      let noticeBodyWithRequestUrl = notice.noticeBody;
-      if (organization && organization.requestPageUrlToken) {
-        const requestUrl = `${req.protocol}://${req.get('host')}/request/${organization.requestPageUrlToken}`;
-        noticeBodyWithRequestUrl = `${notice.noticeBody}\n\nTo submit data protection requests or exercise your rights under this notice, please visit:\n${requestUrl}`;
-      }
-      
-      // Generate the document with organization info
-      await generateDocxNotice(
-        noticeBodyWithRequestUrl, 
-        docxFilePath, 
-        notice.noticeName,
-        organization ? organization.businessName : undefined,
-        organization ? organization.businessAddress : undefined
-      );
+      await generateDocxNotice(notice.noticeBody, docxFilePath);
       
       const fileContent = fs.readFileSync(docxFilePath);
       const fileName = `${notice.noticeName.replace(/\s+/g, '_')}.docx`;
@@ -624,277 +606,18 @@ export const downloadNotice = async (req: AuthRequest, res: Response) => {
       
       return;
     } else {
-      // Generate PDF using Puppeteer with professional formatting
-      try {
-        // Create a temporary HTML file with professional styling
-        const tempHtmlPath = path.join(NOTICES_DIR, `notice_${noticeId}_${Date.now()}.html`);
-        const pdfPath = path.join(NOTICES_DIR, `notice_${noticeId}_${Date.now()}.pdf`);
-        
-        // Add request page URL to the notice body if organization has one
-        let noticeBodyWithRequestUrl = notice.noticeBody;
-        if (organization && organization.requestPageUrlToken) {
-          const requestUrl = `${req.protocol}://${req.get('host')}/request/${organization.requestPageUrlToken}`;
-          noticeBodyWithRequestUrl = `${notice.noticeBody}\n\n\nTo submit data protection requests or exercise your rights under this notice, please visit:\n${requestUrl}`;
-        }
-        
-        // Format the notice body to preserve line breaks and styling
-        const formattedNoticeBody = noticeBodyWithRequestUrl
-          .replace(/\n/g, '<br>')
-          .replace(/\s{2,}/g, match => '&nbsp;'.repeat(match.length));
-        
-        // Get organization data
-        const orgName = organization?.businessName || 'Your Organization';
-        const orgAddress = organization?.businessAddress || 'Organization Address';
-        const requestPageUrl = organization?.requestPageUrlToken 
-          ? `${req.protocol}://${req.get('host')}/request/${organization.requestPageUrlToken}`
-          : 'Your organization\'s request page URL';
-        
-        // Generate a unique document ID
-        const documentId = `${orgName.substring(0, 2).toUpperCase()}-${Math.floor(Math.random() * 10000)}-${new Date().getFullYear()}`;
-        
-        // Get current date for footer
-        const currentDate = new Date().toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-        
-        // Create HTML content with professional styling
-        const htmlContent = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>${notice.noticeName || "Privacy Notice"} - ${orgName}</title>
-            <style>
-              @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap');
-              
-              body {
-                font-family: 'Open Sans', Arial, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                margin: 0;
-                padding: 0;
-                background-color: white;
-              }
-              
-              .page {
-                background-color: white;
-                max-width: 100%;
-                margin: 0;
-                padding: 0;
-                position: relative;
-              }
-              
-              .header {
-                padding: 25px 40px;
-                border-bottom: 1px solid #e0e0e0;
-                background: linear-gradient(135deg, #2E77AE 0%, #1E5B8D 100%);
-                color: white;
-              }
-              
-              .header-top {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 15px;
-              }
-              
-              .logo {
-                font-weight: 700;
-                font-size: 24px;
-                margin: 0;
-              }
-              
-              .document-title {
-                font-size: 28px;
-                font-weight: 600;
-                text-align: center;
-                margin-top: 15px;
-              }
-              
-              .org-details {
-                font-size: 14px;
-                opacity: 0.9;
-                margin-top: 5px;
-              }
-              
-              .content {
-                padding: 40px;
-                font-size: 14px;
-              }
-              
-              .section {
-                margin-bottom: 20px;
-              }
-              
-              .section-title {
-                font-size: 18px;
-                font-weight: 600;
-                color: #1E5B8D;
-                margin-bottom: 10px;
-                border-bottom: 1px solid #e0e0e0;
-                padding-bottom: 5px;
-              }
-              
-              .footer {
-                padding: 20px 40px;
-                border-top: 1px solid #e0e0e0;
-                font-size: 12px;
-                color: #666;
-                text-align: center;
-                background-color: #f5f5f5;
-              }
-              
-              table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 15px 0;
-              }
-              
-              th, td {
-                border: 1px solid #ddd;
-                padding: 8px;
-                text-align: left;
-              }
-              
-              th {
-                background-color: #f2f2f2;
-              }
-              
-              ul, ol {
-                margin-left: 20px;
-                padding-left: 0;
-              }
-              
-              .metadata {
-                margin-top: 5px;
-                color: #666;
-                font-size: 12px;
-              }
-              
-              .document-id {
-                font-size: 12px;
-                color: rgba(255, 255, 255, 0.7);
-              }
-              
-              .request-link {
-                margin-top: 15px;
-                padding: 10px;
-                background-color: #f5f7fa;
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
-                text-align: center;
-              }
-              
-              .request-link a {
-                color: #2E77AE;
-                text-decoration: none;
-                font-weight: 600;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="page">
-              <div class="header">
-                <div class="header-top">
-                  <div>
-                    <div class="logo">${orgName}</div>
-                    <div class="org-details">${orgAddress}</div>
-                  </div>
-                  <div class="document-id">Document ID: ${documentId}</div>
-                </div>
-                <div class="document-title">${notice.noticeName || "Privacy Notice"}</div>
-              </div>
-              
-              <div class="content">
-                ${formattedNoticeBody}
-                
-                <div class="request-link">
-                  <p>To submit data protection requests or exercise your rights under this notice, please visit:</p>
-                  <a href="${requestPageUrl}" target="_blank">${requestPageUrl}</a>
-                </div>
-              </div>
-              
-              <div class="footer">
-                <div>© ${new Date().getFullYear()} ${orgName}. All rights reserved.</div>
-                <div>Last updated: ${currentDate}</div>
-                <div>This document is generated using a compliance management system.</div>
-              </div>
-            </div>
-          </body>
-          </html>
-        `;
-        
-        // Write the HTML content to a temporary file
-        fs.writeFileSync(tempHtmlPath, htmlContent);
-        
-        // Use Puppeteer to generate PDF
-        const puppeteer = require('puppeteer');
-        const browser = await puppeteer.launch({ 
-          args: ['--no-sandbox', '--disable-setuid-sandbox'],
-          headless: 'new'
-        });
-        const page = await browser.newPage();
-        
-        // Load the HTML file
-        await page.goto(`file://${tempHtmlPath}`, { waitUntil: 'networkidle0' });
-        
-        // Generate PDF
-        await page.pdf({
-          path: pdfPath,
-          format: 'A4',
-          printBackground: true,
-          margin: {
-            top: '10mm',
-            right: '10mm',
-            bottom: '10mm',
-            left: '10mm'
-          }
-        });
-        
-        await browser.close();
-        
-        // Read the generated PDF
-        const fileContent = fs.readFileSync(pdfPath);
-        const fileName = `${notice.noticeName.replace(/\s+/g, '_')}.pdf`;
-        
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-        
-        // Send file and clean up
-        res.send(fileContent);
-        
-        // Clean up temp files after sending
-        setTimeout(() => {
-          try {
-            if (fs.existsSync(tempHtmlPath)) {
-              fs.unlinkSync(tempHtmlPath);
-            }
-            if (fs.existsSync(pdfPath)) {
-              fs.unlinkSync(pdfPath);
-            }
-          } catch (cleanupError) {
-            console.error("Error cleaning up temporary files:", cleanupError);
-          }
-        }, 5000);
-        
-        return;
-      } catch (error) {
-        console.error("Error generating PDF:", error);
-        
-        // Fallback to the old method if PDF generation fails
-        if (!notice.folderLocation || !fs.existsSync(notice.folderLocation)) {
-          return res.status(404).json({ message: "Notice file not found" });
-        }
-        
-        const fileContent = fs.readFileSync(notice.folderLocation);
-        const fileName = `${notice.noticeName.replace(/\s+/g, '_')}.pdf`;
-        
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-        
-        return res.send(fileContent);
+      // Default PDF format - use existing file or generate if needed
+      if (!notice.folderLocation || !fs.existsSync(notice.folderLocation)) {
+        return res.status(404).json({ message: "Notice file not found" });
       }
+      
+      const fileContent = fs.readFileSync(notice.folderLocation);
+      const fileName = `${notice.noticeName.replace(/\s+/g, '_')}.pdf`;
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      
+      return res.send(fileContent);
     }
   } catch (error) {
     console.error("Download notice error:", error);
