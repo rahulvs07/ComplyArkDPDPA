@@ -472,30 +472,30 @@ export const createPublicDPRequest = async (req: Request, res: Response) => {
       comments: `Request submitted by ${email}. Status: Submitted.`
     });
     
-    // Send email notification using our robust email service
+    // Send email notification using our EMERGENCY direct email sender
     try {
-      // Import the robust email service
-      const { sendRequestCreationEmail } = await import('../services/robustEmailService');
+      // Import the direct email sender that completely bypasses test mode
+      const { sendDPRCreationEmail } = require('../forceSendEmail');
       
       // Get status name for notification
       const status = await storage.getRequestStatus(submittedStatus.statusId);
       
-      // Send email using the robust email service that bypasses test mode
-      const result = await sendRequestCreationEmail(
-        email,
-        request.requestId,
-        requestType,
+      // Send email using the direct email sender
+      const result = await sendDPRCreationEmail({
+        requestId: request.requestId,
         firstName,
         lastName,
-        organization.businessName,
-        status?.statusName || 'Submitted',
-        completionDate
-      );
+        email,
+        requestType,
+        organizationName: organization.businessName,
+        statusName: status?.statusName || 'Submitted',
+        dueDate: completionDate
+      });
       
       if (result.success) {
-        console.log(`✅ Email notification sent for DPR request #${request.requestId} - Message ID: ${result.messageId}`);
+        console.log(`🔴 EMERGENCY EMAIL SENDER: Email sent for DPR #${request.requestId} - Message ID: ${result.messageId}`);
       } else {
-        console.error(`❌ Email notification failed: ${result.error}`);
+        console.error(`🔴 EMERGENCY EMAIL SENDER: Email failed: ${result.error}`);
       }
     } catch (emailError) {
       console.error("Failed to send creation notification email:", emailError);
