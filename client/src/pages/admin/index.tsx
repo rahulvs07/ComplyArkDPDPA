@@ -10,6 +10,7 @@ import IndustriesTab from "./industries";
 import TemplatesTab from "./templates";
 import RequestStatusesTab from "./requeststatuses";
 import EmailSettings from "./email-settings";
+import EmailTemplates from "./email-templates";
 import OtpTestingPage from "./otp-testing";
 
 export default function AdminPanel() {
@@ -88,6 +89,12 @@ export default function AdminPanel() {
               Email Settings
             </TabsTrigger>
             <TabsTrigger 
+              value="emailtemplates" 
+              className="px-6 py-3 text-sm rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary-500 data-[state=active]:text-primary-500"
+            >
+              Email Templates
+            </TabsTrigger>
+            <TabsTrigger 
               value="otptesting" 
               className="px-6 py-3 text-sm rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary-500 data-[state=active]:text-primary-500"
             >
@@ -118,6 +125,10 @@ export default function AdminPanel() {
             
             <TabsContent value="emailsettings" className="m-0">
               <EmailSettings />
+            </TabsContent>
+            
+            <TabsContent value="emailtemplates" className="m-0">
+              <EmailTemplates />
             </TabsContent>
             
             <TabsContent value="otptesting" className="m-0">
