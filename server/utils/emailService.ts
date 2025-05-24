@@ -23,8 +23,8 @@ const DEFAULT_FROM_EMAIL = process.env.DEFAULT_FROM_EMAIL || 'noreply@complyark.
 const DEFAULT_FROM_NAME = process.env.DEFAULT_FROM_NAME || 'ComplyArk Notifications';
 
 // Configuration flags
-const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true';
-const EMAIL_TEST_MODE = process.env.NODE_ENV === 'development' || process.env.EMAIL_TEST_MODE === 'true';
+const EMAIL_ENABLED = true; // Force enable email sending
+const EMAIL_TEST_MODE = false; // Force disable test mode to ensure emails are sent
 
 // Create nodemailer transporter
 const transporter = nodemailer.createTransport({
