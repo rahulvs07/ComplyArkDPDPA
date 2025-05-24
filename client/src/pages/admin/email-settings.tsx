@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, CheckCircle, Mail, InfoIcon } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, CheckCircle, Mail, InfoIcon, Save, X } from 'lucide-react';
 
 const EmailSettings = () => {
   const { toast } = useToast();
@@ -33,6 +34,13 @@ const EmailSettings = () => {
   
   // Email templates
   const [templates, setTemplates] = useState<any[]>([]);
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<{id: number, name: string, subject: string, body: string}>({
+    id: 0,
+    name: '',
+    subject: '',
+    body: ''
+  });
   
   // Fetch email settings
   const { data: emailSettings, isLoading: isLoadingSettings } = useQuery({
@@ -59,6 +67,41 @@ const EmailSettings = () => {
       if (data && Array.isArray(data)) {
         setTemplates(data);
       }
+    },
+  });
+  
+  // Save email template
+  const saveTemplateMutation = useMutation({
+    mutationFn: async (template: any) => {
+      const response = await fetch('/api/admin/email-templates', {
+        method: template.id ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(template),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to save email template');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Email template has been saved successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/email-templates'] });
+      setIsEditingTemplate(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save email template',
+        variant: 'destructive',
+      });
     },
   });
   
@@ -417,11 +460,27 @@ const EmailSettings = () => {
         
         <TabsContent value="templates">
           <Card>
-            <CardHeader>
-              <CardTitle>Email Templates</CardTitle>
-              <CardDescription>
-                View and manage email templates used for notifications.
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div>
+                <CardTitle>Email Templates</CardTitle>
+                <CardDescription>
+                  View and manage email templates used for notifications.
+                </CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setEditingTemplate({
+                    id: 0,
+                    name: '',
+                    subject: '',
+                    body: ''
+                  });
+                  setIsEditingTemplate(true);
+                }}
+              >
+                Add Template
+              </Button>
             </CardHeader>
             <CardContent>
               {isLoadingTemplates ? (
@@ -430,18 +489,54 @@ const EmailSettings = () => {
                 </div>
               ) : templates && templates.length > 0 ? (
                 <div className="space-y-4">
-                  {templates.map((template, index) => (
-                    <div key={index} className="border rounded-md p-4">
-                      <h3 className="font-medium">{template.name}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Subject: {template.subject}
-                      </p>
+                  {templates.map((template) => (
+                    <div key={template.id} className="border rounded-md p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="font-medium">{template.name}</h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Subject: {template.subject}
+                          </p>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingTemplate(template);
+                            setIsEditingTemplate(true);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      </div>
+                      <div className="mt-2 pt-2 border-t text-sm">
+                        <p className="font-medium text-xs mb-1">Preview:</p>
+                        <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded text-xs max-h-24 overflow-y-auto">
+                          {template.body.substring(0, 200)}
+                          {template.body.length > 200 ? '...' : ''}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-6">
                   <p className="text-gray-500 dark:text-gray-400">No email templates found.</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => {
+                      setEditingTemplate({
+                        id: 0,
+                        name: '',
+                        subject: '',
+                        body: ''
+                      });
+                      setIsEditingTemplate(true);
+                    }}
+                  >
+                    Create Template
+                  </Button>
                 </div>
               )}
             </CardContent>
