@@ -26,6 +26,7 @@ export interface IStorage {
   // OTP Verification operations
   createOtpVerification(data: InsertOtpVerification): Promise<OtpVerification>;
   getOtpVerificationByToken(token: string): Promise<OtpVerification | undefined>;
+  getOtpVerificationsByEmail(email: string): Promise<OtpVerification[]>;
   markOtpAsVerified(token: string): Promise<boolean>;
   cleanupExpiredOtps(): Promise<number>;
   // User operations
@@ -745,6 +746,15 @@ export class DatabaseStorage implements IStorage {
   async getOtpVerificationByToken(token: string): Promise<OtpVerification | undefined> {
     const results = await db.select().from(otpVerifications).where(sql`token = ${token}`).limit(1);
     return results.length > 0 ? results[0] : undefined;
+  }
+  
+  async getOtpVerificationsByEmail(email: string): Promise<OtpVerification[]> {
+    const results = await db.select()
+      .from(otpVerifications)
+      .where(sql`email = ${email}`)
+      .orderBy(desc(otpVerifications.createdAt))
+      .limit(5);
+    return results;
   }
 
   async markOtpAsVerified(token: string): Promise<boolean> {

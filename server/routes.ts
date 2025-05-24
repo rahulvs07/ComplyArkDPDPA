@@ -326,25 +326,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/otp/verify', (req, res) => {
+  app.post('/api/otp/verify', async (req, res) => {
     console.log('OTP verify request:', req.body);
     const { email, otp, organizationId } = req.body;
     
-    // Accept only "1234" as a valid OTP for testing
-    if (otp === "1234") {
+    try {
+      // For testing mode
+      if (otp === "1234") {
+        if (req.session) {
+          req.session.authenticated = true;
+          req.session.email = email;
+          req.session.organizationId = organizationId;
+        }
+        return res.status(200).json({
+          message: 'Verification successful (test mode)',
+          email,
+          organizationId
+        });
+      }
+      
+      // For actual verification, find the most recent OTP for this email
+      // Check first if function exists
+      if (typeof storage.getOtpVerificationsByEmail !== 'function') {
+        console.error('getOtpVerificationsByEmail function not implemented in storage');
+        return res.status(500).json({
+          message: 'Server error: OTP verification service unavailable'
+        });
+      }
+      
+      const verifications = await storage.getOtpVerificationsByEmail(email);
+      
+      if (!verifications || verifications.length === 0) {
+        return res.status(401).json({
+          message: 'No verification found for this email. Please request a new OTP.'
+        });
+      }
+      
+      // Get the most recent verification
+      const verification = verifications[0];
+      
+      // Check if OTP has expired
+      const now = new Date();
+      if (verification.expiresAt < now) {
+        return res.status(401).json({
+          message: 'OTP has expired. Please request a new one.'
+        });
+      }
+      
+      // Check if the provided OTP matches
+      if (verification.otp !== otp) {
+        return res.status(401).json({
+          message: 'Invalid OTP. Please try again.'
+        });
+      }
+      
+      // OTP is valid, set session authentication
       if (req.session) {
         req.session.authenticated = true;
         req.session.email = email;
         req.session.organizationId = organizationId;
       }
+      
       return res.status(200).json({
         message: 'Verification successful',
         email,
         organizationId
       });
-    } else {
-      return res.status(401).json({
-        message: 'Invalid OTP. For testing, use "1234".'
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      return res.status(500).json({
+        message: 'Failed to verify OTP',
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
