@@ -238,12 +238,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Email settings and templates routes
-  app.get('/api/email/settings', isAuthenticated, isSuperAdmin, emailController.getEmailSettings);
-  app.post('/api/email/settings', isAuthenticated, isSuperAdmin, emailController.updateEmailSettings);
-  app.post('/api/email/test', isAuthenticated, isSuperAdmin, emailController.sendTestEmail);
-  app.get('/api/email/templates', isAuthenticated, isSuperAdmin, emailController.getEmailTemplates);
-  app.post('/api/email/templates', isAuthenticated, isSuperAdmin, emailController.saveEmailTemplate);
-  app.delete('/api/email/templates/:id', isAuthenticated, isSuperAdmin, emailController.deleteEmailTemplate);
+  app.get('/api/admin/email-settings', isAuthenticated, isAdmin, emailController.getEmailSettings);
+  app.post('/api/admin/email-settings', isAuthenticated, isAdmin, emailController.saveEmailSettings);
+  app.post('/api/admin/email-test', isAuthenticated, isAdmin, emailController.sendTestEmail);
+  app.get('/api/admin/email-templates', isAuthenticated, isAdmin, emailController.getEmailTemplates);
   
   // OTP authentication routes for the enhanced email-based verification
   app.post('/api/auth/otp/send', otpAuthController.sendOtp);

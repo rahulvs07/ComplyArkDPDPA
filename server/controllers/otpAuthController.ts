@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { sendEmail, sendTemplateEmail } from './emailController';
+import { sendEmail } from './emailController';
 import { storage } from '../storage';
 import crypto from 'crypto';
 
@@ -53,34 +53,24 @@ export const sendOtp = async (req: Request, res: Response) => {
       console.warn('Failed to clean up expired OTPs:', cleanupError);
     }
     
-    // Try to send via template first
-    let emailSent = false;
-    try {
-      emailSent = await sendTemplateEmail(
-        email, 
-        'OTP_VERIFICATION',
-        {
-          OTP: otp,
-          EMAIL: email,
-          EXPIRY: expiryTime.toLocaleString()
-        }
-      );
-    } catch (error) {
-      console.log('Failed to send OTP via template, falling back to regular email');
-    }
+    // Send OTP via email
+    const subject = 'Your OTP Verification Code';
+    const plainText = `
+      ComplyArk Verification
+      Your One-Time Password (OTP) for verification is: ${otp}
+      This OTP will expire in 15 minutes.
+      If you did not request this OTP, please ignore this email.
+    `;
     
-    // If template email failed, send regular email
-    if (!emailSent) {
-      const subject = 'Your OTP Verification Code';
-      const message = `
-        <h2>ComplyArk Verification</h2>
-        <p>Your One-Time Password (OTP) for verification is: <strong>${otp}</strong></p>
-        <p>This OTP will expire in 15 minutes.</p>
-        <p>If you did not request this OTP, please ignore this email.</p>
-      `;
-      
-      emailSent = await sendEmail(email, subject, message, message);
-    }
+    const htmlMessage = `
+      <h2>ComplyArk Verification</h2>
+      <p>Your One-Time Password (OTP) for verification is: <strong>${otp}</strong></p>
+      <p>This OTP will expire in 15 minutes.</p>
+      <p>If you did not request this OTP, please ignore this email.</p>
+    `;
+    
+    const emailResult = await sendEmail(email, subject, plainText, htmlMessage);
+    const emailSent = emailResult.success;
     
     if (!emailSent) {
       console.log('Failed to send OTP email. Returning token anyway for testing.');
