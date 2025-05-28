@@ -228,8 +228,8 @@ export async function getGrievanceHistory(req: AuthRequest, res: Response) {
   }
 }
 
-// Update a grievance (duplicate - remove this one)
-export async function updateGrievanceOld(req: Request, res: Response) {
+// Update a grievance (old version - removing duplicate)
+async function updateGrievanceOld(req: Request, res: Response) {
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     return res.status(400).json({ message: "Invalid grievance ID" });
@@ -326,7 +326,10 @@ export async function createGrievance(req: Request, res: Response) {
       }
     }
 
-    const newGrievance = await storage.createGrievance(data);
+    const newGrievance = await storage.createGrievance({
+      ...data,
+      statusId: data.statusId as number
+    });
     
     return res.status(201).json(newGrievance);
   } catch (error) {
