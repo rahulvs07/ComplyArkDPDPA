@@ -553,6 +553,7 @@ export default function GrievancesPage() {
               columns={columns}
               data={grievances}
               onView={handleViewGrievance}
+              onRowClick={handleViewGrievance}
               searchable={false} // We're handling search manually
               pagination={true}
               defaultRowsPerPage={10}
