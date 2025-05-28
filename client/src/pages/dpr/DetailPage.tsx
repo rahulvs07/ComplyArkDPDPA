@@ -113,13 +113,10 @@ export default function DPRDetailPage() {
   // Update request mutation
   const updateRequestMutation = useMutation({
     mutationFn: async (values: UpdateRequestValues) => {
-      return apiRequest(`/api/dpr/${requestId}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          statusId: parseInt(values.statusId),
-          assignedToUserId: values.assignedToUserId ? parseInt(values.assignedToUserId) : null,
-          comments: values.comments || null,
-        }),
+      return apiRequest("PATCH", `/api/dpr/${requestId}`, {
+        statusId: parseInt(values.statusId),
+        assignedToUserId: values.assignedToUserId ? parseInt(values.assignedToUserId) : null,
+        comments: values.comments || null,
       });
     },
     onSuccess: () => {
