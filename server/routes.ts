@@ -534,10 +534,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.patch('/api/grievances/:id', isAuthenticated, async (req, res) => {
+  app.patch('/api/grievances/:id', isAuthenticated, async (req: AuthRequest, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid grievance ID" });
+    }
+    
+    if (!req.user) {
+      return res.status(403).json({ message: "Authentication required" });
     }
     
     try {
@@ -552,7 +556,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.body.statusId !== undefined || req.body.assignedToUserId !== undefined) {
         await storage.createGrievanceHistory({
           grievanceId: id,
-          changedByUserId: (req as AuthRequest).user?.id || null,
+          changedByUserId: req.user.id,
           oldStatusId: grievance.statusId,
           newStatusId: req.body.statusId !== undefined ? req.body.statusId : grievance.statusId,
           oldAssignedToUserId: grievance.assignedToUserId,
