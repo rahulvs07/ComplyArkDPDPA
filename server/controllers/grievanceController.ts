@@ -40,8 +40,7 @@ export const updateGrievance = async (req: AuthRequest, res: Response) => {
       newStatusId: null as number | null,
       oldAssignedToUserId: null as number | null,
       newAssignedToUserId: null as number | null,
-      comments: null as string | null,
-      changeDate: new Date()
+      comments: null as string | null
     };
     
     // Status change
@@ -289,57 +288,10 @@ async function updateGrievanceOld(req: Request, res: Response) {
   }
 }
 
-// Create a new grievance
+// Create a new grievance - RESTORED FROM WORKING VERSION
 export async function createGrievance(req: Request, res: Response) {
   try {
-    const createSchema = z.object({
-      organizationId: z.number(),
-      firstName: z.string(),
-      lastName: z.string(),
-      email: z.string().email(),
-      phone: z.string(),
-      grievanceComment: z.string(),
-      statusId: z.number().optional(),
-    });
-
-    const validationResult = createSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        message: "Invalid request data", 
-        errors: validationResult.error.errors 
-      });
-    }
-
-    const data = validationResult.data;
-    
-    // Set default status ID if not provided
-    if (!data.statusId) {
-      // Get "Submitted" status or the first available status
-      const statuses = await storage.listRequestStatuses();
-      const submittedStatus = statuses.find(s => 
-        s.statusName.toLowerCase() === 'submitted'
-      );
-      
-      if (submittedStatus) {
-        data.statusId = submittedStatus.statusId;
-      } else {
-        data.statusId = statuses[0].statusId;
-      }
-    }
-
-    // Create the grievance with proper typing
-    const grievanceData = {
-      organizationId: data.organizationId,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      phone: data.phone,
-      grievanceComment: data.grievanceComment,
-      statusId: data.statusId as number
-    };
-
-    const newGrievance = await storage.createGrievance(grievanceData);
-    
+    const newGrievance = await storage.createGrievance(req.body);
     return res.status(201).json(newGrievance);
   } catch (error) {
     console.error("Error creating grievance:", error);
