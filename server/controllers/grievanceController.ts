@@ -151,8 +151,15 @@ export async function getGrievanceHistory(req: AuthRequest, res: Response) {
 
 // Update a grievance
 export async function updateGrievance(req: Request, res: Response) {
+  console.log("=== GRIEVANCE CONTROLLER UPDATE START ===");
+  console.log("Request params:", req.params);
+  console.log("Request body:", req.body);
+  
   const id = parseInt(req.params.id);
+  console.log("Parsed ID:", id);
+  
   if (isNaN(id)) {
+    console.log("Invalid ID, returning 400");
     return res.status(400).json({ message: "Invalid grievance ID" });
   }
 
