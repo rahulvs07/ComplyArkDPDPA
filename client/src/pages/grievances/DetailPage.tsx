@@ -65,13 +65,13 @@ export default function GrievanceDetailPage() {
     enabled: true,
   });
   
-  // Fetch all users for assignment
+  // Fetch organization users for assignment (only for admins)
   const { 
     data: users = [], 
     isLoading: usersLoading 
   } = useQuery({
-    queryKey: ['/api/users'],
-    enabled: true,
+    queryKey: [`/api/organizations/${user?.organizationId}/users`],
+    enabled: !!user?.organizationId && user?.role === "admin",
   });
   
   // Form setup
