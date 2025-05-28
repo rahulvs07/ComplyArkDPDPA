@@ -478,25 +478,6 @@ export default function GrievancesPage() {
         return <div>{date.toLocaleDateString()}</div>;
       },
     },
-    {
-      header: "Actions",
-      cell: ({ row }: any) => (
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleViewGrievance(row.original.grievanceId);
-            }}
-            className="h-8 w-8 p-0 text-[#2E77AE] border-[#2E77AE]/30 hover:bg-[#2E77AE]/10 hover:border-[#2E77AE]"
-          >
-            <FileEdit className="h-4 w-4" />
-            <span className="sr-only">View Details</span>
-          </Button>
-        </div>
-      ),
-    },
   ];
   
   return (
