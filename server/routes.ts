@@ -606,7 +606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create history entry
       if (req.body.statusId !== undefined || req.body.assignedToUserId !== undefined) {
-        await storage.createGrievanceHistory({
+        const historyData = {
           grievanceId: id,
           changedByUserId: (req as AuthRequest).user?.id || null,
           oldStatusId: grievance.statusId,
@@ -615,7 +615,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           newAssignedToUserId: req.body.assignedToUserId !== undefined ? req.body.assignedToUserId : grievance.assignedToUserId,
           comments: req.body.comments || null,
           changeDate: new Date()
-        });
+        };
+        
+        console.log("Creating grievance history with data:", historyData);
+        
+        try {
+          const historyResult = await storage.createGrievanceHistory(historyData);
+          console.log("History created successfully:", historyResult);
+        } catch (error) {
+          console.error("Error creating grievance history:", error);
+        }
       }
       
       return res.status(200).json(updatedGrievance);
