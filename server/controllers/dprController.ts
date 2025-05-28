@@ -187,6 +187,12 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
     // Extract updateable fields
     const { statusId, assignedToUserId, closureComments, comments } = req.body;
     
+    console.log('=== DPR UPDATE DEBUG ===');
+    console.log('Request body:', req.body);
+    console.log('Current request status:', request.statusId);
+    console.log('New status from form:', statusId);
+    console.log('Comments:', comments);
+    
     // Track changes
     const changes: any = {};
     const historyEntry = {
@@ -196,7 +202,7 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
       newStatusId: null,
       oldAssignedToUserId: null,
       newAssignedToUserId: null,
-      comments: null
+      comments: comments || null
     };
     
     // Status change
