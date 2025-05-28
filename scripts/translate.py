@@ -48,6 +48,75 @@ def get_supported_languages():
         {"code": "urd_Arab", "name": "Urdu"}
     ]
 
+def check_model_availability():
+    """Check if IndicTrans2 models are available locally."""
+    models_dir = Path(__file__).parent.parent / "models" / "translation"
+    
+    required_models = ["en-indic", "indic-en", "indic-indic"]
+    available_models = {}
+    
+    for model_type in required_models:
+        model_path = models_dir / model_type
+        config_file = model_path / "config.json"
+        available_models[model_type] = config_file.exists()
+    
+    return available_models
+
+def translate_with_model(text, target_lang, source_lang="eng_Latn"):
+    """
+    Translate text using the actual IndicTrans2 model.
+    
+    Args:
+        text: Text to translate
+        target_lang: Target language code
+        source_lang: Source language code
+    
+    Returns:
+        Translated text
+    """
+    try:
+        # Try importing the required libraries
+        from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+        import torch
+        
+        # Determine which model to use
+        if source_lang == "eng_Latn" and target_lang != "eng_Latn":
+            model_type = "en-indic"
+        elif source_lang != "eng_Latn" and target_lang == "eng_Latn":
+            model_type = "indic-en"
+        else:
+            model_type = "indic-indic"
+        
+        # Load the model
+        models_dir = Path(__file__).parent.parent / "models" / "translation"
+        model_path = models_dir / model_type
+        
+        if not model_path.exists():
+            raise FileNotFoundError(f"Model {model_type} not found at {model_path}")
+        
+        tokenizer = AutoTokenizer.from_pretrained(str(model_path))
+        model = AutoModelForSeq2SeqLM.from_pretrained(str(model_path))
+        
+        # Prepare input with language tags
+        if model_type in ["en-indic", "indic-indic"]:
+            input_text = f">>{target_lang}<< {text}"
+        else:
+            input_text = text
+        
+        # Tokenize and translate
+        inputs = tokenizer(input_text, return_tensors="pt", max_length=512, truncation=True)
+        
+        with torch.no_grad():
+            outputs = model.generate(**inputs, max_length=512, num_beams=4, early_stopping=True)
+        
+        translated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return translated_text
+        
+    except ImportError as e:
+        raise ImportError(f"Required libraries not installed: {e}")
+    except Exception as e:
+        raise Exception(f"Translation failed: {e}")
+
 def simulate_translation(text, target_lang):
     """
     Simulate translation for demonstration purposes.
@@ -88,7 +157,10 @@ def main():
     
     parser.add_argument("--text", type=str, help="Text to translate")
     parser.add_argument("--target_lang", type=str, help="Target language code (e.g., 'hin_Deva')")
+    parser.add_argument("--source_lang", type=str, default="eng_Latn", help="Source language code")
+    parser.add_argument("--use_model", action="store_true", help="Use actual model instead of simulation")
     parser.add_argument("--list_languages", action="store_true", help="List supported languages")
+    parser.add_argument("--check_models", action="store_true", help="Check model availability")
     
     args = parser.parse_args()
     
@@ -98,10 +170,33 @@ def main():
         print(json.dumps(languages, indent=2))
         return
     
+    if args.check_models:
+        availability = check_model_availability()
+        print(json.dumps({
+            "models_available": availability,
+            "all_ready": all(availability.values())
+        }, indent=2))
+        return
+    
     # Handle translation commands
     if args.text and args.target_lang:
-        translated = simulate_translation(args.text, args.target_lang)
-        print(translated)
+        try:
+            if args.use_model:
+                # Try to use the actual model
+                availability = check_model_availability()
+                if not any(availability.values()):
+                    print("ERROR: No models are available. Please download models first.")
+                    sys.exit(1)
+                
+                translated = translate_with_model(args.text, args.target_lang, args.source_lang)
+            else:
+                # Use simulation mode
+                translated = simulate_translation(args.text, args.target_lang)
+            
+            print(translated)
+        except Exception as e:
+            print(f"ERROR: {e}")
+            sys.exit(1)
     else:
         parser.print_help()
 
