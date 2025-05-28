@@ -19,6 +19,9 @@ export const canManageRequests = (
   res: Response,
   next: NextFunction
 ) => {
+  console.log('canManageRequests - req.user:', req.user);
+  console.log('canManageRequests - session:', req.session);
+  
   // All authenticated users (including regular users) can view and update request statuses
   if (req.user) {
     return next();

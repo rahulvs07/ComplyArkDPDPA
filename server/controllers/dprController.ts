@@ -167,6 +167,14 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
   if (isNaN(requestId)) {
     return res.status(400).json({ message: "Invalid request ID" });
   }
+
+  // Debug authentication
+  console.log('DPR Update - User object:', req.user);
+  console.log('DPR Update - Session:', req.session);
+  
+  if (!req.user) {
+    return res.status(403).json({ message: "Authentication required" });
+  }
   
   try {
     const request = await storage.getDPRequest(requestId);
@@ -176,7 +184,7 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
     }
     
     // Check if user has access to this request
-    if (req.user.organizationId !== request.organizationId && req.user.role !== 'admin') {
+    if (req.user.organizationId !== request.organizationId && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
       return res.status(403).json({ message: "You don't have access to this request" });
     }
     
