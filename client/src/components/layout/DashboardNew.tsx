@@ -168,7 +168,7 @@ export default function DashboardNew() {
                   <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
                   <h3 className="text-3xl font-bold mt-1">{stat.count}</h3>
                   <p className={`text-xs mt-1 ${stat.trendUp ? 'text-green-500' : 'text-red-500'}`}>
-                    {stat.trend}
+                    {typeof stat.trend === 'string' ? stat.trend : stat.trend?.value || 'No change'}
                   </p>
                 </div>
                 <div>
