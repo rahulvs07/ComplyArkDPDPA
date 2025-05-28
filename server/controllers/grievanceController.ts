@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { storage } from "../storage";
 import { z } from "zod";
 import { AuthRequest } from "../middleware/auth";
+import { InsertGrievance, InsertGrievanceHistory } from "@shared/schema";
 
 // Update Grievance - exactly like DPR updateDPRequest
 export const updateGrievance = async (req: AuthRequest, res: Response) => {
@@ -326,10 +327,18 @@ export async function createGrievance(req: Request, res: Response) {
       }
     }
 
-    const newGrievance = await storage.createGrievance({
-      ...data,
+    // Create the grievance with proper typing
+    const grievanceData = {
+      organizationId: data.organizationId,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      grievanceComment: data.grievanceComment,
       statusId: data.statusId as number
-    });
+    };
+
+    const newGrievance = await storage.createGrievance(grievanceData);
     
     return res.status(201).json(newGrievance);
   } catch (error) {
