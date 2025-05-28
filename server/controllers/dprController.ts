@@ -168,22 +168,7 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ message: "Invalid request ID" });
   }
 
-  // Debug authentication and log exception
-  console.log('DPR Update - User object:', req.user);
-  console.log('DPR Update - Session:', req.session);
-  
   if (!req.user) {
-    // Log authentication failure to exception logs
-    try {
-      await storage.createExceptionLog({
-        pageName: 'DPR Update',
-        functionName: 'updateDPRequest',
-        errorMessage: 'Authentication failed - req.user is undefined',
-        dateTime: new Date()
-      });
-    } catch (logError) {
-      console.error('Failed to log exception:', logError);
-    }
     return res.status(403).json({ message: "Authentication required" });
   }
   

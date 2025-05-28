@@ -89,52 +89,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/dpr/:id', isAuthenticated, dprController.getDPRequest);
   app.get('/api/dpr/:id/history', isAuthenticated, dprController.getDPRequestHistory);
   
-  // DPR update routes with enhanced authentication
-  app.put('/api/dpr/:id', async (req: any, res: any, next: any) => {
-    // Enhanced authentication for DPR updates
-    if (req.session && req.session.userId) {
-      try {
-        const user = await storage.getUser(req.session.userId);
-        if (user && user.isActive) {
-          req.user = {
-            id: user.id,
-            username: user.username,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            organizationId: user.organizationId,
-            role: user.role
-          };
-          return dprController.updateDPRequest(req, res);
-        }
-      } catch (error) {
-        console.error("Authentication error:", error);
-      }
-    }
-    return res.status(403).json({ message: "Authentication required" });
-  });
-  
-  app.patch('/api/dpr/:id', async (req: any, res: any, next: any) => {
-    // Enhanced authentication for DPR updates
-    if (req.session && req.session.userId) {
-      try {
-        const user = await storage.getUser(req.session.userId);
-        if (user && user.isActive) {
-          req.user = {
-            id: user.id,
-            username: user.username,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            organizationId: user.organizationId,
-            role: user.role
-          };
-          return dprController.updateDPRequest(req, res);
-        }
-      } catch (error) {
-        console.error("Authentication error:", error);
-      }
-    }
-    return res.status(403).json({ message: "Authentication required" });
-  });
+  app.put('/api/dpr/:id', isAuthenticated, dprController.updateDPRequest);
+  app.patch('/api/dpr/:id', isAuthenticated, dprController.updateDPRequest);
   
   // Grievances routes
   app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, grievanceController.listGrievances);
