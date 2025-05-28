@@ -605,6 +605,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedGrievance = await storage.updateGrievance(id, req.body);
       
       // Create history entry
+      console.log("Checking history creation conditions:", {
+        hasStatusId: req.body.statusId !== undefined,
+        hasAssignedTo: req.body.assignedToUserId !== undefined,
+        statusId: req.body.statusId,
+        assignedToUserId: req.body.assignedToUserId
+      });
+      
       if (req.body.statusId !== undefined || req.body.assignedToUserId !== undefined) {
         const historyData = {
           grievanceId: id,
