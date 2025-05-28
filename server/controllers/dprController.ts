@@ -164,6 +164,11 @@ export const getDPRequestHistory = async (req: AuthRequest, res: Response) => {
 export const updateDPRequest = async (req: AuthRequest, res: Response) => {
   const requestId = parseInt(req.params.id);
   
+  console.log('=== DPR UPDATE START ===');
+  console.log('Request ID:', requestId);
+  console.log('Request body:', req.body);
+  console.log('User:', req.user?.id, req.user?.username);
+  
   if (isNaN(requestId)) {
     return res.status(400).json({ message: "Invalid request ID" });
   }
