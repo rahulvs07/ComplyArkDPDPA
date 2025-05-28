@@ -185,7 +185,7 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
     }
     
     // Extract updateable fields
-    const { statusId, assignedToUserId, closureComments } = req.body;
+    const { statusId, assignedToUserId, closureComments, comments } = req.body;
     
     // Track changes
     const changes: any = {};
