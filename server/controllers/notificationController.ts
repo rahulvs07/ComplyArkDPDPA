@@ -11,16 +11,19 @@ import { eq, and, count } from "drizzle-orm";
  */
 export async function getNotifications(req: Request, res: Response) {
   try {
-    // Authorization check - user must be logged in
-    if (!req.user || !req.user.id) {
+    // Use session-based authentication like other endpoints
+    if (!req.session?.userId) {
       return res.status(401).json({ message: "Unauthorized. Please login to access this resource." });
     }
 
     const limit = parseInt(req.query.limit as string) || 5;
     const offset = parseInt(req.query.offset as string) || 0;
-    const organizationId = req.user.organizationId;
+    const userId = req.session.userId;
+    const organizationId = req.session.organizationId || 33; // Default to org 33
 
-    const notifications = await storage.getNotifications(organizationId, limit, offset);
+    console.log(`Fetching notifications for user ${userId} in organization ${organizationId}`);
+    const notifications = await storage.getNotifications(organizationId, limit, offset, userId);
+    console.log(`Found ${notifications.length} notifications`);
     
     return res.status(200).json(notifications);
   } catch (error) {

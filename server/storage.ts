@@ -39,7 +39,7 @@ export interface IStorage {
   getOrgAdmin(organizationId: number): Promise<User | undefined>;
   
   // Notification operations
-  getNotifications(organizationId: number, limit: number, offset: number): Promise<any[]>;
+  getNotifications(organizationId: number, limit: number, offset: number, userId?: number): Promise<any[]>;
   getNotificationById(notificationId: number): Promise<any | undefined>;
   createNotification(notification: any): Promise<any>;
   markNotificationsAsRead(userId: number, notificationIds?: number[]): Promise<number>;
@@ -881,9 +881,9 @@ export class DatabaseStorage implements IStorage {
 
   
   // Notification operations
-  async getNotifications(organizationId: number, limit: number = 5, offset: number = 0): Promise<any[]> {
+  async getNotifications(organizationId: number, limit: number = 5, offset: number = 0, userId?: number): Promise<any[]> {
     try {
-      const notifications = await db
+      let query = db
         .select({
           notificationId: notificationLogs.notificationId,
           userId: notificationLogs.userId,
@@ -900,7 +900,14 @@ export class DatabaseStorage implements IStorage {
           relatedItemType: notificationLogs.relatedItemType
         })
         .from(notificationLogs)
-        .where(eq(notificationLogs.organizationId, organizationId))
+        .where(eq(notificationLogs.organizationId, organizationId));
+
+      // Filter by user ID if provided
+      if (userId) {
+        query = query.where(eq(notificationLogs.userId, userId));
+      }
+
+      const notifications = await query
         .orderBy(desc(notificationLogs.timestamp))
         .limit(limit)
         .offset(offset);
