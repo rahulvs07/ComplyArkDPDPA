@@ -88,8 +88,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/organizations/:orgId/dpr', isAuthenticated, isSameOrganization, dprController.listDPRequests);
   app.get('/api/dpr/:id', isAuthenticated, dprController.getDPRequest);
   app.get('/api/dpr/:id/history', isAuthenticated, dprController.getDPRequestHistory);
-  app.put('/api/dpr/:id', canManageRequests, dprController.updateDPRequest);
-  app.patch('/api/dpr/:id', canManageRequests, dprController.updateDPRequest);
+  app.put('/api/dpr/:id', isAuthenticated, canManageRequests, dprController.updateDPRequest);
+  app.patch('/api/dpr/:id', isAuthenticated, canManageRequests, dprController.updateDPRequest);
   
   // Grievances routes
   app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, grievanceController.listGrievances);
