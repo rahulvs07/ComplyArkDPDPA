@@ -3,6 +3,85 @@ import { storage } from "../storage";
 import { z } from "zod";
 import { AuthRequest } from "../middleware/auth";
 
+// Update Grievance - exactly like DPR updateDPRequest
+export const updateGrievance = async (req: AuthRequest, res: Response) => {
+  const grievanceId = parseInt(req.params.id);
+  
+  if (isNaN(grievanceId)) {
+    return res.status(400).json({ message: "Invalid grievance ID" });
+  }
+
+  if (!req.user) {
+    return res.status(403).json({ message: "Authentication required" });
+  }
+  
+  try {
+    const grievance = await storage.getGrievance(grievanceId);
+    
+    if (!grievance) {
+      return res.status(404).json({ message: "Grievance not found" });
+    }
+    
+    // Check if user has access to this grievance
+    if (req.user.organizationId !== grievance.organizationId && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: "You don't have access to this grievance" });
+    }
+    
+    // Extract updateable fields
+    const { statusId, assignedToUserId, closureComments } = req.body;
+    
+    // Track changes
+    const changes: any = {};
+    const historyEntry = {
+      grievanceId,
+      changedByUserId: req.user.id,
+      oldStatusId: null as number | null,
+      newStatusId: null as number | null,
+      oldAssignedToUserId: null as number | null,
+      newAssignedToUserId: null as number | null,
+      comments: null as string | null,
+      changeDate: new Date()
+    };
+    
+    // Status change
+    if (statusId !== undefined && statusId !== grievance.statusId) {
+      changes.statusId = statusId;
+      historyEntry.oldStatusId = grievance.statusId;
+      historyEntry.newStatusId = statusId;
+    }
+    
+    // Assignment change
+    if (assignedToUserId !== undefined && assignedToUserId !== grievance.assignedToUserId) {
+      changes.assignedToUserId = assignedToUserId;
+      historyEntry.oldAssignedToUserId = grievance.assignedToUserId;
+      historyEntry.newAssignedToUserId = assignedToUserId;
+    }
+    
+    // Closure comments
+    if (closureComments !== undefined) {
+      changes.closureComments = closureComments;
+      historyEntry.comments = closureComments;
+    }
+    
+    // Update the grievance if there are changes
+    if (Object.keys(changes).length > 0) {
+      const updatedGrievance = await storage.updateGrievance(grievanceId, changes);
+      
+      // Create history entry only if there were actual changes
+      if (statusId !== undefined || assignedToUserId !== undefined || closureComments) {
+        await storage.createGrievanceHistory(historyEntry);
+      }
+      
+      return res.status(200).json(updatedGrievance);
+    } else {
+      return res.status(200).json(grievance);
+    }
+  } catch (error) {
+    console.error(`Error updating grievance ${grievanceId}:`, error);
+    return res.status(500).json({ message: "Failed to update grievance" });
+  }
+};
+
 // List all grievances for an organization
 export async function listGrievances(req: AuthRequest, res: Response) {
   const orgId = parseInt(req.params.orgId);
@@ -149,8 +228,8 @@ export async function getGrievanceHistory(req: AuthRequest, res: Response) {
   }
 }
 
-// Update a grievance
-export async function updateGrievance(req: Request, res: Response) {
+// Update a grievance (duplicate - remove this one)
+export async function updateGrievanceOld(req: Request, res: Response) {
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     return res.status(400).json({ message: "Invalid grievance ID" });
