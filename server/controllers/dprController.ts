@@ -164,49 +164,31 @@ export const getDPRequestHistory = async (req: AuthRequest, res: Response) => {
 export const updateDPRequest = async (req: AuthRequest, res: Response) => {
   const requestId = parseInt(req.params.id);
   
-  console.log("=== DPR UPDATE REQUEST START ===");
-  console.log("Request ID:", requestId);
-  console.log("Request Body:", JSON.stringify(req.body, null, 2));
-  console.log("Session:", req.session ? JSON.stringify(req.session, null, 2) : "No session");
-  console.log("User:", req.user ? JSON.stringify(req.user, null, 2) : "No user");
-  
   if (isNaN(requestId)) {
-    console.log("ERROR: Invalid request ID");
     return res.status(400).json({ message: "Invalid request ID" });
   }
   
-  // TEMPORARILY BYPASS AUTHENTICATION TO FIX UPDATE ISSUE
-  // This will be restored once the basic update functionality works
-  console.log("BYPASSING AUTH FOR UPDATE TEST");
-  
   try {
-    const request = await storage.getDPRequest(requestId);
+    // Simple update - just get the request and update it
+    const { statusId, assignedToUserId, closureComments } = req.body;
     
-    if (!request) {
+    const updateData: any = {};
+    if (statusId !== undefined) updateData.statusId = statusId;
+    if (assignedToUserId !== undefined) updateData.assignedToUserId = assignedToUserId;
+    if (closureComments !== undefined) updateData.closureComments = closureComments;
+    
+    const updatedRequest = await storage.updateDPRequest(requestId, updateData);
+    
+    if (!updatedRequest) {
       return res.status(404).json({ message: "Request not found" });
     }
     
-    // TEMPORARILY SKIP ACCESS CHECK - WILL RESTORE AFTER UPDATE WORKS
-    console.log("Skipping access check for testing");
-    
-    // Extract updateable fields
-    const { statusId, assignedToUserId, closureComments } = req.body;
-    
-    // Track changes
-    const changes: any = {};
-    const historyEntry = {
-      requestId,
-      changedByUserId: req.user.id,
-      oldStatusId: null,
-      newStatusId: null,
-      oldAssignedToUserId: null,
-      newAssignedToUserId: null,
-      comments: null
-    };
-    
-    // Status change
-    if (statusId !== undefined && statusId !== request.statusId) {
-      const newStatus = await storage.getRequestStatus(statusId);
+    return res.status(200).json(updatedRequest);
+  } catch (error) {
+    console.error("Update DPRequest error:", error);
+    return res.status(500).json({ message: "An error occurred while updating the request" });
+  }
+};
       
       if (!newStatus) {
         return res.status(400).json({ message: "Invalid status ID" });
