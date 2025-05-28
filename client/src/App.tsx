@@ -7,6 +7,7 @@ import NoticeModule from "@/pages/notice";
 import DPRModule from "@/pages/dpr";
 import DPRDetailPage from "@/pages/dpr/DetailPage";
 import GrievancesPage from "@/pages/GrievancesPage";
+import GrievanceDetailPage from "@/pages/grievances/DetailPage";
 import ComplianceDocumentsPage from "@/pages/compliance-documents";
 import AdminPanel from "@/pages/admin";
 import AdminOrganizations from "@/pages/admin/organizations";
@@ -97,10 +98,9 @@ function Router() {
         </AppLayout>
       </Route>
 
-      {/* Temporarily disabled Grievances detail page until backend is ready */}
       <Route path="/grievances/:id">
         <AppLayout>
-          <ProtectedRoute component={GrievancesPage} />
+          <ProtectedRoute component={GrievanceDetailPage} />
         </AppLayout>
       </Route>
       
