@@ -216,10 +216,13 @@ export async function updateGrievance(req: any, res: Response) {
           module: 'Grievance' as const,
           action: 'Request Updated',
           actionType: 'updated' as const,
+          timestamp: new Date(),
+          status: 'active' as const,
+          initiator: 'user' as const,
           message: `Grievance #${id} has been updated`,
           isRead: false,
-          createdAt: new Date(),
-          relatedItemId: id
+          relatedItemId: id,
+          relatedItemType: 'Grievance' as const
         };
         
         console.log("Creating notification:", notificationData);
