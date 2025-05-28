@@ -1023,6 +1023,25 @@ export class DatabaseStorage implements IStorage {
       return 0;
     }
   }
+
+  async getUnreadNotificationCountForUser(userId: number): Promise<number> {
+    try {
+      const result = await db
+        .select({ count: count() })
+        .from(notificationLogs)
+        .where(
+          and(
+            eq(notificationLogs.userId, userId),
+            eq(notificationLogs.isRead, false)
+          )
+        );
+      
+      return result[0]?.count || 0;
+    } catch (error) {
+      console.error('Error getting unread notification count for user:', error);
+      return 0;
+    }
+  }
   // RequestStatus operations
   async updateRequestStatus(id: number, updates: Partial<InsertRequestStatus>): Promise<RequestStatus | undefined> {
     const [updatedStatus] = await db
