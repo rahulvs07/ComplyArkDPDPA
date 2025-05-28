@@ -164,7 +164,14 @@ export const getDPRequestHistory = async (req: AuthRequest, res: Response) => {
 export const updateDPRequest = async (req: AuthRequest, res: Response) => {
   const requestId = parseInt(req.params.id);
   
+  console.log("=== DPR UPDATE REQUEST START ===");
+  console.log("Request ID:", requestId);
+  console.log("Request Body:", JSON.stringify(req.body, null, 2));
+  console.log("Session:", req.session ? JSON.stringify(req.session, null, 2) : "No session");
+  console.log("User:", req.user ? JSON.stringify(req.user, null, 2) : "No user");
+  
   if (isNaN(requestId)) {
+    console.log("ERROR: Invalid request ID");
     return res.status(400).json({ message: "Invalid request ID" });
   }
   
@@ -188,7 +195,28 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
   }
   
   if (!req.user) {
-    return res.status(403).json({ message: "Authentication required to update requests" });
+    console.log("ERROR: No user found - authentication failed");
+    
+    // Log this to exception table
+    try {
+      await storage.logException({
+        userId: req.session?.userId || null,
+        organizationId: null,
+        pageName: "DPR Module",
+        functionName: "updateDPRequest", 
+        errorMessage: "Authentication failed - no user found in session",
+        stackTrace: `Session data: ${JSON.stringify(req.session)}`,
+        severity: "high",
+        status: "new",
+        browserInfo: req.headers['user-agent'] || 'Unknown',
+        url: req.url,
+        additionalInfo: `Request ID: ${requestId}, Body: ${JSON.stringify(req.body)}`
+      });
+    } catch (logError) {
+      console.error("Failed to log exception:", logError);
+    }
+    
+    return res.status(403).json({ message: "Forbidden. You need to be logged in to manage requests." });
   }
   
   try {
