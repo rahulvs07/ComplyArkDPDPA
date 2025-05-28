@@ -503,60 +503,75 @@ class MemStorage {
     return Array.from(this.requestStatusesData.values());
   }
 
-  // DP Request operations
+  // DP Request operations (Database implementation)
   async getDPRequest(id: number): Promise<DPRequest | undefined> {
-    return this.dpRequestsData.get(id);
+    const [request] = await db
+      .select()
+      .from(dpRequests)
+      .where(eq(dpRequests.requestId, id));
+    return request;
   }
 
   async createDPRequest(insertRequest: InsertDPRequest): Promise<DPRequest> {
-    const requestId = this.currentDPRequestId++;
-    const createdAt = new Date();
-    const request: DPRequest = { 
-      ...insertRequest, 
-      requestId, 
-      createdAt, 
-      lastUpdatedAt: createdAt,
-      completedOnTime: null,
-      closedDateTime: null
-    };
-    this.dpRequestsData.set(requestId, request);
+    const [request] = await db
+      .insert(dpRequests)
+      .values(insertRequest)
+      .returning();
     return request;
   }
 
   async updateDPRequest(id: number, updates: Partial<InsertDPRequest>): Promise<DPRequest | undefined> {
-    const request = this.dpRequestsData.get(id);
-    if (!request) return undefined;
-    
-    const lastUpdatedAt = new Date();
-    const updatedRequest = { ...request, ...updates, lastUpdatedAt };
-    this.dpRequestsData.set(id, updatedRequest);
-    return updatedRequest;
+    const [request] = await db
+      .update(dpRequests)
+      .set({
+        ...updates,
+        lastUpdatedAt: new Date(),
+      })
+      .where(eq(dpRequests.requestId, id))
+      .returning();
+    return request;
   }
 
   async deleteDPRequest(id: number): Promise<boolean> {
-    return this.dpRequestsData.delete(id);
+    try {
+      const result = await db
+        .delete(dpRequests)
+        .where(eq(dpRequests.requestId, id));
+      return result.rowCount ? result.rowCount > 0 : false;
+    } catch (error) {
+      console.error("Error deleting DP request:", error);
+      return false;
+    }
   }
 
   async listDPRequests(organizationId: number, statusId?: number): Promise<DPRequest[]> {
-    const requests = Array.from(this.dpRequestsData.values());
+    let query = db
+      .select()
+      .from(dpRequests)
+      .where(eq(dpRequests.organizationId, organizationId));
+    
     if (statusId) {
-      return requests.filter(req => req.organizationId === organizationId && req.statusId === statusId);
+      query = query.where(eq(dpRequests.statusId, statusId));
     }
-    return requests.filter(req => req.organizationId === organizationId);
+    
+    return query.orderBy(desc(dpRequests.createdAt));
   }
 
-  // DP Request History operations
-  async createDPRequestHistory(insertHistory: InsertDPRequestHistory): Promise<DPRequestHistory> {
-    const historyId = this.currentDPRequestHistoryId++;
-    const changeDate = new Date();
-    const history: DPRequestHistory = { ...insertHistory, historyId, changeDate };
-    this.dpRequestHistoryData.set(historyId, history);
-    return history;
+  // DP Request History operations (Database implementation)
+  async createDPRequestHistory(history: InsertDPRequestHistory): Promise<DPRequestHistory> {
+    const [newHistory] = await db
+      .insert(dpRequestHistory)
+      .values(history)
+      .returning();
+    return newHistory;
   }
 
   async listDPRequestHistory(requestId: number): Promise<DPRequestHistory[]> {
-    const history = Array.from(this.dpRequestHistoryData.values());
-    return history.filter(h => h.requestId === requestId);
+    return db
+      .select()
+      .from(dpRequestHistory)
+      .where(eq(dpRequestHistory.requestId, requestId))
+      .orderBy(desc(dpRequestHistory.changeDate));
   }
 
   // Dashboard operations
@@ -1085,6 +1100,10 @@ export class DatabaseStorage implements IStorage {
       .from(grievanceHistory)
       .where(eq(grievanceHistory.grievanceId, grievanceId))
       .orderBy(desc(grievanceHistory.changeDate));
+  }
+
+  async listGrievanceHistory(grievanceId: number): Promise<GrievanceHistory[]> {
+    return this.getGrievanceHistory(grievanceId);
   }
   
   // Compliance Document operations
