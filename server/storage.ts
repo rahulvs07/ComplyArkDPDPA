@@ -39,12 +39,11 @@ export interface IStorage {
   getOrgAdmin(organizationId: number): Promise<User | undefined>;
   
   // Notification operations
-  getNotifications(organizationId: number, limit: number, offset: number, userId?: number): Promise<any[]>;
+  getNotifications(organizationId: number, limit: number, offset: number): Promise<any[]>;
   getNotificationById(notificationId: number): Promise<any | undefined>;
   createNotification(notification: any): Promise<any>;
   markNotificationsAsRead(userId: number, notificationIds?: number[]): Promise<number>;
   getUnreadNotificationCount(organizationId: number): Promise<number>;
-  getUnreadNotificationCountForUser(userId: number): Promise<number>;
   
   // Organization operations
   getOrganization(id: number): Promise<Organization | undefined>;
@@ -882,9 +881,9 @@ export class DatabaseStorage implements IStorage {
 
   
   // Notification operations
-  async getNotifications(organizationId: number, limit: number = 5, offset: number = 0, userId?: number): Promise<any[]> {
+  async getNotifications(organizationId: number, limit: number = 5, offset: number = 0): Promise<any[]> {
     try {
-      let query = db
+      const notifications = await db
         .select({
           notificationId: notificationLogs.notificationId,
           userId: notificationLogs.userId,
@@ -901,17 +900,7 @@ export class DatabaseStorage implements IStorage {
           relatedItemType: notificationLogs.relatedItemType
         })
         .from(notificationLogs)
-        .where(eq(notificationLogs.organizationId, organizationId));
-
-      // Filter by user ID if provided
-      if (userId) {
-        query = query.where(and(
-          eq(notificationLogs.organizationId, organizationId),
-          eq(notificationLogs.userId, userId)
-        ));
-      }
-
-      const notifications = await query
+        .where(eq(notificationLogs.organizationId, organizationId))
         .orderBy(desc(notificationLogs.timestamp))
         .limit(limit)
         .offset(offset);
@@ -1020,25 +1009,6 @@ export class DatabaseStorage implements IStorage {
       return result[0]?.count || 0;
     } catch (error) {
       console.error('Error getting unread notification count:', error);
-      return 0;
-    }
-  }
-
-  async getUnreadNotificationCountForUser(userId: number): Promise<number> {
-    try {
-      const result = await db
-        .select({ count: count() })
-        .from(notificationLogs)
-        .where(
-          and(
-            eq(notificationLogs.userId, userId),
-            eq(notificationLogs.isRead, false)
-          )
-        );
-      
-      return result[0]?.count || 0;
-    } catch (error) {
-      console.error('Error getting unread notification count for user:', error);
       return 0;
     }
   }
