@@ -160,7 +160,7 @@ export const getDPRequestHistory = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Update DPRequest
+// Update DPRequest - Rebuilt using working grievance pattern
 export const updateDPRequest = async (req: AuthRequest, res: Response) => {
   const requestId = parseInt(req.params.id);
   
@@ -189,26 +189,23 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: "You don't have access to this request" });
     }
     
-    // Extract updateable fields
-    const { statusId, assignedToUserId, closureComments, comments } = req.body;
+    const { statusId, assignedToUserId, comments } = req.body;
     
-    console.log('=== DPR UPDATE DEBUG ===');
-    console.log('Request body:', req.body);
-    console.log('Current request status:', request.statusId);
-    console.log('New status from form:', statusId);
-    console.log('Comments:', comments);
+    console.log('Processing DPR update - Status:', statusId, 'Current:', request.statusId, 'Comments:', comments);
     
-    // Track changes
-    const changes: any = {};
-    const historyEntry = {
-      requestId,
-      changedByUserId: req.user.id,
-      oldStatusId: null,
-      newStatusId: null,
-      oldAssignedToUserId: null,
-      newAssignedToUserId: null,
-      comments: comments || null
-    };
+    // Prepare update data - using grievance pattern
+    const updateData: any = {};
+    
+    // Handle status change
+    if (statusId !== undefined) {
+      updateData.statusId = parseInt(statusId);
+      updateData.lastUpdatedAt = new Date();
+    }
+    
+    // Handle assignment change (only for admin users)
+    if (assignedToUserId !== undefined && req.user.role !== 'user') {
+      updateData.assignedToUserId = assignedToUserId ? parseInt(assignedToUserId) : null;
+    }
     
     // Status change
     if (statusId !== undefined && statusId !== request.statusId) {
