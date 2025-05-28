@@ -397,27 +397,28 @@ export default function DPRDetailPage() {
                       )}
                     />
                     
-                    <FormField
-                      control={form.control}
-                      name="assignedToUserId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Assign To</FormLabel>
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select user" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="0">Unassigned</SelectItem>
-                              {users.map((user: any) => (
-                                <SelectItem 
-                                  key={user.id} 
-                                  value={user.id.toString()}
+                    {user?.role === "admin" && (
+                      <FormField
+                        control={form.control}
+                        name="assignedToUserId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Assign To</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select user" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="0">Unassigned</SelectItem>
+                                {users.map((user: any) => (
+                                  <SelectItem 
+                                    key={user.id} 
+                                    value={user.id.toString()}
                                 >
                                   {user.firstName} {user.lastName}
                                 </SelectItem>
@@ -428,6 +429,7 @@ export default function DPRDetailPage() {
                         </FormItem>
                       )}
                     />
+                    )}
                   </div>
                   
                   <FormField
