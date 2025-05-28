@@ -197,7 +197,7 @@ export default function GrievancesPage() {
       setSelectedGrievance(grievance);
       
       // Fetch history for the grievance
-      apiRequest(`/api/grievances/${grievanceId}/history`)
+      apiRequest("GET", `/api/grievances/${grievanceId}/history`)
         .then((history) => setHistoryData(history))
         .catch(() => setHistoryData([]));
       
