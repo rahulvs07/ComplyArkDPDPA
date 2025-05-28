@@ -132,7 +132,19 @@ export default function DPRModule() {
     if (selectedRequest) {
       const fetchHistory = async () => {
         try {
-          const historyData = await apiRequest(`/api/dpr/${selectedRequest.requestId}/history`);
+          const response = await fetch(`/api/dpr/${selectedRequest.requestId}/history`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const historyData = await response.json();
           setHistoryData(historyData);
         } catch (error) {
           console.error("Failed to fetch history:", error);
@@ -172,10 +184,20 @@ export default function DPRModule() {
   // Update request mutation
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest(`/api/dpr/${selectedRequest.requestId}`, {
+      const response = await fetch(`/api/dpr/${selectedRequest.requestId}`, {
         method: "PATCH",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
         body: JSON.stringify(data)
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
