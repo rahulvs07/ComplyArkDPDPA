@@ -590,60 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.patch('/api/grievances/:id', canManageRequests, async (req, res) => {
-    const id = parseInt(req.params.id);
-    console.log("PATCH /api/grievances/:id - ID:", id, "Body:", req.body);
-    
-    if (isNaN(id)) {
-      return res.status(400).json({ message: "Invalid grievance ID" });
-    }
-    
-    try {
-      const grievance = await storage.getGrievance(id);
-      if (!grievance) {
-        return res.status(404).json({ message: "Grievance not found" });
-      }
-      
-      console.log("Original grievance:", grievance);
-      const updatedGrievance = await storage.updateGrievance(id, req.body);
-      console.log("Updated grievance:", updatedGrievance);
-      
-      // Create history entry
-      console.log("Checking history creation conditions:", {
-        hasStatusId: req.body.statusId !== undefined,
-        hasAssignedTo: req.body.assignedToUserId !== undefined,
-        statusId: req.body.statusId,
-        assignedToUserId: req.body.assignedToUserId
-      });
-      
-      if (req.body.statusId !== undefined || req.body.assignedToUserId !== undefined) {
-        const historyData = {
-          grievanceId: id,
-          changedByUserId: (req as AuthRequest).user?.id || null,
-          oldStatusId: grievance.statusId,
-          newStatusId: req.body.statusId !== undefined ? req.body.statusId : grievance.statusId,
-          oldAssignedToUserId: grievance.assignedToUserId,
-          newAssignedToUserId: req.body.assignedToUserId !== undefined ? req.body.assignedToUserId : grievance.assignedToUserId,
-          comments: req.body.comments || null,
-          changeDate: new Date()
-        };
-        
-        console.log("Creating grievance history with data:", historyData);
-        
-        try {
-          const historyResult = await storage.createGrievanceHistory(historyData);
-          console.log("History created successfully:", historyResult);
-        } catch (error) {
-          console.error("Error creating grievance history:", error);
-        }
-      }
-      
-      return res.status(200).json(updatedGrievance);
-    } catch (error) {
-      console.error(`Error updating grievance ${id}:`, error);
-      return res.status(500).json({ message: "Failed to update grievance" });
-    }
-  });
+
   
   // This route is handled by the more complete implementation above
   

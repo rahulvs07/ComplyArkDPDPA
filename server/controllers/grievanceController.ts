@@ -202,6 +202,29 @@ export async function updateGrievance(req: Request, res: Response) {
       validationResult.data
     );
 
+    // Create history entry for any status or assignment changes
+    if (validationResult.data.statusId !== undefined || validationResult.data.assignedToUserId !== undefined) {
+      try {
+        const historyData = {
+          grievanceId: id,
+          changedByUserId: (req as any).user?.id || 1, // Fallback to user ID 1 if no user
+          oldStatusId: grievance.statusId,
+          newStatusId: validationResult.data.statusId !== undefined ? validationResult.data.statusId : grievance.statusId,
+          oldAssignedToUserId: grievance.assignedToUserId,
+          newAssignedToUserId: validationResult.data.assignedToUserId !== undefined ? validationResult.data.assignedToUserId : grievance.assignedToUserId,
+          comments: validationResult.data.comments || null,
+          changeDate: new Date()
+        };
+        
+        console.log("Creating grievance history:", historyData);
+        const historyResult = await storage.createGrievanceHistory(historyData);
+        console.log("History created successfully:", historyResult);
+      } catch (historyError) {
+        console.error("Error creating grievance history:", historyError);
+        // Don't fail the update if history creation fails
+      }
+    }
+
     return res.status(200).json(updatedGrievance);
   } catch (error) {
     console.error(`Error updating grievance ${id}:`, error);
