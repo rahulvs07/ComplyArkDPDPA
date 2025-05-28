@@ -163,8 +163,8 @@ export async function updateGrievance(req: any, res: Response) {
   }
 
   try {
-    const grievance = await storage.getGrievance(id);
-    if (!grievance) {
+    const originalGrievance = await storage.getGrievance(id);
+    if (!originalGrievance) {
       return res.status(404).json({ message: "Grievance not found" });
     }
 
@@ -189,6 +189,34 @@ export async function updateGrievance(req: any, res: Response) {
 
     // Update the grievance
     const updatedGrievance = await storage.updateGrievance(id, updates);
+    
+    // Create history entry
+    const historyEntry = {
+      grievanceId: id,
+      changedByUserId: req.session?.userId || null,
+      oldStatusId: originalGrievance.statusId,
+      newStatusId: updates.statusId !== undefined ? updates.statusId : originalGrievance.statusId,
+      oldAssignedToUserId: originalGrievance.assignedToUserId,
+      newAssignedToUserId: updates.assignedToUserId !== undefined ? updates.assignedToUserId : originalGrievance.assignedToUserId,
+      comments: updates.closureComments || null,
+      changeDate: new Date()
+    };
+    
+    await storage.createGrievanceHistory(historyEntry);
+    
+    // Create notification for assigned user
+    const targetUserId = updates.assignedToUserId || originalGrievance.assignedToUserId;
+    if (targetUserId) {
+      await storage.createNotification({
+        userId: targetUserId,
+        organizationId: originalGrievance.organizationId,
+        type: 'grievance_update',
+        title: 'Grievance Updated',
+        message: `Grievance #${id} has been updated`,
+        isRead: false,
+        createdAt: new Date()
+      });
+    }
     
     return res.status(200).json(updatedGrievance);
   } catch (error) {
