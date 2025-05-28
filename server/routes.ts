@@ -592,6 +592,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.patch('/api/grievances/:id', canManageRequests, async (req, res) => {
     const id = parseInt(req.params.id);
+    console.log("PATCH /api/grievances/:id - ID:", id, "Body:", req.body);
+    
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid grievance ID" });
     }
@@ -602,7 +604,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Grievance not found" });
       }
       
+      console.log("Original grievance:", grievance);
       const updatedGrievance = await storage.updateGrievance(id, req.body);
+      console.log("Updated grievance:", updatedGrievance);
       
       // Create history entry
       console.log("Checking history creation conditions:", {
