@@ -8,10 +8,10 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
+  method: string,
   url: string,
   options?: RequestInit,
 ): Promise<any> {
-  const method = options?.method || 'GET';
   // Set default headers for JSON content
   const headers = (options?.body || method !== 'GET')
     ? { 'Content-Type': 'application/json', ...options?.headers }

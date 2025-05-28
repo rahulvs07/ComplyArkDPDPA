@@ -88,15 +88,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/organizations/:orgId/dpr', isAuthenticated, isSameOrganization, dprController.listDPRequests);
   app.get('/api/dpr/:id', isAuthenticated, dprController.getDPRequest);
   app.get('/api/dpr/:id/history', isAuthenticated, dprController.getDPRequestHistory);
-  app.put('/api/dpr/:id', dprController.updateDPRequest);
-  app.patch('/api/dpr/:id', dprController.updateDPRequest);
+  app.put('/api/dpr/:id', canManageRequests, dprController.updateDPRequest);
+  app.patch('/api/dpr/:id', canManageRequests, dprController.updateDPRequest);
   
   // Grievances routes
   app.get('/api/organizations/:orgId/grievances', isAuthenticated, isSameOrganization, grievanceController.listGrievances);
   app.get('/api/grievances/:id', isAuthenticated, grievanceController.getGrievance);
   app.get('/api/grievances/:id/history', isAuthenticated, grievanceController.getGrievanceHistory);
-  app.put('/api/grievances/:id', grievanceController.updateGrievance);
-  app.patch('/api/grievances/:id', grievanceController.updateGrievance);
+  app.put('/api/grievances/:id', isAuthenticated, grievanceController.updateGrievance);
+  app.patch('/api/grievances/:id', isAuthenticated, grievanceController.updateGrievance);
   
   // Public DPR routes (no authentication)
   app.post('/api/public/request-otp', (req, res) => dprController.requestOTP(req, res));
@@ -533,9 +533,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.patch('/api/grievances/:id', grievanceController.updateGrievance);
+  app.patch('/api/grievances/:id', canManageRequests, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid grievance ID" });
+    }
+    
+    try {
+      const grievance = await storage.getGrievance(id);
+      if (!grievance) {
+        return res.status(404).json({ message: "Grievance not found" });
+      }
+      
+      const updatedGrievance = await storage.updateGrievance(id, req.body);
+      
+      // Create history entry
+      if (req.body.statusId !== undefined || req.body.assignedToUserId !== undefined) {
+        await storage.createGrievanceHistory({
+          grievanceId: id,
+          changedByUserId: (req as AuthRequest).user?.id || null,
+          oldStatusId: grievance.statusId,
+          newStatusId: req.body.statusId !== undefined ? req.body.statusId : grievance.statusId,
+          oldAssignedToUserId: grievance.assignedToUserId,
+          newAssignedToUserId: req.body.assignedToUserId !== undefined ? req.body.assignedToUserId : grievance.assignedToUserId,
+          comments: req.body.comments || null,
+          changeDate: new Date()
+        });
+      }
+      
+      return res.status(200).json(updatedGrievance);
+    } catch (error) {
+      console.error(`Error updating grievance ${id}:`, error);
+      return res.status(500).json({ message: "Failed to update grievance" });
+    }
+  });
   
-  app.get('/api/grievances/:id/history', grievanceController.getGrievanceHistory);
+  app.get('/api/grievances/:id/history', canManageRequests, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid grievance ID" });
+    }
+    
+    try {
+      const grievance = await storage.getGrievance(id);
+      if (!grievance) {
+        return res.status(404).json({ message: "Grievance not found" });
+      }
+      
+      const history = await storage.listGrievanceHistory(id);
+      return res.status(200).json(history);
+    } catch (error) {
+      console.error(`Error fetching history for grievance ${id}:`, error);
+      return res.status(500).json({ message: "Failed to fetch grievance history" });
+    }
+  });
   
   app.post('/api/grievances', isAuthenticated, async (req, res) => {
     try {

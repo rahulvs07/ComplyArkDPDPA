@@ -14,30 +14,11 @@ export interface AuthRequest extends Request {
 }
 
 // Middleware to check if user can manage request statuses
-export const canManageRequests = async (
+export const canManageRequests = (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) => {
-  // Check session authentication first if user not already set
-  if (!req.user && req.session && req.session.userId) {
-    try {
-      const user = await storage.getUser(req.session.userId);
-      if (user && user.isActive) {
-        req.user = {
-          id: user.id,
-          username: user.username,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          organizationId: user.organizationId,
-          role: user.role
-        };
-      }
-    } catch (error) {
-      console.error("Auth error in canManageRequests:", error);
-    }
-  }
-  
   // All authenticated users (including regular users) can view and update request statuses
   if (req.user) {
     return next();

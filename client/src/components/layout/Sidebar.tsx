@@ -46,11 +46,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0 h-10 w-10 rounded-full bg-[#2E77AE]/20 flex items-center justify-center">
               <span className="text-[#2E77AE] font-semibold">
-                {(user.firstName || 'U').charAt(0)}{(user.lastName || 'S').charAt(0)}
+                {user.firstName.charAt(0)}{user.lastName.charAt(0)}
               </span>
             </div>
             <div>
-              <p className="font-medium text-sm">{user.firstName || 'User'} {user.lastName || ''}</p>
+              <p className="font-medium text-sm">{user.firstName} {user.lastName}</p>
               <p className="text-xs text-neutral-500">{user.role === 'admin' ? 'Admin' : 'User'}</p>
             </div>
           </div>

@@ -83,11 +83,7 @@ export async function getGrievance(req: AuthRequest, res: Response) {
 }
 
 // Get history for a grievance
-export async function getGrievanceHistory(req: any, res: Response) {
-  console.log("=== GRIEVANCE HISTORY REQUEST START ===");
-  console.log("Request ID:", req.params.id);
-  console.log("BYPASSING AUTH FOR HISTORY FETCH");
-  
+export async function getGrievanceHistory(req: AuthRequest, res: Response) {
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     return res.status(400).json({ message: "Invalid grievance ID" });
@@ -97,6 +93,11 @@ export async function getGrievanceHistory(req: any, res: Response) {
     const grievance = await storage.getGrievance(id);
     if (!grievance) {
       return res.status(404).json({ message: "Grievance not found" });
+    }
+    
+    // Ensure users can only view grievances from their organization
+    if (req.user && req.user.role !== 'superadmin' && grievance.organizationId !== req.user.organizationId) {
+      return res.status(403).json({ message: "You can only access grievances from your own organization" });
     }
 
     const history = await storage.getGrievanceHistory(id);
@@ -149,14 +150,7 @@ export async function getGrievanceHistory(req: any, res: Response) {
 }
 
 // Update a grievance
-export async function updateGrievance(req: any, res: Response) {
-  console.log("=== GRIEVANCE UPDATE REQUEST START ===");
-  console.log("Request ID:", req.params.id);
-  console.log("Request Body:", req.body);
-  console.log("Session:", req.session);
-  console.log("User:", req.user || "No user");
-  console.log("BYPASSING AUTH FOR UPDATE TEST");
-  
+export async function updateGrievance(req: Request, res: Response) {
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     return res.status(400).json({ message: "Invalid grievance ID" });
@@ -168,32 +162,50 @@ export async function updateGrievance(req: any, res: Response) {
       return res.status(404).json({ message: "Grievance not found" });
     }
 
-    // Simple update with basic validation
-    const updates: any = {};
+    // Parse the incoming data - ensure statusId is converted to number
+    let parsedData = {
+      ...req.body
+    };
     
-    if (req.body.statusId !== undefined) {
-      updates.statusId = parseInt(req.body.statusId);
+    // Convert string statusId to number
+    if (typeof parsedData.statusId === 'string') {
+      parsedData.statusId = parseInt(parsedData.statusId);
     }
     
-    if (req.body.assignedToUserId !== undefined) {
-      updates.assignedToUserId = req.body.assignedToUserId ? parseInt(req.body.assignedToUserId) : null;
+    // Convert string assignedToUserId to number or null
+    if (parsedData.assignedToUserId === '') {
+      parsedData.assignedToUserId = null;
+    } else if (typeof parsedData.assignedToUserId === 'string') {
+      parsedData.assignedToUserId = parseInt(parsedData.assignedToUserId);
     }
-    
-    if (req.body.closureComments !== undefined) {
-      updates.closureComments = req.body.closureComments;
-    }
-    
-    if (req.body.completionDate !== undefined) {
-      updates.completionDate = req.body.completionDate;
+
+    // Validate the update data - less strict to handle more data formats
+    const updateSchema = z.object({
+      statusId: z.number().or(z.string().transform(val => parseInt(val))),
+      assignedToUserId: z.number().nullable().optional().or(z.string().transform(val => val ? parseInt(val) : null)),
+      comments: z.string().optional().nullable(),
+      completionDate: z.string().optional().nullable(),
+      closureComments: z.string().nullable().optional(),
+    });
+
+    const validationResult = updateSchema.safeParse(parsedData);
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        message: "Invalid request data", 
+        errors: validationResult.error.errors 
+      });
     }
 
     // Update the grievance
-    const updatedGrievance = await storage.updateGrievance(id, updates);
-    
+    const updatedGrievance = await storage.updateGrievance(
+      id,
+      validationResult.data
+    );
+
     return res.status(200).json(updatedGrievance);
   } catch (error) {
-    console.error("Update Grievance error:", error);
-    return res.status(500).json({ message: "An error occurred while updating the grievance" });
+    console.error(`Error updating grievance ${id}:`, error);
+    return res.status(500).json({ message: "Failed to update grievance" });
   }
 }
 

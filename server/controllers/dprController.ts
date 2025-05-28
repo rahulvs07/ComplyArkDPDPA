@@ -169,21 +169,109 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
   }
   
   try {
-    // Simple update - just get the request and update it
-    const { statusId, assignedToUserId, closureComments } = req.body;
+    const request = await storage.getDPRequest(requestId);
     
-    const updateData: any = {};
-    if (statusId !== undefined) updateData.statusId = statusId;
-    if (assignedToUserId !== undefined) updateData.assignedToUserId = assignedToUserId;
-    if (closureComments !== undefined) updateData.closureComments = closureComments;
-    
-    const updatedRequest = await storage.updateDPRequest(requestId, updateData);
-    
-    if (!updatedRequest) {
+    if (!request) {
       return res.status(404).json({ message: "Request not found" });
     }
     
-    return res.status(200).json(updatedRequest);
+    // Check if user has access to this request
+    if (req.user.organizationId !== request.organizationId && req.user.role !== 'admin') {
+      return res.status(403).json({ message: "You don't have access to this request" });
+    }
+    
+    // Extract updateable fields
+    const { statusId, assignedToUserId, closureComments } = req.body;
+    
+    // Track changes
+    const changes: any = {};
+    const historyEntry = {
+      requestId,
+      changedByUserId: req.user.id,
+      oldStatusId: null,
+      newStatusId: null,
+      oldAssignedToUserId: null,
+      newAssignedToUserId: null,
+      comments: null
+    };
+    
+    // Status change
+    if (statusId !== undefined && statusId !== request.statusId) {
+      const newStatus = await storage.getRequestStatus(statusId);
+      
+      if (!newStatus) {
+        return res.status(400).json({ message: "Invalid status ID" });
+      }
+      
+      changes.statusId = statusId;
+      historyEntry.oldStatusId = request.statusId;
+      historyEntry.newStatusId = statusId;
+      
+      // If closing request
+      if (newStatus.statusName === 'Closed') {
+        if (!closureComments) {
+          return res.status(400).json({ message: "Closure comments are required when closing a request" });
+        }
+        
+        changes.closureComments = closureComments;
+        changes.closedDateTime = new Date();
+        
+        // Determine if completed on time
+        if (request.completionDate) {
+          const completionDate = new Date(request.completionDate);
+          changes.completedOnTime = new Date() <= completionDate;
+        } else {
+          changes.completedOnTime = false;
+        }
+        
+        historyEntry.comments = closureComments;
+      }
+    }
+    
+    // Assignment change
+    if (assignedToUserId !== undefined && assignedToUserId !== request.assignedToUserId) {
+      // Verify assignedToUserId exists and belongs to the same organization
+      if (assignedToUserId) {
+        const assignedUser = await storage.getUser(assignedToUserId);
+        
+        if (!assignedUser) {
+          return res.status(400).json({ message: "Invalid user for assignment" });
+        }
+        
+        if (assignedUser.organizationId !== request.organizationId) {
+          return res.status(400).json({ message: "Cannot assign request to user from different organization" });
+        }
+      }
+      
+      changes.assignedToUserId = assignedToUserId;
+      historyEntry.oldAssignedToUserId = request.assignedToUserId;
+      historyEntry.newAssignedToUserId = assignedToUserId;
+    }
+    
+    // Only proceed if there are changes
+    if (Object.keys(changes).length === 0) {
+      return res.status(400).json({ message: "No changes to make" });
+    }
+    
+    // Update the request
+    const updatedRequest = await storage.updateDPRequest(requestId, changes);
+    
+    // Add history entry
+    await storage.createDPRequestHistory(historyEntry);
+    
+    // Return updated request with additional info
+    const status = await storage.getRequestStatus(updatedRequest.statusId);
+    let assignedUser = null;
+    
+    if (updatedRequest.assignedToUserId) {
+      assignedUser = await storage.getUser(updatedRequest.assignedToUserId);
+    }
+    
+    return res.status(200).json({
+      ...updatedRequest,
+      statusName: status?.statusName || 'Unknown',
+      assignedToName: assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'Unassigned'
+    });
   } catch (error) {
     console.error("Update DPRequest error:", error);
     return res.status(500).json({ message: "An error occurred while updating the request" });
