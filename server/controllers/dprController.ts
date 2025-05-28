@@ -252,8 +252,8 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
       historyEntry.newAssignedToUserId = assignedToUserId;
     }
     
-    // Only proceed if there are changes
-    if (Object.keys(changes).length === 0) {
+    // Only proceed if there are changes or comments
+    if (Object.keys(changes).length === 0 && !comments) {
       return res.status(400).json({ message: "No changes to make" });
     }
     
