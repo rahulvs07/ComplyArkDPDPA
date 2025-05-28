@@ -112,8 +112,7 @@ export default function GrievanceDetailPage() {
         payload.comments = data.comments.trim();
       }
       
-      return apiRequest(`/api/grievances/${grievanceId}`, {
-        method: "PATCH",
+      return apiRequest("PATCH", `/api/grievances/${grievanceId}`, {
         body: JSON.stringify(payload),
       });
     },

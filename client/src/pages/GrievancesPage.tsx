@@ -246,8 +246,7 @@ export default function GrievancesPage() {
           throw new Error("No grievance selected");
         }
         
-        const response = await apiRequest(`/api/grievances/${selectedGrievance.grievanceId}`, {
-          method: "PATCH",
+        const response = await apiRequest("PATCH", `/api/grievances/${selectedGrievance.grievanceId}`, {
           body: JSON.stringify(requestData),
         });
         console.log("Update response:", response);
