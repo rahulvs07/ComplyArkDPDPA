@@ -533,6 +533,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to fetch grievance" });
     }
   });
+
+  app.get('/api/grievances/:id/history', isAuthenticated, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid grievance ID" });
+    }
+    
+    try {
+      const history = await storage.getGrievanceHistory(id);
+      
+      // Enrich with user names and status details
+      const enrichedHistory = await Promise.all(
+        history.map(async (entry) => {
+          let changedBy = null;
+          let oldStatus = null;
+          let newStatus = null;
+          let oldAssignedTo = null;
+          let newAssignedTo = null;
+          
+          if (entry.changedByUserId) {
+            changedBy = await storage.getUser(entry.changedByUserId);
+          }
+          
+          if (entry.oldStatusId) {
+            oldStatus = await storage.getRequestStatus(entry.oldStatusId);
+          }
+          
+          if (entry.newStatusId) {
+            newStatus = await storage.getRequestStatus(entry.newStatusId);
+          }
+          
+          if (entry.oldAssignedToUserId) {
+            oldAssignedTo = await storage.getUser(entry.oldAssignedToUserId);
+          }
+          
+          if (entry.newAssignedToUserId) {
+            newAssignedTo = await storage.getUser(entry.newAssignedToUserId);
+          }
+          
+          return {
+            ...entry,
+            changedByName: changedBy ? `${changedBy.firstName} ${changedBy.lastName}` : 'System',
+            oldStatusName: oldStatus ? oldStatus.statusName : 'None',
+            newStatusName: newStatus ? newStatus.statusName : 'None',
+            oldAssignedToName: oldAssignedTo ? `${oldAssignedTo.firstName} ${oldAssignedTo.lastName}` : 'None',
+            newAssignedToName: newAssignedTo ? `${newAssignedTo.firstName} ${newAssignedTo.lastName}` : 'None',
+          };
+        })
+      );
+      
+      return res.status(200).json(enrichedHistory);
+    } catch (error) {
+      console.error(`Error fetching history for grievance ${id}:`, error);
+      return res.status(500).json({ message: "Failed to fetch grievance history" });
+    }
+  });
   
   app.patch('/api/grievances/:id', canManageRequests, async (req, res) => {
     const id = parseInt(req.params.id);
