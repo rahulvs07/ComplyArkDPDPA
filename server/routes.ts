@@ -534,7 +534,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.patch('/api/grievances/:id', isAuthenticated, async (req, res) => {
+  app.patch('/api/grievances/:id', canManageRequests, async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid grievance ID" });
