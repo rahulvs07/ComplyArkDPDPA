@@ -44,6 +44,7 @@ export interface IStorage {
   createNotification(notification: any): Promise<any>;
   markNotificationsAsRead(userId: number, notificationIds?: number[]): Promise<number>;
   getUnreadNotificationCount(organizationId: number): Promise<number>;
+  getUnreadNotificationCountForUser(userId: number): Promise<number>;
   
   // Organization operations
   getOrganization(id: number): Promise<Organization | undefined>;
@@ -904,7 +905,10 @@ export class DatabaseStorage implements IStorage {
 
       // Filter by user ID if provided
       if (userId) {
-        query = query.where(eq(notificationLogs.userId, userId));
+        query = query.where(and(
+          eq(notificationLogs.organizationId, organizationId),
+          eq(notificationLogs.userId, userId)
+        ));
       }
 
       const notifications = await query

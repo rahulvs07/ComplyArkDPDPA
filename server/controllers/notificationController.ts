@@ -9,20 +9,25 @@ import { eq, and, count } from "drizzle-orm";
  * @param req Request object
  * @param res Response object
  */
-export async function getNotifications(req: Request, res: Response) {
+export async function getNotifications(req: any, res: Response) {
   try {
-    // Use session-based authentication like other endpoints
-    if (!req.session?.userId) {
+    // Check for authentication using the same pattern as other endpoints
+    if (!req.session || !req.session.authenticated) {
       return res.status(401).json({ message: "Unauthorized. Please login to access this resource." });
     }
 
     const limit = parseInt(req.query.limit as string) || 5;
     const offset = parseInt(req.query.offset as string) || 0;
-    const userId = req.session.userId;
-    const organizationId = req.session.organizationId || 33; // Default to org 33
+    const organizationId = req.session.organizationId;
 
-    console.log(`Fetching notifications for user ${userId} in organization ${organizationId}`);
-    const notifications = await storage.getNotifications(organizationId, limit, offset, userId);
+    // Get user info from session
+    const user = await storage.getUserByEmail(req.session.email);
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    console.log(`Fetching notifications for user ${user.id} in organization ${organizationId}`);
+    const notifications = await storage.getNotifications(organizationId, limit, offset, user.id);
     console.log(`Found ${notifications.length} notifications`);
     
     return res.status(200).json(notifications);
@@ -89,16 +94,23 @@ export async function markNotificationsAsRead(req: Request, res: Response) {
  * @param req Request object
  * @param res Response object
  */
-export async function getUnreadNotificationCount(req: Request, res: Response) {
+export async function getUnreadNotificationCount(req: any, res: Response) {
   try {
-    // Authorization check - user must be logged in
-    if (!req.user || !req.user.id) {
+    // Check for authentication using the same pattern as other endpoints
+    if (!req.session || !req.session.authenticated) {
       return res.status(401).json({ message: "Unauthorized. Please login to access this resource." });
     }
     
-    const organizationId = req.user.organizationId;
+    const organizationId = req.session.organizationId;
     
-    const count = await storage.getUnreadNotificationCount(organizationId);
+    // Get user info from session
+    const user = await storage.getUserByEmail(req.session.email);
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    // Get count for this specific user from database
+    const count = await storage.getUnreadNotificationCountForUser(user.id);
     
     return res.status(200).json({ count });
   } catch (error) {
