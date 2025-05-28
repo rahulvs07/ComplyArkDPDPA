@@ -289,10 +289,10 @@ export default function DPRDetailPage() {
         
         <Tabs defaultValue="details" value={currentTab} onValueChange={setCurrentTab}>
           <div className="px-6">
-            <TabsList className="w-full">
-              <TabsTrigger value="details" className="flex-1">Request Details</TabsTrigger>
-              <TabsTrigger value="history" className="flex-1">Request History</TabsTrigger>
-              <TabsTrigger value="update" className="flex-1">Update Request</TabsTrigger>
+            <TabsList className="w-full grid grid-cols-3">
+              <TabsTrigger value="details">Request Details</TabsTrigger>
+              <TabsTrigger value="history">Request History</TabsTrigger>
+              <TabsTrigger value="update">Update Request</TabsTrigger>
             </TabsList>
           </div>
           
