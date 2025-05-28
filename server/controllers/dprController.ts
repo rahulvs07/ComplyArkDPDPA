@@ -169,12 +169,7 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
   }
   
   try {
-    // Get the original request first for history tracking
-    const originalRequest = await storage.getDPRequest(requestId);
-    if (!originalRequest) {
-      return res.status(404).json({ message: "Request not found" });
-    }
-    
+    // Simple update - just get the request and update it
     const { statusId, assignedToUserId, closureComments } = req.body;
     
     const updateData: any = {};
@@ -186,34 +181,6 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
     
     if (!updatedRequest) {
       return res.status(404).json({ message: "Request not found" });
-    }
-    
-    // Create history entry
-    const historyEntry = {
-      requestId: requestId,
-      changedByUserId: req.session?.userId || null,
-      oldStatusId: originalRequest.statusId,
-      newStatusId: statusId !== undefined ? statusId : originalRequest.statusId,
-      oldAssignedToUserId: originalRequest.assignedToUserId,
-      newAssignedToUserId: assignedToUserId !== undefined ? assignedToUserId : originalRequest.assignedToUserId,
-      comments: closureComments || null,
-      changeDate: new Date()
-    };
-    
-    await storage.createDPRequestHistory(historyEntry);
-    
-    // Create notification for assigned user
-    const targetUserId = assignedToUserId || originalRequest.assignedToUserId;
-    if (targetUserId) {
-      await storage.createNotification({
-        userId: targetUserId,
-        organizationId: originalRequest.organizationId,
-        type: 'dpr_update',
-        title: 'DPR Request Updated',
-        message: `Request #${requestId} has been updated`,
-        isRead: false,
-        createdAt: new Date()
-      });
     }
     
     return res.status(200).json(updatedRequest);

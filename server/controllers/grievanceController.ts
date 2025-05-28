@@ -163,8 +163,8 @@ export async function updateGrievance(req: any, res: Response) {
   }
 
   try {
-    const originalGrievance = await storage.getGrievance(id);
-    if (!originalGrievance) {
+    const grievance = await storage.getGrievance(id);
+    if (!grievance) {
       return res.status(404).json({ message: "Grievance not found" });
     }
 
@@ -189,53 +189,6 @@ export async function updateGrievance(req: any, res: Response) {
 
     // Update the grievance
     const updatedGrievance = await storage.updateGrievance(id, updates);
-    
-    // Create history entry
-    try {
-      const historyEntry = {
-        grievanceId: id,
-        changedByUserId: req.session?.userId || null,
-        oldStatusId: originalGrievance.statusId,
-        newStatusId: updates.statusId !== undefined ? updates.statusId : originalGrievance.statusId,
-        oldAssignedToUserId: originalGrievance.assignedToUserId,
-        newAssignedToUserId: updates.assignedToUserId !== undefined ? updates.assignedToUserId : originalGrievance.assignedToUserId,
-        comments: updates.closureComments || null,
-        changeDate: new Date()
-      };
-      
-      console.log("Creating grievance history entry:", historyEntry);
-      const historyResult = await storage.createGrievanceHistory(historyEntry);
-      console.log("History entry created successfully:", historyResult);
-      
-      // Create notification for assigned user
-      const targetUserId = updates.assignedToUserId || originalGrievance.assignedToUserId;
-      if (targetUserId) {
-        const notificationData = {
-          userId: targetUserId,
-          organizationId: originalGrievance.organizationId,
-          module: 'Grievance' as const,
-          action: 'Request Updated',
-          actionType: 'updated' as const,
-          message: `Grievance #${id} has been updated`,
-          isRead: false,
-          createdAt: new Date(),
-          relatedItemId: id
-        };
-        
-        console.log("Creating notification:", notificationData);
-        const notificationResult = await storage.createNotification(notificationData);
-        console.log("Notification created successfully:", notificationResult);
-      }
-    } catch (historyError) {
-      console.error("Error creating history or notification:", historyError);
-      // Log to exception table
-      await storage.createExceptionLog({
-        pageName: 'grievance-update',
-        dateTime: new Date(),
-        functionName: 'updateGrievance',
-        errorMessage: `History/Notification creation failed: ${historyError}`
-      });
-    }
     
     return res.status(200).json(updatedGrievance);
   } catch (error) {
