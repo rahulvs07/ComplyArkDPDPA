@@ -625,25 +625,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get('/api/grievances/:id/history', canManageRequests, async (req, res) => {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ message: "Invalid grievance ID" });
-    }
-    
-    try {
-      const grievance = await storage.getGrievance(id);
-      if (!grievance) {
-        return res.status(404).json({ message: "Grievance not found" });
-      }
-      
-      const history = await storage.listGrievanceHistory(id);
-      return res.status(200).json(history);
-    } catch (error) {
-      console.error(`Error fetching history for grievance ${id}:`, error);
-      return res.status(500).json({ message: "Failed to fetch grievance history" });
-    }
-  });
+  // This route is handled by the more complete implementation above
   
   app.post('/api/grievances', isAuthenticated, async (req, res) => {
     try {
