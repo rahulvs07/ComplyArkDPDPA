@@ -279,13 +279,89 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
       assignedUser = await storage.getUser(updatedRequest.assignedToUserId);
     }
     
-    return res.status(200).json({
-      ...updatedRequest,
-      statusName: status?.statusName || 'Unknown',
-      assignedToName: assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'Unassigned'
-    });
+    // Check if there are actual changes or comments
+    const hasStatusChange = statusId !== undefined && parseInt(statusId) !== request.statusId;
+    const hasAssignmentChange = assignedToUserId !== undefined && req.user.role !== 'user' && 
+      (assignedToUserId ? parseInt(assignedToUserId) : null) !== request.assignedToUserId;
+    const hasComments = comments && comments.trim() !== '';
+    
+    console.log('=== DPR UPDATE VALIDATION ===');
+    console.log('Has status change:', hasStatusChange);
+    console.log('Has assignment change:', hasAssignmentChange);
+    console.log('Has comments:', hasComments);
+    
+    if (!hasStatusChange && !hasAssignmentChange && !hasComments) {
+      console.log('No changes detected, returning error');
+      await storage.createExceptionLog({
+        pageName: 'DPR Controller',
+        functionName: 'updateDPRequest',
+        errorMessage: `No changes to make for request ${requestId}. Status: ${statusId}(current: ${request.statusId}), Comments: ${comments}`,
+        userId: req.user.id,
+        additionalDetails: JSON.stringify({ requestId, statusId, currentStatus: request.statusId, comments }),
+        severity: 'warning'
+      });
+      return res.status(400).json({ message: "No changes to make" });
+    }
+    
+    console.log('About to update DPR with data:', updateData);
+    
+    // Update the request using the prepared data
+    const updatedRequest = await storage.updateDPRequest(requestId, updateData);
+    
+    if (!updatedRequest) {
+      await storage.createExceptionLog({
+        pageName: 'DPR Controller',
+        functionName: 'updateDPRequest',
+        errorMessage: `Failed to update DPR request ${requestId}`,
+        userId: req.user.id,
+        additionalDetails: JSON.stringify({ requestId, updateData }),
+        severity: 'error'
+      });
+      return res.status(404).json({ message: "Failed to update request" });
+    }
+    
+    console.log('DPR updated successfully:', updatedRequest);
+    
+    // Create history entry
+    const historyData = {
+      requestId: requestId,
+      changedByUserId: req.user.id,
+      oldStatusId: request.statusId,
+      newStatusId: statusId ? parseInt(statusId) : request.statusId,
+      oldAssignedToUserId: request.assignedToUserId,
+      newAssignedToUserId: assignedToUserId ? parseInt(assignedToUserId) : request.assignedToUserId,
+      comments: comments || null,
+      changeDate: new Date()
+    };
+    
+    console.log('Creating DPR history:', historyData);
+    
+    try {
+      await storage.createDPRequestHistory(historyData);
+      console.log('History created successfully');
+    } catch (historyError) {
+      console.error('Error creating history:', historyError);
+      await storage.createExceptionLog({
+        pageName: 'DPR Controller',
+        functionName: 'updateDPRequest',
+        errorMessage: `Failed to create history for DPR request ${requestId}: ${historyError.message}`,
+        userId: req.user.id,
+        additionalDetails: JSON.stringify({ requestId, historyData, error: historyError.message }),
+        severity: 'warning'
+      });
+    }
+    
+    return res.json(updatedRequest);
   } catch (error) {
     console.error("Update DPRequest error:", error);
+    await storage.createExceptionLog({
+      pageName: 'DPR Controller',
+      functionName: 'updateDPRequest',
+      errorMessage: `Unexpected error updating DPR request ${requestId}: ${error.message}`,
+      userId: req.user?.id || null,
+      additionalDetails: JSON.stringify({ requestId, error: error.message, stack: error.stack }),
+      severity: 'error'
+    });
     return res.status(500).json({ message: "An error occurred while updating the request" });
   }
 };
