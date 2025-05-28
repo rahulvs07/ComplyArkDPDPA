@@ -552,7 +552,7 @@ export default function GrievancesPage() {
             <DataTable
               columns={columns}
               data={grievances}
-              onRowClick={handleViewGrievance}
+              onView={handleViewGrievance}
               searchable={false} // We're handling search manually
               pagination={true}
               defaultRowsPerPage={10}
