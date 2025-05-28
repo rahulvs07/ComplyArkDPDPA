@@ -1054,7 +1054,10 @@ export class DatabaseStorage implements IStorage {
   async updateGrievance(id: number, updates: Partial<InsertGrievance>): Promise<Grievance | undefined> {
     const [updatedGrievance] = await db
       .update(grievances)
-      .set(updates)
+      .set({
+        ...updates,
+        lastUpdatedAt: new Date()
+      })
       .where(eq(grievances.grievanceId, id))
       .returning();
     return updatedGrievance;
