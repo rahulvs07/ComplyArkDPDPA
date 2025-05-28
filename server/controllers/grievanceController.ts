@@ -196,11 +196,21 @@ export async function updateGrievance(req: Request, res: Response) {
       });
     }
 
+    console.log("About to update grievance with validated data:", validationResult.data);
+    
     // Update the grievance
     const updatedGrievance = await storage.updateGrievance(
       id,
       validationResult.data
     );
+
+    console.log("Grievance updated successfully:", updatedGrievance);
+    console.log("Checking history creation conditions:", {
+      statusIdDefined: validationResult.data.statusId !== undefined,
+      assignedToUserIdDefined: validationResult.data.assignedToUserId !== undefined,
+      statusId: validationResult.data.statusId,
+      assignedToUserId: validationResult.data.assignedToUserId
+    });
 
     // Create history entry for any status or assignment changes
     if (validationResult.data.statusId !== undefined || validationResult.data.assignedToUserId !== undefined) {
