@@ -7,6 +7,7 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import { AuthRequest } from '../types';
 import { fileURLToPath } from 'url';
+import { modelDownloadManager } from '../services/modelDownloadManager';
 
 // Handle ES modules vs CommonJS for __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -72,22 +73,21 @@ export const getSupportedLanguages = (req: Request, res: Response) => {
  */
 export const checkModelAvailability = (req: Request, res: Response) => {
   try {
-    // Check if models directory exists
-    const modelExists = fs.existsSync(TRANSLATION_MODELS_PATH);
+    const modelStatus = modelDownloadManager.getModelStatus();
+    const downloadProgress = modelDownloadManager.getAllDownloadProgress();
+    const verificationResults = modelDownloadManager.verifyModels();
     
-    // Check for required model files (simplified check)
-    let modelsReady = false;
-    if (modelExists) {
-      const enIndicModel = path.join(TRANSLATION_MODELS_PATH, 'en-indic');
-      const indicEnModel = path.join(TRANSLATION_MODELS_PATH, 'indic-en');
-      
-      modelsReady = fs.existsSync(enIndicModel) && fs.existsSync(indicEnModel);
-    }
+    const modelsReady = Object.values(verificationResults).every(ready => ready);
+    const anyModelDownloaded = Object.values(verificationResults).some(ready => ready);
     
     res.status(200).json({
-      modelsAvailable: modelExists,
+      modelsAvailable: anyModelDownloaded,
       modelsReady: modelsReady,
-      modelsPath: TRANSLATION_MODELS_PATH
+      modelsPath: modelStatus.modelsDir,
+      totalStorageRequired: modelStatus.totalSize,
+      models: modelStatus.models,
+      downloadProgress: downloadProgress,
+      verification: verificationResults
     });
   } catch (error) {
     console.error('Error checking model availability:', error);
@@ -96,28 +96,58 @@ export const checkModelAvailability = (req: Request, res: Response) => {
 };
 
 /**
- * Download IndicTrans2 models (this would be a long-running process)
- * In a production environment, this would be handled by a separate process/service
+ * Download IndicTrans2 models with progress tracking
  */
-export const downloadModels = (req: Request, res: Response) => {
+export const downloadModels = async (req: Request, res: Response) => {
   try {
-    // In a real implementation, you would:
-    // 1. Create models directory if it doesn't exist
-    if (!fs.existsSync(TRANSLATION_MODELS_PATH)) {
-      fs.mkdirSync(TRANSLATION_MODELS_PATH, { recursive: true });
+    const { modelId, downloadAll } = req.body;
+    
+    if (downloadAll) {
+      // Start downloading all models
+      res.status(202).json({
+        message: 'All models download initiated',
+        status: 'downloading',
+        estimatedTimeMinutes: 45,
+        totalModels: 3
+      });
+      
+      // Start the download process in the background
+      modelDownloadManager.downloadAllModels().catch(error => {
+        console.error('Error downloading all models:', error);
+      });
+    } else if (modelId) {
+      // Download specific model
+      const modelStatus = modelDownloadManager.getModelStatus();
+      const model = modelStatus.models.find(m => m.id === modelId);
+      
+      if (!model) {
+        return res.status(400).json({ message: 'Invalid model ID' });
+      }
+      
+      if (model.downloaded) {
+        return res.status(200).json({ 
+          message: 'Model already downloaded',
+          modelId,
+          status: 'completed'
+        });
+      }
+      
+      res.status(202).json({
+        message: `Model ${modelId} download initiated`,
+        status: 'downloading',
+        modelId,
+        estimatedTimeMinutes: 15
+      });
+      
+      // Start the download process in the background
+      modelDownloadManager.downloadModel(modelId).catch(error => {
+        console.error(`Error downloading model ${modelId}:`, error);
+      });
+    } else {
+      return res.status(400).json({ 
+        message: 'Please specify modelId or set downloadAll to true' 
+      });
     }
-    
-    // 2. Start a background process to download models
-    // This is a simplified example that simulates model download with a timeout
-    // In a real app, use a task queue like Bull or a separate process
-    res.status(202).json({
-      message: 'Model download initiated',
-      status: 'downloading',
-      estimatedTimeMinutes: 30
-    });
-    
-    // Note: In a real implementation, you would use a proper download mechanism
-    // and track progress in a database or file
   } catch (error) {
     console.error('Error initiating model download:', error);
     res.status(500).json({ message: 'Failed to initiate model download' });

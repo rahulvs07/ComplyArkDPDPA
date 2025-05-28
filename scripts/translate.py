@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """
-IndicTrans2 Translation Script (Simplified Version)
+IndicTrans2 Translation Script
 
 This script provides a command-line interface for translating text
 using the IndicTrans2 model. It supports all 22 scheduled Indian languages.
+Can work in both simulation mode and actual model mode.
 
 Usage:
   python translate.py --text "Text to translate" --target_lang "hin_Deva"
+  python translate.py --text "Text to translate" --target_lang "hin_Deva" --use_model
 """
 
 import argparse
 import json
 import sys
+import os
+from pathlib import Path
 
 def get_supported_languages():
     """Return a list of supported languages."""

@@ -656,6 +656,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/translations/languages', getSupportedLanguages);
   app.get('/api/translations/model-status', checkModelAvailability);
   app.post('/api/translations/download-models', isAuthenticated, downloadModels);
+  app.get('/api/translations/download-progress', isAuthenticated, (req, res) => {
+    try {
+      const progress = require('./services/modelDownloadManager').modelDownloadManager.getAllDownloadProgress();
+      res.status(200).json(progress);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to get download progress' });
+    }
+  });
   app.post('/api/translations/translate', isAuthenticated, translateNotice);
   app.get('/api/translations/notice/:noticeId', isAuthenticated, getNoticeTranslations);
   
