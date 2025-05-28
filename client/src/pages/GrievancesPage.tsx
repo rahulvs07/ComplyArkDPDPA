@@ -478,25 +478,6 @@ export default function GrievancesPage() {
         return <div>{date.toLocaleDateString()}</div>;
       },
     },
-    {
-      header: "Actions",
-      cell: ({ row }: any) => (
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleViewGrievance(row.original.grievanceId);
-            }}
-            className="h-8 w-8 p-0"
-          >
-            <FileEdit className="h-4 w-4" />
-            <span className="sr-only">View Details</span>
-          </Button>
-        </div>
-      ),
-    },
   ];
   
   return (
@@ -571,7 +552,6 @@ export default function GrievancesPage() {
             <DataTable
               columns={columns}
               data={grievances}
-              onView={handleViewGrievance}
               onRowClick={handleViewGrievance}
               searchable={false} // We're handling search manually
               pagination={true}
