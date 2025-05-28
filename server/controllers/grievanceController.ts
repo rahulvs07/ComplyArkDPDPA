@@ -150,10 +150,33 @@ export async function getGrievanceHistory(req: AuthRequest, res: Response) {
 }
 
 // Update a grievance
-export async function updateGrievance(req: Request, res: Response) {
+export async function updateGrievance(req: any, res: Response) {
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     return res.status(400).json({ message: "Invalid grievance ID" });
+  }
+
+  // Ensure user is authenticated (fallback check)
+  if (!req.user && req.session && req.session.userId) {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (user && user.isActive) {
+        req.user = {
+          id: user.id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          organizationId: user.organizationId,
+          role: user.role
+        };
+      }
+    } catch (error) {
+      console.error("Auth fallback failed in grievance update:", error);
+    }
+  }
+
+  if (!req.user) {
+    return res.status(403).json({ message: "Authentication required to update grievances" });
   }
 
   try {

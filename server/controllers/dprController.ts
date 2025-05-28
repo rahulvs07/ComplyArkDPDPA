@@ -168,6 +168,29 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ message: "Invalid request ID" });
   }
   
+  // Ensure user is authenticated (fallback check)
+  if (!req.user && req.session && req.session.userId) {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (user && user.isActive) {
+        req.user = {
+          id: user.id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          organizationId: user.organizationId,
+          role: user.role
+        };
+      }
+    } catch (error) {
+      console.error("Auth fallback failed:", error);
+    }
+  }
+  
+  if (!req.user) {
+    return res.status(403).json({ message: "Authentication required to update requests" });
+  }
+  
   try {
     const request = await storage.getDPRequest(requestId);
     
