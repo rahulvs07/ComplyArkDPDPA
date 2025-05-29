@@ -306,9 +306,9 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
     console.log('About to update DPR with data:', updateData);
     
     // Update the request using the prepared data
-    const updatedRequest = await storage.updateDPRequest(requestId, updateData);
+    const updatedDPRequest = await storage.updateDPRequest(requestId, updateData);
     
-    if (!updatedRequest) {
+    if (!updatedDPRequest) {
       await storage.createExceptionLog({
         pageName: 'DPR Controller',
         functionName: 'updateDPRequest',
@@ -320,7 +320,7 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "Failed to update request" });
     }
     
-    console.log('DPR updated successfully:', updatedRequest);
+    console.log('DPR updated successfully:', updatedDPRequest);
     
     // Create history entry
     const historyData = {
@@ -351,7 +351,7 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
       });
     }
     
-    return res.json(updatedRequest);
+    return res.json(updatedDPRequest);
   } catch (error) {
     console.error("Update DPRequest error:", error);
     await storage.createExceptionLog({
