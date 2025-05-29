@@ -49,8 +49,13 @@ This guide provides step-by-step instructions to migrate the ComplyArk applicati
 1. Open SSMS and connect to your SQL Server instance
 2. Right-click on "Databases" → "New Database"
 3. Name it `ComplyArkDB`
-4. Execute the schema creation script: `01-create-schema.sql`
-5. Execute the sample data script: `02-insert-sample-data.sql`
+4. Execute the SQL scripts in order:
+   - `01-create-schema.sql` (Tables and basic structure)
+   - `02-insert-sample-data.sql` (Sample data and test users)
+   - `03-stored-procedures.sql` (Business logic procedures and functions)
+   - `04-views-and-security.sql` (Reporting views and security features)
+   
+   **Alternative:** Execute `05-master-setup.sql` (combines all scripts in one file)
 
 ### Step 4: Configure the Application
 1. Clone or copy the application code to your local machine
