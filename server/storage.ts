@@ -296,6 +296,25 @@ class MemStorage {
       canEdit: false,
       canDelete: false
     });
+
+    // Add a test DPR request for organization 33 to test update functionality
+    this.createDPRequest({
+      organizationId: 33,
+      firstName: "Test",
+      lastName: "User",
+      email: "test@example.com",
+      phone: "1234567890",
+      requestType: "Access",
+      requestComment: "Test request for update functionality testing",
+      statusId: 35, // Submitted
+      assignedToUserId: null,
+      createdAt: new Date(),
+      lastUpdatedAt: new Date(),
+      completionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      completedOnTime: null,
+      closedDateTime: null,
+      closureComments: null
+    });
   }
 
   // User operations
