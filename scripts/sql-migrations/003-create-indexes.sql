@@ -11,12 +11,12 @@ CREATE NONCLUSTERED INDEX IX_users_username ON users(username);
 CREATE NONCLUSTERED INDEX IX_users_role ON users(role);
 
 -- DP Requests indexes
-CREATE NONCLUSTERED INDEX IX_dp_requests_organizationId ON dp_requests(organizationId);
-CREATE NONCLUSTERED INDEX IX_dp_requests_statusId ON dp_requests(statusId);
-CREATE NONCLUSTERED INDEX IX_dp_requests_assignedToUserId ON dp_requests(assignedToUserId);
-CREATE NONCLUSTERED INDEX IX_dp_requests_createdAt ON dp_requests(createdAt);
-CREATE NONCLUSTERED INDEX IX_dp_requests_lastUpdatedAt ON dp_requests(lastUpdatedAt);
-CREATE NONCLUSTERED INDEX IX_dp_requests_requestType ON dp_requests(requestType);
+CREATE NONCLUSTERED INDEX IX_dpRequests_organizationId ON dpRequests(organizationId);
+CREATE NONCLUSTERED INDEX IX_dpRequests_statusId ON dpRequests(statusId);
+CREATE NONCLUSTERED INDEX IX_dpRequests_assignedToUserId ON dpRequests(assignedToUserId);
+CREATE NONCLUSTERED INDEX IX_dpRequests_createdAt ON dpRequests(createdAt);
+CREATE NONCLUSTERED INDEX IX_dpRequests_lastUpdatedAt ON dpRequests(lastUpdatedAt);
+CREATE NONCLUSTERED INDEX IX_dpRequests_requestType ON dpRequests(requestType);
 
 -- Grievances indexes
 CREATE NONCLUSTERED INDEX IX_grievances_organizationId ON grievances(organizationId);
@@ -26,30 +26,30 @@ CREATE NONCLUSTERED INDEX IX_grievances_createdAt ON grievances(createdAt);
 CREATE NONCLUSTERED INDEX IX_grievances_lastUpdatedAt ON grievances(lastUpdatedAt);
 
 -- History tables indexes
-CREATE NONCLUSTERED INDEX IX_dpr_request_history_requestId ON dpr_request_history(requestId);
-CREATE NONCLUSTERED INDEX IX_dpr_request_history_changeDate ON dpr_request_history(changeDate);
-CREATE NONCLUSTERED INDEX IX_dpr_request_history_changedByUserId ON dpr_request_history(changedByUserId);
+CREATE NONCLUSTERED INDEX IX_dpRequestHistory_requestId ON dpRequestHistory(requestId);
+CREATE NONCLUSTERED INDEX IX_dpRequestHistory_changeDate ON dpRequestHistory(changeDate);
+CREATE NONCLUSTERED INDEX IX_dpRequestHistory_changedByUserId ON dpRequestHistory(changedByUserId);
 
-CREATE NONCLUSTERED INDEX IX_grievance_history_grievanceId ON grievance_history(grievanceId);
-CREATE NONCLUSTERED INDEX IX_grievance_history_changeDate ON grievance_history(changeDate);
-CREATE NONCLUSTERED INDEX IX_grievance_history_changedByUserId ON grievance_history(changedByUserId);
+CREATE NONCLUSTERED INDEX IX_grievanceHistory_grievanceId ON grievanceHistory(grievanceId);
+CREATE NONCLUSTERED INDEX IX_grievanceHistory_changeDate ON grievanceHistory(changeDate);
+CREATE NONCLUSTERED INDEX IX_grievanceHistory_changedByUserId ON grievanceHistory(changedByUserId);
 
--- Notifications indexes
-CREATE NONCLUSTERED INDEX IX_notifications_userId ON notifications(userId);
-CREATE NONCLUSTERED INDEX IX_notifications_organizationId ON notifications(organizationId);
-CREATE NONCLUSTERED INDEX IX_notifications_isRead ON notifications(isRead);
-CREATE NONCLUSTERED INDEX IX_notifications_createdAt ON notifications(createdAt);
+-- Notification logs indexes
+CREATE NONCLUSTERED INDEX IX_notification_logs_user_id ON notification_logs(user_id);
+CREATE NONCLUSTERED INDEX IX_notification_logs_organization_id ON notification_logs(organization_id);
+CREATE NONCLUSTERED INDEX IX_notification_logs_is_read ON notification_logs(is_read);
+CREATE NONCLUSTERED INDEX IX_notification_logs_timestamp ON notification_logs(timestamp);
 
 -- Exception logs indexes
-CREATE NONCLUSTERED INDEX IX_exception_logs_createdAt ON exception_logs(createdAt);
-CREATE NONCLUSTERED INDEX IX_exception_logs_severity ON exception_logs(severity);
-CREATE NONCLUSTERED INDEX IX_exception_logs_isResolved ON exception_logs(isResolved);
-CREATE NONCLUSTERED INDEX IX_exception_logs_userId ON exception_logs(userId);
+CREATE NONCLUSTERED INDEX IX_exceptionLogs_createdAt ON exceptionLogs(createdAt);
+CREATE NONCLUSTERED INDEX IX_exceptionLogs_severity ON exceptionLogs(severity);
+CREATE NONCLUSTERED INDEX IX_exceptionLogs_status ON exceptionLogs(status);
+CREATE NONCLUSTERED INDEX IX_exceptionLogs_userId ON exceptionLogs(userId);
 
 -- Compliance documents indexes
-CREATE NONCLUSTERED INDEX IX_compliance_documents_organizationId ON compliance_documents(organizationId);
-CREATE NONCLUSTERED INDEX IX_compliance_documents_uploadedBy ON compliance_documents(uploadedBy);
-CREATE NONCLUSTERED INDEX IX_compliance_documents_uploadedAt ON compliance_documents(uploadedAt);
+CREATE NONCLUSTERED INDEX IX_complianceDocuments_organizationId ON complianceDocuments(organizationId);
+CREATE NONCLUSTERED INDEX IX_complianceDocuments_uploadedBy ON complianceDocuments(uploadedBy);
+CREATE NONCLUSTERED INDEX IX_complianceDocuments_uploadedAt ON complianceDocuments(uploadedAt);
 
 -- Notices indexes
 CREATE NONCLUSTERED INDEX IX_notices_organizationId ON notices(organizationId);

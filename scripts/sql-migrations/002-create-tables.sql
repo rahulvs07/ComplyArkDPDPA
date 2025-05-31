@@ -4,18 +4,20 @@
 USE ComplyArkDB;
 GO
 
--- Drop existing tables in reverse dependency order if they exist
-IF OBJECT_ID('dpr_request_history', 'U') IS NOT NULL DROP TABLE dpr_request_history;
-IF OBJECT_ID('grievance_history', 'U') IS NOT NULL DROP TABLE grievance_history;
-IF OBJECT_ID('translated_notices', 'U') IS NOT NULL DROP TABLE translated_notices;
+-- Drop existing tables in reverse dependency order if they exist (17 tables total)
+IF OBJECT_ID('dpRequestHistory', 'U') IS NOT NULL DROP TABLE dpRequestHistory;
+IF OBJECT_ID('grievanceHistory', 'U') IS NOT NULL DROP TABLE grievanceHistory;
+IF OBJECT_ID('translatedNotices', 'U') IS NOT NULL DROP TABLE translatedNotices;
 IF OBJECT_ID('notices', 'U') IS NOT NULL DROP TABLE notices;
-IF OBJECT_ID('email_templates', 'U') IS NOT NULL DROP TABLE email_templates;
-IF OBJECT_ID('exception_logs', 'U') IS NOT NULL DROP TABLE exception_logs;
-IF OBJECT_ID('notifications', 'U') IS NOT NULL DROP TABLE notifications;
-IF OBJECT_ID('compliance_documents', 'U') IS NOT NULL DROP TABLE compliance_documents;
+IF OBJECT_ID('emailTemplates', 'U') IS NOT NULL DROP TABLE emailTemplates;
+IF OBJECT_ID('emailSettings', 'U') IS NOT NULL DROP TABLE emailSettings;
+IF OBJECT_ID('otpVerifications', 'U') IS NOT NULL DROP TABLE otpVerifications;
+IF OBJECT_ID('exceptionLogs', 'U') IS NOT NULL DROP TABLE exceptionLogs;
+IF OBJECT_ID('notification_logs', 'U') IS NOT NULL DROP TABLE notification_logs;
+IF OBJECT_ID('complianceDocuments', 'U') IS NOT NULL DROP TABLE complianceDocuments;
 IF OBJECT_ID('grievances', 'U') IS NOT NULL DROP TABLE grievances;
-IF OBJECT_ID('dp_requests', 'U') IS NOT NULL DROP TABLE dp_requests;
-IF OBJECT_ID('request_statuses', 'U') IS NOT NULL DROP TABLE request_statuses;
+IF OBJECT_ID('dpRequests', 'U') IS NOT NULL DROP TABLE dpRequests;
+IF OBJECT_ID('requestStatuses', 'U') IS NOT NULL DROP TABLE requestStatuses;
 IF OBJECT_ID('users', 'U') IS NOT NULL DROP TABLE users;
 IF OBJECT_ID('organizations', 'U') IS NOT NULL DROP TABLE organizations;
 IF OBJECT_ID('templates', 'U') IS NOT NULL DROP TABLE templates;
@@ -72,7 +74,7 @@ CREATE TABLE templates (
 );
 
 -- Request Statuses Table
-CREATE TABLE request_statuses (
+CREATE TABLE requestStatuses (
     statusId INT IDENTITY(1,1) PRIMARY KEY,
     statusName NVARCHAR(100) NOT NULL UNIQUE,
     slaDays INT NOT NULL DEFAULT 30,
@@ -80,25 +82,25 @@ CREATE TABLE request_statuses (
 );
 
 -- DP Requests Table (matches current schema exactly)
-CREATE TABLE dp_requests (
+CREATE TABLE dpRequests (
     requestId INT IDENTITY(1,1) PRIMARY KEY,
     organizationId INT NOT NULL,
     firstName NVARCHAR(100) NOT NULL,
     lastName NVARCHAR(100) NOT NULL,
     email NVARCHAR(255) NOT NULL,
     phone NVARCHAR(50) NOT NULL,
-    requestType NVARCHAR(100) NOT NULL,
-    requestComment NVARCHAR(MAX) NOT NULL,
+    requestType NVARCHAR(100) NOT NULL CHECK (requestType IN ('Access', 'Correction', 'Nomination', 'Erasure')),
+    requestComment NVARCHAR(MAX),
     statusId INT NOT NULL,
     assignedToUserId INT,
     createdAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    lastUpdatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
+    lastUpdatedAt DATETIME2,
     completionDate DATE,
     completedOnTime BIT,
     closedDateTime DATETIME2,
     closureComments NVARCHAR(MAX),
     FOREIGN KEY (organizationId) REFERENCES organizations(id),
-    FOREIGN KEY (statusId) REFERENCES request_statuses(statusId),
+    FOREIGN KEY (statusId) REFERENCES requestStatuses(statusId),
     FOREIGN KEY (assignedToUserId) REFERENCES users(id)
 );
 
@@ -120,12 +122,12 @@ CREATE TABLE grievances (
     closedDateTime DATETIME2,
     closureComments NVARCHAR(MAX),
     FOREIGN KEY (organizationId) REFERENCES organizations(id),
-    FOREIGN KEY (statusId) REFERENCES request_statuses(statusId),
+    FOREIGN KEY (statusId) REFERENCES requestStatuses(statusId),
     FOREIGN KEY (assignedToUserId) REFERENCES users(id)
 );
 
 -- DP Request History Table
-CREATE TABLE dpr_request_history (
+CREATE TABLE dpRequestHistory (
     historyId INT IDENTITY(1,1) PRIMARY KEY,
     requestId INT NOT NULL,
     changeDate DATETIME2 NOT NULL DEFAULT GETDATE(),
@@ -135,16 +137,38 @@ CREATE TABLE dpr_request_history (
     oldAssignedToUserId INT,
     newAssignedToUserId INT,
     comments NVARCHAR(MAX),
-    FOREIGN KEY (requestId) REFERENCES dp_requests(requestId),
+    FOREIGN KEY (requestId) REFERENCES dpRequests(requestId),
     FOREIGN KEY (changedByUserId) REFERENCES users(id),
-    FOREIGN KEY (oldStatusId) REFERENCES request_statuses(statusId),
-    FOREIGN KEY (newStatusId) REFERENCES request_statuses(statusId),
+    FOREIGN KEY (oldStatusId) REFERENCES requestStatuses(statusId),
+    FOREIGN KEY (newStatusId) REFERENCES requestStatuses(statusId),
     FOREIGN KEY (oldAssignedToUserId) REFERENCES users(id),
     FOREIGN KEY (newAssignedToUserId) REFERENCES users(id)
 );
 
+-- Grievances Table
+CREATE TABLE grievances (
+    grievanceId INT IDENTITY(1,1) PRIMARY KEY,
+    organizationId INT NOT NULL,
+    firstName NVARCHAR(100) NOT NULL,
+    lastName NVARCHAR(100) NOT NULL,
+    email NVARCHAR(255) NOT NULL,
+    phone NVARCHAR(50) NOT NULL,
+    grievanceComment NVARCHAR(MAX) NOT NULL,
+    statusId INT NOT NULL,
+    assignedToUserId INT,
+    createdAt DATETIME2 NOT NULL DEFAULT GETDATE(),
+    lastUpdatedAt DATETIME2,
+    completionDate DATE,
+    completedOnTime BIT,
+    closedDateTime DATETIME2,
+    closureComments NVARCHAR(MAX),
+    FOREIGN KEY (organizationId) REFERENCES organizations(id),
+    FOREIGN KEY (statusId) REFERENCES requestStatuses(statusId),
+    FOREIGN KEY (assignedToUserId) REFERENCES users(id)
+);
+
 -- Grievance History Table
-CREATE TABLE grievance_history (
+CREATE TABLE grievanceHistory (
     historyId INT IDENTITY(1,1) PRIMARY KEY,
     grievanceId INT NOT NULL,
     changeDate DATETIME2 NOT NULL DEFAULT GETDATE(),
@@ -156,78 +180,109 @@ CREATE TABLE grievance_history (
     comments NVARCHAR(MAX),
     FOREIGN KEY (grievanceId) REFERENCES grievances(grievanceId),
     FOREIGN KEY (changedByUserId) REFERENCES users(id),
-    FOREIGN KEY (oldStatusId) REFERENCES request_statuses(statusId),
-    FOREIGN KEY (newStatusId) REFERENCES request_statuses(statusId),
+    FOREIGN KEY (oldStatusId) REFERENCES requestStatuses(statusId),
+    FOREIGN KEY (newStatusId) REFERENCES requestStatuses(statusId),
     FOREIGN KEY (oldAssignedToUserId) REFERENCES users(id),
     FOREIGN KEY (newAssignedToUserId) REFERENCES users(id)
 );
 
 -- Compliance Documents Table
-CREATE TABLE compliance_documents (
+CREATE TABLE complianceDocuments (
     documentId INT IDENTITY(1,1) PRIMARY KEY,
     organizationId INT NOT NULL,
-    fileName NVARCHAR(255) NOT NULL,
-    filePath NVARCHAR(500) NOT NULL,
-    fileSize BIGINT NOT NULL,
-    mimeType NVARCHAR(100) NOT NULL,
+    documentName NVARCHAR(255) NOT NULL,
+    documentPath NVARCHAR(500) NOT NULL,
+    documentType NVARCHAR(100) NOT NULL,
     uploadedBy INT NOT NULL,
     uploadedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    description NVARCHAR(MAX),
-    isActive BIT NOT NULL DEFAULT 1,
+    folderPath NVARCHAR(500) NOT NULL,
     FOREIGN KEY (organizationId) REFERENCES organizations(id),
     FOREIGN KEY (uploadedBy) REFERENCES users(id)
 );
 
--- Notifications Table
-CREATE TABLE notifications (
-    notificationId INT IDENTITY(1,1) PRIMARY KEY,
-    userId INT NOT NULL,
-    organizationId INT NOT NULL,
-    title NVARCHAR(255) NOT NULL,
+-- Notification Logs Table (exact name from schema)
+CREATE TABLE notification_logs (
+    notification_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id INT NOT NULL,
+    organization_id INT NOT NULL,
+    module NVARCHAR(50) NOT NULL CHECK (module IN ('DPR', 'Grievance', 'Notice', 'Document', 'Admin')),
+    action NVARCHAR(100) NOT NULL,
+    action_type NVARCHAR(50) NOT NULL CHECK (action_type IN ('created', 'reassigned', 'updated', 'escalated', 'translated', 'closed', 'viewed')),
+    timestamp DATETIME2 NOT NULL DEFAULT GETDATE(),
+    status NVARCHAR(50) NOT NULL DEFAULT 'active',
+    initiator NVARCHAR(50) NOT NULL DEFAULT 'user',
     message NVARCHAR(MAX) NOT NULL,
-    type NVARCHAR(50) NOT NULL DEFAULT 'info' CHECK (type IN ('info', 'warning', 'error', 'success')),
-    isRead BIT NOT NULL DEFAULT 0,
-    createdAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    readAt DATETIME2,
-    FOREIGN KEY (userId) REFERENCES users(id),
+    is_read BIT NOT NULL DEFAULT 0,
+    related_item_id INT,
+    related_item_type NVARCHAR(50),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (organization_id) REFERENCES organizations(id)
+);
+
+-- Email Settings Table
+CREATE TABLE emailSettings (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    provider NVARCHAR(20) NOT NULL DEFAULT 'smtp' CHECK (provider IN ('smtp', 'sendgrid')),
+    fromEmail NVARCHAR(255) NOT NULL,
+    fromName NVARCHAR(255) NOT NULL,
+    smtpHost NVARCHAR(255),
+    smtpPort INT,
+    smtpUsername NVARCHAR(255),
+    smtpPassword NVARCHAR(255),
+    useTLS BIT DEFAULT 1,
+    sendgridApiKey NVARCHAR(500),
+    createdAt DATETIME2 DEFAULT GETDATE(),
+    updatedAt DATETIME2 DEFAULT GETDATE()
+);
+
+-- Email Templates Table
+CREATE TABLE emailTemplates (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(255) NOT NULL UNIQUE,
+    subject NVARCHAR(500) NOT NULL,
+    body NVARCHAR(MAX) NOT NULL,
+    createdAt DATETIME2 DEFAULT GETDATE(),
+    updatedAt DATETIME2 DEFAULT GETDATE()
+);
+
+-- OTP Verifications Table
+CREATE TABLE otpVerifications (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    token NVARCHAR(255) NOT NULL UNIQUE,
+    otp NVARCHAR(10) NOT NULL,
+    email NVARCHAR(255) NOT NULL,
+    organizationId INT,
+    expiresAt DATETIME2 NOT NULL,
+    createdAt DATETIME2 DEFAULT GETDATE(),
+    verified BIT DEFAULT 0,
+    verifiedAt DATETIME2,
     FOREIGN KEY (organizationId) REFERENCES organizations(id)
 );
 
 -- Exception Logs Table
-CREATE TABLE exception_logs (
+CREATE TABLE exceptionLogs (
     id INT IDENTITY(1,1) PRIMARY KEY,
     pageName NVARCHAR(255) NOT NULL,
     functionName NVARCHAR(255) NOT NULL,
     errorMessage NVARCHAR(MAX) NOT NULL,
+    stackTrace NVARCHAR(MAX),
     userId INT,
-    additionalDetails NVARCHAR(MAX),
-    severity NVARCHAR(20) NOT NULL DEFAULT 'error' CHECK (severity IN ('info', 'warning', 'error', 'critical')),
-    isResolved BIT NOT NULL DEFAULT 0,
+    organizationId INT,
+    browserInfo NVARCHAR(500),
+    url NVARCHAR(1000),
+    additionalInfo NVARCHAR(MAX),
+    severity NVARCHAR(20) NOT NULL DEFAULT 'medium' CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+    status NVARCHAR(20) NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'in_progress', 'resolved', 'ignored')),
     createdAt DATETIME2 NOT NULL DEFAULT GETDATE(),
     resolvedAt DATETIME2,
-    resolvedBy INT,
     FOREIGN KEY (userId) REFERENCES users(id),
-    FOREIGN KEY (resolvedBy) REFERENCES users(id)
-);
-
--- Email Templates Table
-CREATE TABLE email_templates (
-    templateId INT IDENTITY(1,1) PRIMARY KEY,
-    templateName NVARCHAR(255) NOT NULL UNIQUE,
-    subject NVARCHAR(500) NOT NULL,
-    htmlBody NVARCHAR(MAX) NOT NULL,
-    textBody NVARCHAR(MAX),
-    templateType NVARCHAR(50) NOT NULL DEFAULT 'general' CHECK (templateType IN ('otp', 'notification', 'general')),
-    isActive BIT NOT NULL DEFAULT 1,
-    createdAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    updatedAt DATETIME2 NOT NULL DEFAULT GETDATE()
+    FOREIGN KEY (organizationId) REFERENCES organizations(id)
 );
 
 -- Notices Table
 CREATE TABLE notices (
     noticeId INT IDENTITY(1,1) PRIMARY KEY,
     organizationId INT NOT NULL,
-    templateId INT NOT NULL,
     noticeName NVARCHAR(255) NOT NULL,
     noticeBody NVARCHAR(MAX) NOT NULL,
     createdBy INT NOT NULL,
@@ -236,12 +291,11 @@ CREATE TABLE notices (
     version NVARCHAR(50),
     folderLocation NVARCHAR(500),
     FOREIGN KEY (organizationId) REFERENCES organizations(id),
-    FOREIGN KEY (templateId) REFERENCES templates(templateId),
     FOREIGN KEY (createdBy) REFERENCES users(id)
 );
 
 -- Translated Notices Table
-CREATE TABLE translated_notices (
+CREATE TABLE translatedNotices (
     id INT IDENTITY(1,1) PRIMARY KEY,
     organizationId INT NOT NULL,
     noticeId INT NOT NULL,
