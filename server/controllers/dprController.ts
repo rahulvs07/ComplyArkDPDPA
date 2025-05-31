@@ -189,62 +189,59 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: "You don't have access to this request" });
     }
     
-    const { statusId, assignedToUserId, comments } = req.body;
+    const { statusId, assignedToUserId, comments, closureComments } = req.body;
     
     console.log('Processing DPR update - Status:', statusId, 'Current:', request.statusId, 'Comments:', comments);
     
-    // Prepare update data - using grievance pattern
+    // Prepare update data and history entry
     const updateData: any = {};
+    const historyEntry: any = {
+      requestId: requestId,
+      changedByUserId: req.user!.id,
+      oldStatusId: request.statusId,
+      newStatusId: request.statusId,
+      oldAssignedToUserId: request.assignedToUserId,
+      newAssignedToUserId: request.assignedToUserId,
+      comments: comments || null,
+      changeDate: new Date()
+    };
     
     // Handle status change
     if (statusId !== undefined) {
       updateData.statusId = parseInt(statusId);
       updateData.lastUpdatedAt = new Date();
+      historyEntry.newStatusId = parseInt(statusId);
     }
     
     // Handle assignment change (only for admin users)
-    if (assignedToUserId !== undefined && req.user.role !== 'user') {
+    if (assignedToUserId !== undefined && req.user!.role !== 'user') {
       updateData.assignedToUserId = assignedToUserId ? parseInt(assignedToUserId) : null;
+      historyEntry.newAssignedToUserId = assignedToUserId ? parseInt(assignedToUserId) : null;
     }
     
-    // Status change
-    if (statusId !== undefined && statusId !== request.statusId) {
-      const newStatus = await storage.getRequestStatus(statusId);
+    // Handle closure comments if closing
+    if (statusId !== undefined && parseInt(statusId) !== request.statusId) {
+      const newStatus = await storage.getRequestStatus(parseInt(statusId));
       
       if (!newStatus) {
         return res.status(400).json({ message: "Invalid status ID" });
       }
       
-      changes.statusId = statusId;
-      historyEntry.oldStatusId = request.statusId;
-      historyEntry.newStatusId = statusId;
-      
-      // If closing request
+      // If closing request, require closure comments
       if (newStatus.statusName === 'Closed') {
         if (!closureComments) {
           return res.status(400).json({ message: "Closure comments are required when closing a request" });
         }
-        
-        changes.closureComments = closureComments;
-        changes.closedDateTime = new Date();
-        
-        // Determine if completed on time
-        if (request.completionDate) {
-          const completionDate = new Date(request.completionDate);
-          changes.completedOnTime = new Date() <= completionDate;
-        } else {
-          changes.completedOnTime = false;
-        }
-        
+        updateData.closureComments = closureComments;
+        updateData.closedDateTime = new Date();
         historyEntry.comments = closureComments;
       }
     }
     
-    // Assignment change
-    if (assignedToUserId !== undefined && assignedToUserId !== request.assignedToUserId) {
-      // Verify assignedToUserId exists and belongs to the same organization
-      if (assignedToUserId) {
-        const assignedUser = await storage.getUser(assignedToUserId);
+    // Validate assignment change
+    if (assignedToUserId !== undefined && req.user!.role !== 'user') {
+      if (assignedToUserId && parseInt(assignedToUserId) !== request.assignedToUserId) {
+        const assignedUser = await storage.getUser(parseInt(assignedToUserId));
         
         if (!assignedUser) {
           return res.status(400).json({ message: "Invalid user for assignment" });
@@ -254,69 +251,19 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
           return res.status(400).json({ message: "Cannot assign request to user from different organization" });
         }
       }
-      
-      changes.assignedToUserId = assignedToUserId;
-      historyEntry.oldAssignedToUserId = request.assignedToUserId;
-      historyEntry.newAssignedToUserId = assignedToUserId;
     }
     
-    // Only proceed if there are changes or comments (allow updates with just comments)
-    if (Object.keys(changes).length === 0 && (!comments || comments.trim() === '')) {
+    // Check if there are any actual changes
+    const hasChanges = Object.keys(updateData).length > 0 || (comments && comments.trim() !== '');
+    
+    if (!hasChanges) {
       return res.status(400).json({ message: "No changes to make" });
     }
     
     // Update the request
-    const updatedRequest = await storage.updateDPRequest(requestId, changes);
-    
-    // Add history entry
-    await storage.createDPRequestHistory(historyEntry);
-    
-    // Return updated request with additional info
-    const status = await storage.getRequestStatus(updatedRequest.statusId);
-    let assignedUser = null;
-    
-    if (updatedRequest.assignedToUserId) {
-      assignedUser = await storage.getUser(updatedRequest.assignedToUserId);
-    }
-    
-    // Check if there are actual changes or comments
-    const hasStatusChange = statusId !== undefined && parseInt(statusId) !== request.statusId;
-    const hasAssignmentChange = assignedToUserId !== undefined && req.user.role !== 'user' && 
-      (assignedToUserId ? parseInt(assignedToUserId) : null) !== request.assignedToUserId;
-    const hasComments = comments && comments.trim() !== '';
-    
-    console.log('=== DPR UPDATE VALIDATION ===');
-    console.log('Has status change:', hasStatusChange);
-    console.log('Has assignment change:', hasAssignmentChange);
-    console.log('Has comments:', hasComments);
-    
-    if (!hasStatusChange && !hasAssignmentChange && !hasComments) {
-      console.log('No changes detected, returning error');
-      await storage.createExceptionLog({
-        pageName: 'DPR Controller',
-        functionName: 'updateDPRequest',
-        errorMessage: `No changes to make for request ${requestId}. Status: ${statusId}(current: ${request.statusId}), Comments: ${comments}`,
-        userId: req.user.id,
-        additionalDetails: JSON.stringify({ requestId, statusId, currentStatus: request.statusId, comments }),
-        severity: 'warning'
-      });
-      return res.status(400).json({ message: "No changes to make" });
-    }
-    
-    console.log('About to update DPR with data:', updateData);
-    
-    // Update the request using the prepared data
     const updatedDPRequest = await storage.updateDPRequest(requestId, updateData);
     
     if (!updatedDPRequest) {
-      await storage.createExceptionLog({
-        pageName: 'DPR Controller',
-        functionName: 'updateDPRequest',
-        errorMessage: `Failed to update DPR request ${requestId}`,
-        userId: req.user.id,
-        additionalDetails: JSON.stringify({ requestId, updateData }),
-        severity: 'error'
-      });
       return res.status(404).json({ message: "Failed to update request" });
     }
     
@@ -325,7 +272,7 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
     // Create history entry
     const historyData = {
       requestId: requestId,
-      changedByUserId: req.user.id,
+      changedByUserId: req.user!.id,
       oldStatusId: request.statusId,
       newStatusId: statusId ? parseInt(statusId) : request.statusId,
       oldAssignedToUserId: request.assignedToUserId,
@@ -341,27 +288,11 @@ export const updateDPRequest = async (req: AuthRequest, res: Response) => {
       console.log('History created successfully');
     } catch (historyError) {
       console.error('Error creating history:', historyError);
-      await storage.createExceptionLog({
-        pageName: 'DPR Controller',
-        functionName: 'updateDPRequest',
-        errorMessage: `Failed to create history for DPR request ${requestId}: ${historyError.message}`,
-        userId: req.user.id,
-        additionalDetails: JSON.stringify({ requestId, historyData, error: historyError.message }),
-        severity: 'warning'
-      });
     }
     
     return res.json(updatedDPRequest);
   } catch (error) {
     console.error("Update DPRequest error:", error);
-    await storage.createExceptionLog({
-      pageName: 'DPR Controller',
-      functionName: 'updateDPRequest',
-      errorMessage: `Unexpected error updating DPR request ${requestId}: ${error.message}`,
-      userId: req.user?.id || null,
-      additionalDetails: JSON.stringify({ requestId, error: error.message, stack: error.stack }),
-      severity: 'error'
-    });
     return res.status(500).json({ message: "An error occurred while updating the request" });
   }
 };
