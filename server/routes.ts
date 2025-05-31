@@ -100,8 +100,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/grievances/:id', isAuthenticated, grievanceController.updateGrievance);
   
   // Public DPR routes (no authentication)
-  app.post('/api/public/verify-otp', dprController.verifyOTP);
-  app.post('/api/public/dpr', dprController.submitDPRequest);
+  app.post('/api/public/request-otp', (req, res) => dprController.requestOTP(req, res));
+  app.post('/api/public/verify-otp', (req, res) => dprController.verifyOTP(req, res));
+  app.post('/api/public/dpr', (req, res) => dprController.createPublicDPRequest(req, res));
+  
+  // Dashboard routes
+  app.get('/api/dashboard/stats', isAuthenticated, (req, res) => dprController.getDashboardStats(req, res));
+  app.get('/api/dashboard/activities', isAuthenticated, (req, res) => dprController.getRecentActivities(req, res));
+  app.get('/api/dashboard/recent-requests', isAuthenticated, dprController.getRecentRequests);
   
   // Request Status routes (viewing allowed for all users, management for admins)
   app.get('/api/request-statuses', isAuthenticated, requestStatusController.getRequestStatuses);

@@ -37,7 +37,6 @@ export interface IStorage {
   deleteUser(id: number): Promise<boolean>;
   listUsers(organizationId?: number): Promise<User[]>;
   getOrgAdmin(organizationId: number): Promise<User | undefined>;
-  getOrganizationUsers(organizationId: number): Promise<User[]>;
   
   // Notification operations
   getNotifications(organizationId: number, limit: number, offset: number): Promise<any[]>;
@@ -296,25 +295,6 @@ class MemStorage {
       canEdit: false,
       canDelete: false
     });
-
-    // Add a test DPR request for organization 33 to test update functionality
-    this.createDPRequest({
-      organizationId: 33,
-      firstName: "Test",
-      lastName: "User",
-      email: "test@example.com",
-      phone: "1234567890",
-      requestType: "Access",
-      requestComment: "Test request for update functionality testing",
-      statusId: 35, // Submitted
-      assignedToUserId: null,
-      createdAt: new Date(),
-      lastUpdatedAt: new Date(),
-      completionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      completedOnTime: null,
-      closedDateTime: null,
-      closureComments: null
-    });
   }
 
   // User operations
@@ -355,18 +335,6 @@ class MemStorage {
       return users.filter(user => user.organizationId === organizationId);
     }
     return users;
-  }
-
-  async getOrgAdmin(organizationId: number): Promise<User | undefined> {
-    return Array.from(this.usersData.values()).find(
-      user => user.organizationId === organizationId && user.role === 'admin'
-    );
-  }
-
-  async getOrganizationUsers(organizationId: number): Promise<User[]> {
-    return Array.from(this.usersData.values()).filter(
-      user => user.organizationId === organizationId
-    );
   }
 
   // Organization operations
@@ -577,32 +545,25 @@ class MemStorage {
   }
 
   async listDPRequests(organizationId: number, statusId?: number): Promise<DPRequest[]> {
-    const conditions = [eq(dpRequests.organizationId, organizationId)];
-    
-    if (statusId) {
-      conditions.push(eq(dpRequests.statusId, statusId));
-    }
-    
-    return db
+    let query = db
       .select()
       .from(dpRequests)
-      .where(and(...conditions))
-      .orderBy(desc(dpRequests.createdAt));
+      .where(eq(dpRequests.organizationId, organizationId));
+    
+    if (statusId) {
+      query = query.where(eq(dpRequests.statusId, statusId));
+    }
+    
+    return query.orderBy(desc(dpRequests.createdAt));
   }
 
-  // DP Request History operations (Memory implementation)
+  // DP Request History operations (Database implementation)
   async createDPRequestHistory(history: InsertDPRequestHistory): Promise<DPRequestHistory> {
-    const historyId = this.currentDPRequestHistoryId++;
-    const changeDate = new Date();
-    const newHistory: DPRequestHistory = { ...history, historyId, changeDate };
-    this.dpRequestHistoryData.set(historyId, newHistory);
+    const [newHistory] = await db
+      .insert(dpRequestHistory)
+      .values(history)
+      .returning();
     return newHistory;
-  }
-
-  async getDPRequestHistory(requestId: number): Promise<DPRequestHistory[]> {
-    return Array.from(this.dpRequestHistoryData.values())
-      .filter(history => history.requestId === requestId)
-      .sort((a, b) => new Date(b.changeDate).getTime() - new Date(a.changeDate).getTime());
   }
 
   async listDPRequestHistory(requestId: number): Promise<DPRequestHistory[]> {
