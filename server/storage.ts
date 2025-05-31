@@ -570,13 +570,19 @@ class MemStorage {
     return query.orderBy(desc(dpRequests.createdAt));
   }
 
-  // DP Request History operations (Database implementation)
+  // DP Request History operations (Memory implementation)
   async createDPRequestHistory(history: InsertDPRequestHistory): Promise<DPRequestHistory> {
-    const [newHistory] = await db
-      .insert(dpRequestHistory)
-      .values(history)
-      .returning();
+    const historyId = this.currentDPRequestHistoryId++;
+    const changeDate = new Date();
+    const newHistory: DPRequestHistory = { ...history, historyId, changeDate };
+    this.dpRequestHistoryData.set(historyId, newHistory);
     return newHistory;
+  }
+
+  async getDPRequestHistory(requestId: number): Promise<DPRequestHistory[]> {
+    return Array.from(this.dpRequestHistoryData.values())
+      .filter(history => history.requestId === requestId)
+      .sort((a, b) => new Date(b.changeDate).getTime() - new Date(a.changeDate).getTime());
   }
 
   async listDPRequestHistory(requestId: number): Promise<DPRequestHistory[]> {
