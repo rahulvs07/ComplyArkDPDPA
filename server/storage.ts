@@ -577,16 +577,17 @@ class MemStorage {
   }
 
   async listDPRequests(organizationId: number, statusId?: number): Promise<DPRequest[]> {
-    let query = db
-      .select()
-      .from(dpRequests)
-      .where(eq(dpRequests.organizationId, organizationId));
+    const conditions = [eq(dpRequests.organizationId, organizationId)];
     
     if (statusId) {
-      query = query.where(eq(dpRequests.statusId, statusId));
+      conditions.push(eq(dpRequests.statusId, statusId));
     }
     
-    return query.orderBy(desc(dpRequests.createdAt));
+    return db
+      .select()
+      .from(dpRequests)
+      .where(and(...conditions))
+      .orderBy(desc(dpRequests.createdAt));
   }
 
   // DP Request History operations (Memory implementation)
