@@ -1,5 +1,7 @@
--- ComplyArk DPDPA Management Platform - MSSQL Table Creation
--- Script 002: Create All Tables with Proper Structure
+-- ===============================================
+-- ComplyArk MSSQL Database Tables Creation
+-- Exact column names matching current PostgreSQL schema
+-- ===============================================
 
 USE ComplyArkDB;
 GO
@@ -24,13 +26,13 @@ IF OBJECT_ID('templates', 'U') IS NOT NULL DROP TABLE templates;
 IF OBJECT_ID('industries', 'U') IS NOT NULL DROP TABLE industries;
 GO
 
--- Industries Table
+-- Industries Table (exact column names)
 CREATE TABLE industries (
     industryId INT IDENTITY(1,1) PRIMARY KEY,
     industryName NVARCHAR(255) NOT NULL UNIQUE
 );
 
--- Organizations Table
+-- Organizations Table (exact column names and order)
 CREATE TABLE organizations (
     id INT IDENTITY(1,1) PRIMARY KEY,
     businessName NVARCHAR(255) NOT NULL,
@@ -39,13 +41,13 @@ CREATE TABLE organizations (
     contactPersonName NVARCHAR(255) NOT NULL,
     contactEmail NVARCHAR(255) NOT NULL,
     contactPhone NVARCHAR(50) NOT NULL,
-    noOfUsers INT NOT NULL DEFAULT 1,
+    noOfUsers INT NOT NULL,
     remarks NVARCHAR(MAX),
     requestPageUrlToken NVARCHAR(255),
     FOREIGN KEY (industryId) REFERENCES industries(industryId)
 );
 
--- Users Table
+-- Users Table (exact column names and order matching schema)
 CREATE TABLE users (
     id INT IDENTITY(1,1) PRIMARY KEY,
     username NVARCHAR(100) NOT NULL UNIQUE,
@@ -54,7 +56,7 @@ CREATE TABLE users (
     lastName NVARCHAR(100) NOT NULL,
     email NVARCHAR(255) NOT NULL,
     phone NVARCHAR(50) NOT NULL,
-    role NVARCHAR(20) NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user', 'superadmin')),
+    role NVARCHAR(20) NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
     organizationId INT NOT NULL,
     isActive BIT NOT NULL DEFAULT 1,
     createdAt DATETIME2 NOT NULL DEFAULT GETDATE(),
@@ -63,7 +65,7 @@ CREATE TABLE users (
     FOREIGN KEY (organizationId) REFERENCES organizations(id)
 );
 
--- Templates Table
+-- Templates Table (exact column names)
 CREATE TABLE templates (
     templateId INT IDENTITY(1,1) PRIMARY KEY,
     templateName NVARCHAR(255) NOT NULL,
@@ -73,15 +75,43 @@ CREATE TABLE templates (
     FOREIGN KEY (industryId) REFERENCES industries(industryId)
 );
 
--- Request Statuses Table
+-- Notices Table (exact column names and order)
+CREATE TABLE notices (
+    noticeId INT IDENTITY(1,1) PRIMARY KEY,
+    organizationId INT NOT NULL,
+    noticeName NVARCHAR(255) NOT NULL,
+    noticeBody NVARCHAR(MAX) NOT NULL,
+    createdBy INT NOT NULL,
+    createdOn DATETIME2 NOT NULL DEFAULT GETDATE(),
+    noticeType NVARCHAR(100),
+    version NVARCHAR(50),
+    folderLocation NVARCHAR(500),
+    FOREIGN KEY (organizationId) REFERENCES organizations(id),
+    FOREIGN KEY (createdBy) REFERENCES users(id)
+);
+
+-- Translated Notices Table (exact column names and order)
+CREATE TABLE translatedNotices (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    noticeId INT NOT NULL,
+    organizationId INT NOT NULL,
+    language NVARCHAR(50) NOT NULL,
+    translatedBody NVARCHAR(MAX) NOT NULL,
+    filePath NVARCHAR(500),
+    createdOn DATETIME2 NOT NULL DEFAULT GETDATE(),
+    FOREIGN KEY (noticeId) REFERENCES notices(noticeId),
+    FOREIGN KEY (organizationId) REFERENCES organizations(id)
+);
+
+-- Request Statuses Table (exact column names)
 CREATE TABLE requestStatuses (
     statusId INT IDENTITY(1,1) PRIMARY KEY,
-    statusName NVARCHAR(100) NOT NULL UNIQUE,
-    slaDays INT NOT NULL DEFAULT 30,
+    statusName NVARCHAR(100) NOT NULL,
+    slaDays INT NOT NULL,
     isActive BIT NOT NULL DEFAULT 1
 );
 
--- DP Requests Table (matches current schema exactly)
+-- DP Requests Table (exact column names and order)
 CREATE TABLE dpRequests (
     requestId INT IDENTITY(1,1) PRIMARY KEY,
     organizationId INT NOT NULL,
@@ -104,29 +134,7 @@ CREATE TABLE dpRequests (
     FOREIGN KEY (assignedToUserId) REFERENCES users(id)
 );
 
--- Grievances Table
-CREATE TABLE grievances (
-    grievanceId INT IDENTITY(1,1) PRIMARY KEY,
-    organizationId INT NOT NULL,
-    firstName NVARCHAR(100) NOT NULL,
-    lastName NVARCHAR(100) NOT NULL,
-    email NVARCHAR(255) NOT NULL,
-    phone NVARCHAR(50) NOT NULL,
-    statusId INT NOT NULL,
-    grievanceComment NVARCHAR(MAX) NOT NULL,
-    assignedToUserId INT,
-    createdAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    lastUpdatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    completionDate DATE,
-    completedOnTime BIT,
-    closedDateTime DATETIME2,
-    closureComments NVARCHAR(MAX),
-    FOREIGN KEY (organizationId) REFERENCES organizations(id),
-    FOREIGN KEY (statusId) REFERENCES requestStatuses(statusId),
-    FOREIGN KEY (assignedToUserId) REFERENCES users(id)
-);
-
--- DP Request History Table
+-- DP Request History Table (exact column names and order)
 CREATE TABLE dpRequestHistory (
     historyId INT IDENTITY(1,1) PRIMARY KEY,
     requestId INT NOT NULL,
@@ -145,7 +153,7 @@ CREATE TABLE dpRequestHistory (
     FOREIGN KEY (newAssignedToUserId) REFERENCES users(id)
 );
 
--- Grievances Table
+-- Grievances Table (exact column names and order)
 CREATE TABLE grievances (
     grievanceId INT IDENTITY(1,1) PRIMARY KEY,
     organizationId INT NOT NULL,
@@ -167,7 +175,7 @@ CREATE TABLE grievances (
     FOREIGN KEY (assignedToUserId) REFERENCES users(id)
 );
 
--- Grievance History Table
+-- Grievance History Table (exact column names and order)
 CREATE TABLE grievanceHistory (
     historyId INT IDENTITY(1,1) PRIMARY KEY,
     grievanceId INT NOT NULL,
@@ -186,21 +194,21 @@ CREATE TABLE grievanceHistory (
     FOREIGN KEY (newAssignedToUserId) REFERENCES users(id)
 );
 
--- Compliance Documents Table
+-- Compliance Documents Table (exact column names and order)
 CREATE TABLE complianceDocuments (
     documentId INT IDENTITY(1,1) PRIMARY KEY,
-    organizationId INT NOT NULL,
     documentName NVARCHAR(255) NOT NULL,
     documentPath NVARCHAR(500) NOT NULL,
     documentType NVARCHAR(100) NOT NULL,
     uploadedBy INT NOT NULL,
     uploadedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
+    organizationId INT NOT NULL,
     folderPath NVARCHAR(500) NOT NULL,
-    FOREIGN KEY (organizationId) REFERENCES organizations(id),
-    FOREIGN KEY (uploadedBy) REFERENCES users(id)
+    FOREIGN KEY (uploadedBy) REFERENCES users(id),
+    FOREIGN KEY (organizationId) REFERENCES organizations(id)
 );
 
--- Notification Logs Table (exact name from schema)
+-- Notification Logs Table (exact column names - note underscore format)
 CREATE TABLE notification_logs (
     notification_id INT IDENTITY(1,1) PRIMARY KEY,
     user_id INT NOT NULL,
@@ -219,7 +227,7 @@ CREATE TABLE notification_logs (
     FOREIGN KEY (organization_id) REFERENCES organizations(id)
 );
 
--- Email Settings Table
+-- Email Settings Table (exact column names and order)
 CREATE TABLE emailSettings (
     id INT IDENTITY(1,1) PRIMARY KEY,
     provider NVARCHAR(20) NOT NULL DEFAULT 'smtp' CHECK (provider IN ('smtp', 'sendgrid')),
@@ -235,7 +243,7 @@ CREATE TABLE emailSettings (
     updatedAt DATETIME2 DEFAULT GETDATE()
 );
 
--- Email Templates Table
+-- Email Templates Table (exact column names and order)
 CREATE TABLE emailTemplates (
     id INT IDENTITY(1,1) PRIMARY KEY,
     name NVARCHAR(255) NOT NULL UNIQUE,
@@ -245,7 +253,7 @@ CREATE TABLE emailTemplates (
     updatedAt DATETIME2 DEFAULT GETDATE()
 );
 
--- OTP Verifications Table
+-- OTP Verifications Table (exact column names and order)
 CREATE TABLE otpVerifications (
     id INT IDENTITY(1,1) PRIMARY KEY,
     token NVARCHAR(255) NOT NULL UNIQUE,
@@ -259,7 +267,7 @@ CREATE TABLE otpVerifications (
     FOREIGN KEY (organizationId) REFERENCES organizations(id)
 );
 
--- Exception Logs Table
+-- Exception Logs Table (exact column names and order)
 CREATE TABLE exceptionLogs (
     id INT IDENTITY(1,1) PRIMARY KEY,
     pageName NVARCHAR(255) NOT NULL,
@@ -279,33 +287,5 @@ CREATE TABLE exceptionLogs (
     FOREIGN KEY (organizationId) REFERENCES organizations(id)
 );
 
--- Notices Table
-CREATE TABLE notices (
-    noticeId INT IDENTITY(1,1) PRIMARY KEY,
-    organizationId INT NOT NULL,
-    noticeName NVARCHAR(255) NOT NULL,
-    noticeBody NVARCHAR(MAX) NOT NULL,
-    createdBy INT NOT NULL,
-    createdOn DATETIME2 NOT NULL DEFAULT GETDATE(),
-    noticeType NVARCHAR(100),
-    version NVARCHAR(50),
-    folderLocation NVARCHAR(500),
-    FOREIGN KEY (organizationId) REFERENCES organizations(id),
-    FOREIGN KEY (createdBy) REFERENCES users(id)
-);
-
--- Translated Notices Table
-CREATE TABLE translatedNotices (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    organizationId INT NOT NULL,
-    noticeId INT NOT NULL,
-    createdOn DATETIME2 NOT NULL DEFAULT GETDATE(),
-    language NVARCHAR(50) NOT NULL,
-    translatedBody NVARCHAR(MAX) NOT NULL,
-    filePath NVARCHAR(500),
-    FOREIGN KEY (organizationId) REFERENCES organizations(id),
-    FOREIGN KEY (noticeId) REFERENCES notices(noticeId)
-);
-
-PRINT 'All tables created successfully!';
+PRINT 'All 17 tables created successfully with exact column names!';
 GO
