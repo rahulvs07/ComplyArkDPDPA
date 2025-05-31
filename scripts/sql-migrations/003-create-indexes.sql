@@ -53,21 +53,31 @@ CREATE NONCLUSTERED INDEX IX_complianceDocuments_uploadedAt ON complianceDocumen
 
 -- Notices indexes
 CREATE NONCLUSTERED INDEX IX_notices_organizationId ON notices(organizationId);
-CREATE NONCLUSTERED INDEX IX_notices_templateId ON notices(templateId);
 CREATE NONCLUSTERED INDEX IX_notices_createdBy ON notices(createdBy);
 CREATE NONCLUSTERED INDEX IX_notices_createdOn ON notices(createdOn);
 
 -- Translated notices indexes
-CREATE NONCLUSTERED INDEX IX_translated_notices_organizationId ON translated_notices(organizationId);
-CREATE NONCLUSTERED INDEX IX_translated_notices_noticeId ON translated_notices(noticeId);
-CREATE NONCLUSTERED INDEX IX_translated_notices_language ON translated_notices(language);
+CREATE NONCLUSTERED INDEX IX_translatedNotices_organizationId ON translatedNotices(organizationId);
+CREATE NONCLUSTERED INDEX IX_translatedNotices_noticeId ON translatedNotices(noticeId);
+CREATE NONCLUSTERED INDEX IX_translatedNotices_language ON translatedNotices(language);
+
+-- Email Settings indexes
+CREATE NONCLUSTERED INDEX IX_emailSettings_provider ON emailSettings(provider);
+
+-- Email Templates indexes
+CREATE NONCLUSTERED INDEX IX_emailTemplates_name ON emailTemplates(name);
+
+-- OTP Verifications indexes
+CREATE NONCLUSTERED INDEX IX_otpVerifications_token ON otpVerifications(token);
+CREATE NONCLUSTERED INDEX IX_otpVerifications_email ON otpVerifications(email);
+CREATE NONCLUSTERED INDEX IX_otpVerifications_expiresAt ON otpVerifications(expiresAt);
 
 -- Composite indexes for common queries
-CREATE NONCLUSTERED INDEX IX_dp_requests_org_status ON dp_requests(organizationId, statusId);
-CREATE NONCLUSTERED INDEX IX_dp_requests_status_assigned ON dp_requests(statusId, assignedToUserId);
+CREATE NONCLUSTERED INDEX IX_dpRequests_org_status ON dpRequests(organizationId, statusId);
+CREATE NONCLUSTERED INDEX IX_dpRequests_status_assigned ON dpRequests(statusId, assignedToUserId);
 CREATE NONCLUSTERED INDEX IX_grievances_org_status ON grievances(organizationId, statusId);
 CREATE NONCLUSTERED INDEX IX_grievances_status_assigned ON grievances(statusId, assignedToUserId);
-CREATE NONCLUSTERED INDEX IX_notifications_user_read ON notifications(userId, isRead);
+CREATE NONCLUSTERED INDEX IX_notification_logs_user_read ON notification_logs(user_id, is_read);
 
 PRINT 'All indexes created successfully!';
 GO
