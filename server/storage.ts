@@ -37,6 +37,7 @@ export interface IStorage {
   deleteUser(id: number): Promise<boolean>;
   listUsers(organizationId?: number): Promise<User[]>;
   getOrgAdmin(organizationId: number): Promise<User | undefined>;
+  getOrganizationUsers(organizationId: number): Promise<User[]>;
   
   // Notification operations
   getNotifications(organizationId: number, limit: number, offset: number): Promise<any[]>;
@@ -335,6 +336,18 @@ class MemStorage {
       return users.filter(user => user.organizationId === organizationId);
     }
     return users;
+  }
+
+  async getOrgAdmin(organizationId: number): Promise<User | undefined> {
+    return Array.from(this.usersData.values()).find(
+      user => user.organizationId === organizationId && user.role === 'admin'
+    );
+  }
+
+  async getOrganizationUsers(organizationId: number): Promise<User[]> {
+    return Array.from(this.usersData.values()).filter(
+      user => user.organizationId === organizationId
+    );
   }
 
   // Organization operations
